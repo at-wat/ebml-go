@@ -255,3 +255,169 @@ func (i ElementType) String() string {
 		return "unknown"
 	}
 }
+
+// ElementTypeFromString converts string to ElementType
+func ElementTypeFromString(s string) (ElementType, error) {
+	switch s {
+	case "EBML":
+		return ElementEBML, nil
+	case "EBMLVersion":
+		return ElementEBMLVersion, nil
+	case "EBMLReadVersion":
+		return ElementEBMLReadVersion, nil
+	case "EBMLMaxIDLength":
+		return ElementEBMLMaxIDLength, nil
+	case "EBMLMaxSizeLength":
+		return ElementEBMLMaxSizeLength, nil
+	case "EBMLDocType":
+		return ElementEBMLDocType, nil
+	case "EBMLDocTypeVersion":
+		return ElementEBMLDocTypeVersion, nil
+	case "EBMLDocTypeReadVersion":
+		return ElementEBMLDocTypeReadVersion, nil
+	case "Void":
+		return ElementVoid, nil
+	case "Segment":
+		return ElementSegment, nil
+	case "SeekHead":
+		return ElementSeekHead, nil
+	case "Seek":
+		return ElementSeek, nil
+	case "SeekID":
+		return ElementSeekID, nil
+	case "SeekPosision":
+		return ElementSeekPosision, nil
+	case "Info":
+		return ElementInfo, nil
+	case "TimecodeScale":
+		return ElementTimecodeScale, nil
+	case "Duration":
+		return ElementDuration, nil
+	case "DateUTC":
+		return ElementDateUTC, nil
+	case "Title":
+		return ElementTitle, nil
+	case "MuxingApp":
+		return ElementMuxingApp, nil
+	case "WritingApp":
+		return ElementWritingApp, nil
+	case "Cluster":
+		return ElementCluster, nil
+	case "Timecode":
+		return ElementTimecode, nil
+	case "PrevSize":
+		return ElementPrevSize, nil
+	case "SimpleBlock":
+		return ElementSimpleBlock, nil
+	case "BlockGroup":
+		return ElementBlockGroup, nil
+	case "Block":
+		return ElementBlock, nil
+	case "BlockAdditions":
+		return ElementBlockAdditions, nil
+	case "BlockMore":
+		return ElementBlockMore, nil
+	case "BlockAddID":
+		return ElementBlockAddID, nil
+	case "BlockAdditional":
+		return ElementBlockAdditional, nil
+	case "BlockDuration":
+		return ElementBlockDuration, nil
+	case "ReferenceBlock":
+		return ElementReferenceBlock, nil
+	case "DiscardPadding":
+		return ElementDiscardPadding, nil
+	case "Tracks":
+		return ElementTracks, nil
+	case "TrackEntry":
+		return ElementTrackEntry, nil
+	case "TrackNumber":
+		return ElementTrackNumber, nil
+	case "TrackUID":
+		return ElementTrackUID, nil
+	case "TrackType":
+		return ElementTrackType, nil
+	case "FlagEnabled":
+		return ElementFlagEnabled, nil
+	case "FlagForced":
+		return ElementFlagForced, nil
+	case "FlagLacing":
+		return ElementFlagLacing, nil
+	case "DefaultDuration":
+		return ElementDefaultDuration, nil
+	case "Name":
+		return ElementName, nil
+	case "Language":
+		return ElementLanguage, nil
+	case "CodecID":
+		return ElementCodecID, nil
+	case "CodecPrivate":
+		return ElementCodecPrivate, nil
+	case "CodecName":
+		return ElementCodecName, nil
+	case "CodecDelay":
+		return ElementCodecDelay, nil
+	case "SeekPreRoll":
+		return ElementSeekPreRoll, nil
+	case "Video":
+		return ElementVideo, nil
+	case "FlagInterlaced":
+		return ElementFlagInterlaced, nil
+	case "StereoMode":
+		return ElementStereoMode, nil
+	case "AlphaMode":
+		return ElementAlphaMode, nil
+	case "PixelWidth":
+		return ElementPixelWidth, nil
+	case "PixelHeight":
+		return ElementPixelHeight, nil
+	case "PixelCropBottom":
+		return ElementPixelCropBottom, nil
+	case "PixelCropTop":
+		return ElementPixelCropTop, nil
+	case "PixelCropLeft":
+		return ElementPixelCropLeft, nil
+	case "PixelCropRight":
+		return ElementPixelCropRight, nil
+	case "DisplayWidth":
+		return ElementDisplayWidth, nil
+	case "DisplayHeight":
+		return ElementDisplayHeight, nil
+	case "DisplayUnit":
+		return ElementDisplayUnit, nil
+	case "AspectRatioType":
+		return ElementAspectRatioType, nil
+	case "Audio":
+		return ElementAudio, nil
+	case "SamplingFrequency":
+		return ElementSamplingFrequency, nil
+	case "OutputSamplingFrequency":
+		return ElementOutputSamplingFrequency, nil
+	case "Channels":
+		return ElementChannels, nil
+	case "BitDepth":
+		return ElementBitDepth, nil
+	case "ContentEncodings":
+		return ElementContentEncodings, nil
+	case "ContentEncoding":
+		return ElementContentEncoding, nil
+	case "ContentEncodingOrder":
+		return ElementContentEncodingOrder, nil
+	case "ContentEncodingScope":
+		return ElementContentEncodingScope, nil
+	case "ContentEncodingType":
+		return ElementContentEncodingType, nil
+	case "ContentEncryption":
+		return ElementContentEncryption, nil
+	case "ContentEncAlgo":
+		return ElementContentEncAlgo, nil
+	case "ContentEncKeyID":
+		return ElementContentEncKeyID, nil
+	case "ContentEncAESSettings":
+		return ElementContentEncAESSettings, nil
+	case "AESSettingsCipherMode":
+		return ElementAESSettingsCipherMode, nil
+	default:
+		return 0, nil
+	}
+}

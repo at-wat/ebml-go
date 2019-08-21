@@ -14,6 +14,7 @@ const (
 
 var (
 	errInvalidFloatSize = errors.New("Invalid float size")
+	errInvalidType      = errors.New("Invalid type")
 )
 
 var perTypeReader = map[Type]func(io.Reader, uint64) (interface{}, error){
@@ -143,5 +144,101 @@ func readFloat(r io.Reader, n uint64) (interface{}, error) {
 		return math.Float64frombits(binary.BigEndian.Uint64(bs)), nil
 	default:
 		panic("Invalid float size validation")
+	}
+}
+
+var perTypeEncoder = map[Type]func(interface{}) ([]byte, error){
+	TypeInt:    encodeInt,
+	TypeUInt:   encodeUInt,
+	TypeDate:   encodeDate,
+	TypeFloat:  encodeFloat,
+	TypeBinary: encodeBinary,
+	TypeString: encodeString,
+}
+
+func encodeVInt(v uint64) []byte {
+	if v < 0x80 {
+		return []byte{byte(v) | 0x80}
+	} else if v < 0x4000 {
+		return []byte{byte(v>>8) | 0x40, byte(v)}
+	} else if v < 0x200000 {
+		return []byte{byte(v>>16) | 0x20, byte(v >> 8), byte(v)}
+	} else if v < 0x10000000 {
+		return []byte{byte(v>>24) | 0x10, byte(v >> 16), byte(v >> 8), byte(v)}
+	} else if v < 0x80000000 {
+		return []byte{byte(v>>32) | 0x8, byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
+	} else if v < 0x4000000000 {
+		return []byte{byte(v>>40) | 0x4, byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
+	} else if v < 0x2000000000 {
+		return []byte{byte(v>>48) | 0x2, byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
+	} else if v < 0x1000000000 {
+		return []byte{byte(v>>56) | 0x1, byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
+	} else {
+		return []byte{0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+	}
+}
+func encodeBinary(i interface{}) ([]byte, error) {
+	v, ok := i.([]byte)
+	if !ok {
+		return []byte{}, errInvalidType
+	}
+	return v, nil
+}
+func encodeString(i interface{}) ([]byte, error) {
+	v, ok := i.(string)
+	if !ok {
+		return []byte{}, errInvalidType
+	}
+	return append([]byte(v), 0x00), nil
+}
+func encodeInt(i interface{}) ([]byte, error) {
+	v, ok := i.(int64)
+	if !ok {
+		return []byte{}, errInvalidType
+	}
+	return encodeUInt(uint64(v))
+}
+func encodeUInt(i interface{}) ([]byte, error) {
+	v, ok := i.(uint64)
+	if !ok {
+		return []byte{}, errInvalidType
+	}
+	if v < 0x100 {
+		return []byte{byte(v)}, nil
+	} else if v < 0x10000 {
+		return []byte{byte(v >> 8), byte(v)}, nil
+	} else if v < 0x1000000 {
+		return []byte{byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	} else if v < 0x100000000 {
+		return []byte{byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	} else if v < 0x10000000000 {
+		return []byte{byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	} else if v < 0x1000000000000 {
+		return []byte{byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	} else if v < 0x100000000000000 {
+		return []byte{byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	} else {
+		return []byte{byte(v >> 56), byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	}
+}
+func encodeDate(i interface{}) ([]byte, error) {
+	v, ok := i.(time.Time)
+	if !ok {
+		return []byte{}, errInvalidType
+	}
+	dtns := v.Sub(time.Unix(dateEpochInUnixtime, 0)).Nanoseconds()
+	return encodeInt(int64(dtns))
+}
+func encodeFloat(i interface{}) ([]byte, error) {
+	var b []byte
+	switch v := i.(type) {
+	case float64:
+		binary.BigEndian.PutUint64(b, math.Float64bits(v))
+		return b, nil
+	case float32:
+		binary.BigEndian.PutUint32(b, math.Float32bits(v))
+		return b, nil
+	default:
+		return []byte{}, errInvalidType
 	}
 }
