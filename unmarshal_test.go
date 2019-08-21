@@ -13,11 +13,11 @@ func ExampleUnmarshal() {
 		0x42, 0x87, 0x81, 0x02, 0x42, 0x85, 0x81, 0x02,
 	}
 	type TestEBML struct {
-		EBML struct {
-			EBMLDocType            string
-			EBMLDocTypeVersion     uint64
-			EBMLDocTypeReadVersion uint64
-		}
+		Header struct {
+			DocType            string `ebml:"EBMLDocType"`
+			DocTypeVersion     uint64 `ebml:"EBMLDocTypeVersion"`
+			DocTypeReadVersion uint64 `ebml:"EBMLDocTypeReadVersion"`
+		} `ebml:"EBML"`
 	}
 
 	r := bytes.NewReader(TestBinary)

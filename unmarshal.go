@@ -18,9 +18,10 @@ var (
 // Unmarshal EBML stream
 func Unmarshal(r io.Reader, val interface{}) error {
 	vo := reflect.ValueOf(val).Elem()
+	to := reflect.TypeOf(val).Elem()
 
 	for {
-		if err := readElement(r, sizeInf, vo); err != nil {
+		if err := readElement(r, sizeInf, vo, to); err != nil {
 			if err == io.EOF {
 				return nil
 			}
@@ -29,12 +30,25 @@ func Unmarshal(r io.Reader, val interface{}) error {
 	}
 }
 
-func readElement(r0 io.Reader, n int64, vo reflect.Value) error {
+func readElement(r0 io.Reader, n int64, vo reflect.Value, to reflect.Type) error {
 	var r io.Reader
 	if n != sizeInf {
 		r = io.LimitReader(r0, n)
 	} else {
 		r = r0
+	}
+
+	type field struct {
+		v reflect.Value
+		t reflect.Type
+	}
+	fieldMap := make(map[string]field)
+	if vo.IsValid() {
+		for i := 0; i < vo.NumField(); i++ {
+			if n, ok := to.Field(i).Tag.Lookup("ebml"); ok {
+				fieldMap[n] = field{vo.Field(i), to.Field(i).Type}
+			}
+		}
 	}
 
 	tb := revTable
@@ -60,12 +74,15 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value) error {
 				return err
 			}
 			var vnext reflect.Value
-			if vo.IsValid() {
-				vnext = vo.FieldByName(v.e.String())
+			var tnext reflect.Type
+			if fm, ok := fieldMap[v.e.String()]; ok {
+				vnext = fm.v
+				tnext = fm.t
 			}
+
 			switch v.t {
 			case TypeMaster:
-				err := readElement(r, int64(size), vnext)
+				err := readElement(r, int64(size), vnext, tnext)
 				if err != nil && err != io.EOF {
 					return err
 				}
