@@ -37,7 +37,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value) error {
 		r = r0
 	}
 
-	tb := table
+	tb := revTable
 	for {
 		var bs [1]byte
 		_, err := r.Read(bs[:])
@@ -52,7 +52,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value) error {
 		}
 
 		switch v := n.(type) {
-		case elementTable:
+		case elementRevTable:
 			tb = v
 		case element:
 			size, err := readVInt(r)
@@ -79,8 +79,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value) error {
 					vnext.Set(reflect.ValueOf(val))
 				}
 			}
-			tb = table
+			tb = revTable
 		}
 	}
-	return nil
 }
