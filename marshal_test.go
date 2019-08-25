@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestUnmarshal(t *testing.T) {
+func TestMarshal(t *testing.T) {
 	type EBMLHeader struct {
 		DocType            string `ebml:"EBMLDocType"`
 		DocTypeVersion     uint64 `ebml:"EBMLDocTypeVersion"`
