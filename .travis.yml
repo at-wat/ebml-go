@@ -1,0 +1,21 @@
+dist: bionic
+language: go
+
+branches:
+  only:
+    - master
+
+go:
+  - "1.11"
+  - "1.12"
+  - master
+env:
+  global:
+    - GO111MODULE=on
+
+install:
+  - go mod download
+script:
+  - go build ./...
+  - go test ./...
+  - go vet ./...
