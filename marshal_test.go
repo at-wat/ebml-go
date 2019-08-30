@@ -2,6 +2,7 @@ package ebml
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 )
 
