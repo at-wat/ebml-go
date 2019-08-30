@@ -38,3 +38,29 @@ func TestMarshal(t *testing.T) {
 		t.Errorf("Marshaled binary doesn't match:\n expected: %v,\n      got: %v", expected, b)
 	}
 }
+
+func ExampleMarshal() {
+	type EBMLHeader struct {
+		DocType            string `ebml:"EBMLDocType"`
+		DocTypeVersion     uint64 `ebml:"EBMLDocTypeVersion"`
+		DocTypeReadVersion uint64 `ebml:"EBMLDocTypeReadVersion"`
+	}
+	type TestEBML struct {
+		Header EBMLHeader `ebml:"EBML"`
+	}
+	s := TestEBML{
+		Header: EBMLHeader{
+			DocType:            "webm",
+			DocTypeVersion:     2,
+			DocTypeReadVersion: 2,
+		},
+	}
+
+	b, err := Marshal(&s)
+	if err != nil {
+		panic(err)
+	}
+	for _, b := range b {
+		fmt.Printf("0x%02x", int(b))
+	}
+}
