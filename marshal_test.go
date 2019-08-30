@@ -30,12 +30,12 @@ func TestMarshal(t *testing.T) {
 		0x42, 0x87, 0x81, 0x02, 0x42, 0x85, 0x81, 0x02,
 	}
 
-	b, err := Marshal(&s)
-	if err != nil {
+	var b bytes.Buffer
+	if err := Marshal(&s, &b); err != nil {
 		t.Fatalf("error: %+v\n", err)
 	}
 
-	if bytes.Compare(expected, b) != 0 {
+	if bytes.Compare(expected, b.Bytes()) != 0 {
 		t.Errorf("Marshaled binary doesn't match:\n expected: %v,\n      got: %v", expected, b)
 	}
 }
@@ -57,11 +57,11 @@ func ExampleMarshal() {
 		},
 	}
 
-	b, err := Marshal(&s)
-	if err != nil {
+	var b bytes.Buffer
+	if err := Marshal(&s, &b); err != nil {
 		panic(err)
 	}
-	for _, b := range b {
+	for _, b := range b.Bytes() {
 		fmt.Printf("0x%02x", int(b))
 	}
 }
