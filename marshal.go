@@ -60,7 +60,7 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 						lst = append(lst, vn.Index(i))
 					}
 				} else {
-					if omitempty && reflect.DeepEqual(reflect.Zero(vn.Type()), vn) {
+					if omitempty && reflect.DeepEqual(reflect.Zero(vn.Type()).Interface(), vn.Interface()) {
 						continue
 					}
 					lst = []reflect.Value{vn}
