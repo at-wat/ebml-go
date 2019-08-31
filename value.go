@@ -1,6 +1,7 @@
 package ebml
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -24,6 +25,7 @@ var perTypeReader = map[Type]func(io.Reader, uint64) (interface{}, error){
 	TypeFloat:  readFloat,
 	TypeBinary: readBinary,
 	TypeString: readString,
+	TypeBlock:  readBlock,
 }
 
 func readVInt(r io.Reader) (uint64, error) {
@@ -145,6 +147,13 @@ func readFloat(r io.Reader, n uint64) (interface{}, error) {
 	default:
 		panic("Invalid float size validation")
 	}
+}
+func readBlock(r io.Reader, n uint64) (interface{}, error) {
+	b, err := UnmarshalBlock(io.LimitReader(r, int64(n)))
+	if err != nil {
+		return nil, err
+	}
+	return *b, nil
 }
 
 var perTypeEncoder = map[Type]func(interface{}) ([]byte, error){

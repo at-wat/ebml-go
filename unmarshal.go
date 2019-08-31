@@ -105,18 +105,6 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, parent ElementType) (i
 				if r0 != nil {
 					r0 = io.MultiReader(r0, r)
 				}
-			case TypeBlock:
-				b, err := UnmarshalBlock(io.LimitReader(r, int64(size)))
-				if err != nil {
-					return nil, err
-				}
-				if vnext.IsValid() && vnext.CanSet() {
-					if reflect.TypeOf(*b) == vnext.Type() {
-						vnext.Set(reflect.ValueOf(*b))
-					} else if vnext.Kind() == reflect.Slice && reflect.TypeOf(*b) == vnext.Type().Elem() {
-						vnext.Set(reflect.Append(vnext, reflect.ValueOf(*b)))
-					}
-				}
 			default:
 				val, err := perTypeReader[v.t](r, size)
 				if err != nil {
