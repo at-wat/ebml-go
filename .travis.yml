@@ -17,5 +17,8 @@ install:
   - go mod download
 script:
   - go build ./...
-  - go test ./...
   - go vet ./...
+  - go test $(go list ./... | grep -v examples) -race -coverprofile=coverage.txt -covermode=atomic
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
