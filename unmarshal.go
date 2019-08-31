@@ -1,6 +1,7 @@
 package ebml
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"reflect"
@@ -13,15 +14,19 @@ const (
 var (
 	errUnknownElement = errors.New("Unknown element")
 	errInvalidIntSize = errors.New("Invalid int size")
+	errIndefiniteType = errors.New("Unmarshal to indefinite type")
 )
 
 // Unmarshal EBML stream
 func Unmarshal(r io.Reader, val interface{}) error {
-	vo := reflect.ValueOf(val).Elem()
-	to := reflect.TypeOf(val).Elem()
+	vo := reflect.ValueOf(val)
+	if !vo.IsValid() {
+		return errIndefiniteType
+	}
+	voe := vo.Elem()
 
 	for {
-		if err := readElement(r, sizeInf, vo, to); err != nil {
+		if _, err := readElement(r, sizeInf, voe, ElementRoot); err != nil {
 			if err == io.EOF {
 				return nil
 			}
@@ -30,7 +35,7 @@ func Unmarshal(r io.Reader, val interface{}) error {
 	}
 }
 
-func readElement(r0 io.Reader, n int64, vo reflect.Value, to reflect.Type) error {
+func readElement(r0 io.Reader, n int64, vo reflect.Value, parent ElementType) (io.Reader, error) {
 	var r io.Reader
 	if n != sizeInf {
 		r = io.LimitReader(r0, n)
@@ -45,8 +50,8 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, to reflect.Type) error
 	fieldMap := make(map[string]field)
 	if vo.IsValid() {
 		for i := 0; i < vo.NumField(); i++ {
-			if n, ok := to.Field(i).Tag.Lookup("ebml"); ok {
-				fieldMap[n] = field{vo.Field(i), to.Field(i).Type}
+			if n, ok := vo.Type().Field(i).Tag.Lookup("ebml"); ok {
+				fieldMap[n] = field{vo.Field(i), vo.Type().Field(i).Type}
 			}
 		}
 	}
@@ -56,13 +61,13 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, to reflect.Type) error
 		var bs [1]byte
 		_, err := r.Read(bs[:])
 		if err != nil {
-			return err
+			return nil, err
 		}
 		b := bs[0]
 
 		n, ok := tb[b]
 		if !ok {
-			return errUnknownElement
+			return nil, errUnknownElement
 		}
 
 		switch v := n.(type) {
@@ -71,29 +76,47 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, to reflect.Type) error
 		case element:
 			size, err := readVInt(r)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			var vnext reflect.Value
-			var tnext reflect.Type
 			if fm, ok := fieldMap[v.e.String()]; ok {
 				vnext = fm.v
-				tnext = fm.t
 			}
 
 			switch v.t {
 			case TypeMaster:
-				err := readElement(r, int64(size), vnext, tnext)
+				if v.top && v.e == parent {
+					b := bytes.Join([][]byte{table[v.e].b, encodeVInt(sizeInf)}, []byte{})
+					return bytes.NewBuffer(b), io.EOF
+				}
+				var vn reflect.Value
+				if vnext.IsValid() && vnext.CanSet() {
+					if vnext.Kind() == reflect.Slice {
+						vnext.Set(reflect.Append(vnext, reflect.New(vnext.Type().Elem()).Elem()))
+						vn = vnext.Index(vnext.Len() - 1)
+					} else {
+						vn = vnext
+					}
+				}
+				r0, err := readElement(r, int64(size), vn, v.e)
 				if err != nil && err != io.EOF {
-					return err
+					return r0, err
+				}
+				if r0 != nil {
+					r0 = io.MultiReader(r0, r)
 				}
 			default:
 				val, err := perTypeReader[v.t](r, size)
 				if err != nil {
-					return err
+					return nil, err
 				}
 				vr := reflect.ValueOf(val)
-				if vnext.IsValid() && vnext.CanSet() && vr.Type() == vnext.Type() {
-					vnext.Set(reflect.ValueOf(val))
+				if vnext.IsValid() && vnext.CanSet() {
+					if vr.Type() == vnext.Type() {
+						vnext.Set(reflect.ValueOf(val))
+					} else if vnext.Kind() == reflect.Slice && vr.Type() == vnext.Type().Elem() {
+						vnext.Set(reflect.Append(vnext, reflect.ValueOf(val)))
+					}
 				}
 			}
 			tb = revTable

@@ -5,7 +5,8 @@ type ElementType int
 
 // EBML Element types
 const (
-	ElementEBML ElementType = iota
+	ElementRoot ElementType = iota
+	ElementEBML
 	ElementEBMLVersion
 	ElementEBMLReadVersion
 	ElementEBMLMaxIDLength
