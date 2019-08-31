@@ -1,6 +1,7 @@
 package ebml
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -24,6 +25,7 @@ var perTypeReader = map[Type]func(io.Reader, uint64) (interface{}, error){
 	TypeFloat:  readFloat,
 	TypeBinary: readBinary,
 	TypeString: readString,
+	TypeBlock:  readBlock,
 }
 
 func readVInt(r io.Reader) (uint64, error) {
@@ -146,6 +148,13 @@ func readFloat(r io.Reader, n uint64) (interface{}, error) {
 		panic("Invalid float size validation")
 	}
 }
+func readBlock(r io.Reader, n uint64) (interface{}, error) {
+	b, err := UnmarshalBlock(io.LimitReader(r, int64(n)))
+	if err != nil {
+		return nil, err
+	}
+	return *b, nil
+}
 
 var perTypeEncoder = map[Type]func(interface{}) ([]byte, error){
 	TypeInt:    encodeInt,
@@ -154,6 +163,7 @@ var perTypeEncoder = map[Type]func(interface{}) ([]byte, error){
 	TypeFloat:  encodeFloat,
 	TypeBinary: encodeBinary,
 	TypeString: encodeString,
+	TypeBlock:  encodeBlock,
 }
 
 func encodeVInt(v uint64) []byte {
@@ -241,4 +251,15 @@ func encodeFloat(i interface{}) ([]byte, error) {
 	default:
 		return []byte{}, errInvalidType
 	}
+}
+func encodeBlock(i interface{}) ([]byte, error) {
+	v, ok := i.(Block)
+	if !ok {
+		return []byte{}, errInvalidType
+	}
+	var b bytes.Buffer
+	if err := MarshalBlock(&v, &b); err != nil {
+		return []byte{}, err
+	}
+	return b.Bytes(), nil
 }

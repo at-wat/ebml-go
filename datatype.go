@@ -12,6 +12,7 @@ const (
 	TypeFloat
 	TypeBinary
 	TypeString
+	TypeBlock
 )
 
 func (t Type) String() string {
@@ -30,6 +31,8 @@ func (t Type) String() string {
 		return "Binary"
 	case TypeString:
 		return "String"
+	case TypeBlock:
+		return "Block"
 	default:
 		return "Unknown type"
 	}
