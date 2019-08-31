@@ -68,10 +68,10 @@ func UnmarshalBlock(r io.Reader) (*Block, error) {
 	if b.TrackNumber, err = readVInt(r); err != nil {
 		return nil, err
 	}
-	if v, err := readInt(r, 2); err != nil {
-		return nil, err
-	} else {
+	if v, err := readInt(r, 2); err == nil {
 		b.Timecode = int16(v.(int64))
+	} else {
+		return nil, err
 	}
 
 	var bs [1]byte
