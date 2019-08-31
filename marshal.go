@@ -62,12 +62,24 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 				}
 
 				for _, vn := range lst {
+					// Write element ID
 					if _, err := w.Write(e.b); err != nil {
 						return err
 					}
-					var b bytes.Buffer
+					var bw io.Writer
+					if inf {
+						// Directly write length unspecified element
+						bsz := encodeVInt(uint64(sizeInf))
+						if _, err := w.Write(bsz); err != nil {
+							return err
+						}
+						bw = w
+					} else {
+						bw = &bytes.Buffer{}
+					}
+
 					if e.t == TypeMaster {
-						if err := marshalImpl(vn, &b); err != nil {
+						if err := marshalImpl(vn, bw); err != nil {
 							return err
 						}
 					} else {
@@ -75,20 +87,20 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 						if err != nil {
 							return err
 						}
-						if _, err := b.Write(bc); err != nil {
+						if _, err := bw.Write(bc); err != nil {
 							return err
 						}
 					}
-					l := b.Len()
-					if inf {
-						l = sizeInf
-					}
-					bsz := encodeVInt(uint64(l))
-					if _, err := w.Write(bsz); err != nil {
-						return err
-					}
-					if _, err := w.Write(b.Bytes()); err != nil {
-						return err
+
+					// Write element with length
+					if !inf {
+						bsz := encodeVInt(uint64(bw.(*bytes.Buffer).Len()))
+						if _, err := w.Write(bsz); err != nil {
+							return err
+						}
+						if _, err := w.Write(bw.(*bytes.Buffer).Bytes()); err != nil {
+							return err
+						}
 					}
 				}
 			}
