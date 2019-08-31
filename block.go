@@ -16,16 +16,16 @@ type LacingMode uint8
 // Type of laced data
 const (
 	LacingNo    LacingMode = 0
-	LacingXiph  LacingMode = 1
-	LacingFixed LacingMode = 2
+	LacingFixed LacingMode = 1
+	LacingXiph  LacingMode = 2
 	LacingEBML  LacingMode = 3
 )
 
 const (
-	blockFlagMaskKeyframe    = 0x01
-	blockFlagMaskInvisible   = 0x10
-	blockFlagMaskLacing      = 0x60
-	blockFlagMaskDiscardable = 0x80
+	blockFlagMaskKeyframe    = 0x80
+	blockFlagMaskInvisible   = 0x08
+	blockFlagMaskLacing      = 0x06
+	blockFlagMaskDiscardable = 0x01
 )
 
 // Block represents EBML Block/SimpleBlock element
@@ -51,7 +51,7 @@ func (b *Block) packFlags() byte {
 	if b.Discardable {
 		f |= blockFlagMaskDiscardable
 	}
-	f |= byte(b.Lacing) << 5
+	f |= byte(b.Lacing) << 1
 	return f
 }
 
@@ -87,7 +87,7 @@ func UnmarshalBlock(r io.Reader) (*Block, error) {
 	if bs[0]&blockFlagMaskDiscardable != 0 {
 		b.Discardable = true
 	}
-	b.Lacing = LacingMode((bs[0] & blockFlagMaskLacing) >> 5)
+	b.Lacing = LacingMode((bs[0] & blockFlagMaskLacing) >> 1)
 
 	if b.Lacing != LacingNo {
 		return nil, errLaceUnimplemented
