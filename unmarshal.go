@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"reflect"
+	"strings"
 )
 
 const (
@@ -51,7 +52,14 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, parent ElementType) (i
 	if vo.IsValid() {
 		for i := 0; i < vo.NumField(); i++ {
 			if n, ok := vo.Type().Field(i).Tag.Lookup("ebml"); ok {
-				fieldMap[n] = field{vo.Field(i), vo.Type().Field(i).Type}
+				nn := strings.Split(n, ",")
+				var name string
+				if len(nn) > 0 {
+					name = nn[0]
+				} else {
+					name = vo.Type().Field(i).Name
+				}
+				fieldMap[name] = field{vo.Field(i), vo.Type().Field(i).Type}
 			}
 		}
 	}

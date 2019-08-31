@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"reflect"
+	"strings"
 )
 
 var (
@@ -24,10 +25,25 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 		tn := vo.Type().Field(i)
 
 		if n, ok := tn.Tag.Lookup("ebml"); ok {
-			if t, err := ElementTypeFromString(n); err == nil {
+			nn := strings.Split(n, ",")
+			var name string
+			if len(nn) > 0 {
+				name = nn[0]
+			} else {
+				name = tn.Name
+			}
+			if t, err := ElementTypeFromString(name); err == nil {
 				e, ok := table[t]
 				if !ok {
 					return errUnsupportedElement
+				}
+
+				var inf bool
+				for _, n := range nn {
+					if n == "inf" {
+						inf = true
+						break
+					}
 				}
 
 				var lst []reflect.Value
@@ -59,6 +75,9 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 						}
 					}
 					l := b.Len()
+					if inf {
+						l = sizeInf
+					}
 					bsz := encodeVInt(uint64(l))
 					if _, err := w.Write(bsz); err != nil {
 						return err
