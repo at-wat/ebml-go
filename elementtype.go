@@ -21,7 +21,7 @@ const (
 	ElementSeekHead
 	ElementSeek
 	ElementSeekID
-	ElementSeekPosision
+	ElementSeekPosition
 
 	ElementInfo
 	ElementTimecodeScale
@@ -120,8 +120,8 @@ func (i ElementType) String() string {
 		return "Seek"
 	case ElementSeekID:
 		return "SeekID"
-	case ElementSeekPosision:
-		return "SeekPosision"
+	case ElementSeekPosition:
+		return "SeekPosition"
 	case ElementInfo:
 		return "Info"
 	case ElementTimecodeScale:
@@ -286,8 +286,8 @@ func ElementTypeFromString(s string) (ElementType, error) {
 		return ElementSeek, nil
 	case "SeekID":
 		return ElementSeekID, nil
-	case "SeekPosision":
-		return ElementSeekPosision, nil
+	case "SeekPosition":
+		return ElementSeekPosition, nil
 	case "Info":
 		return ElementInfo, nil
 	case "TimecodeScale":
