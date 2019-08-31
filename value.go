@@ -240,13 +240,14 @@ func encodeDate(i interface{}) ([]byte, error) {
 	return encodeInt(int64(dtns))
 }
 func encodeFloat(i interface{}) ([]byte, error) {
-	var b []byte
 	switch v := i.(type) {
 	case float64:
-		binary.BigEndian.PutUint64(b, math.Float64bits(v))
+		b := make([]byte, 8)
+		binary.BigEndian.PutUint64(b[:], math.Float64bits(v))
 		return b, nil
 	case float32:
-		binary.BigEndian.PutUint32(b, math.Float32bits(v))
+		b := make([]byte, 4)
+		binary.BigEndian.PutUint32(b[:], math.Float32bits(v))
 		return b, nil
 	default:
 		return []byte{}, errInvalidType
