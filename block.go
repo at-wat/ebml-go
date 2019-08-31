@@ -40,6 +40,21 @@ type Block struct {
 	Data        [][]byte
 }
 
+func (b *Block) packFlags() byte {
+	var f byte
+	if b.Keyframe {
+		f |= blockFlagMaskKeyframe
+	}
+	if b.Invisible {
+		f |= blockFlagMaskInvisible
+	}
+	if b.Discardable {
+		f |= blockFlagMaskDiscardable
+	}
+	f |= byte(b.Lacing) << 5
+	return f
+}
+
 // Lace represents Lace header of EBML Block/SimpleBlock element
 type Lace struct {
 	NumFrames uint8
@@ -88,5 +103,23 @@ func UnmarshalBlock(r io.Reader) (*Block, error) {
 
 // MarshalBlock marshals EBML Block structure
 func MarshalBlock(b *Block, w io.Writer) error {
+	if _, err := w.Write(encodeVInt(b.TrackNumber)); err != nil {
+		return err
+	}
+	if _, err := w.Write([]byte{byte(b.Timecode >> 8), byte(b.Timecode)}); err != nil {
+		return err
+	}
+	if _, err := w.Write([]byte{b.packFlags()}); err != nil {
+		return err
+	}
+
+	if b.Lacing != LacingNo {
+		return errLaceUnimplemented
+	}
+
+	if _, err := w.Write(b.Data[0]); err != nil {
+		return err
+	}
+
 	return nil
 }

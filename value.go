@@ -163,6 +163,7 @@ var perTypeEncoder = map[Type]func(interface{}) ([]byte, error){
 	TypeFloat:  encodeFloat,
 	TypeBinary: encodeBinary,
 	TypeString: encodeString,
+	TypeBlock:  encodeBlock,
 }
 
 func encodeVInt(v uint64) []byte {
@@ -250,4 +251,15 @@ func encodeFloat(i interface{}) ([]byte, error) {
 	default:
 		return []byte{}, errInvalidType
 	}
+}
+func encodeBlock(i interface{}) ([]byte, error) {
+	v, ok := i.(Block)
+	if !ok {
+		return []byte{}, errInvalidType
+	}
+	var b bytes.Buffer
+	if err := MarshalBlock(&v, &b); err != nil {
+		return []byte{}, err
+	}
+	return b.Bytes(), nil
 }
