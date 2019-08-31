@@ -1,6 +1,6 @@
 # ebml-go
 
-[![GoDoc](https://godoc.org/github.com/at-wat/ebml-go?status.svg)](http://godoc.org/github.com/at-wat/ebml-go) [![Build Status](https://travis-ci.com/at-wat/ebml-go.svg?branch=master)](https://travis-ci.com/at-wat/ebml-go) [![Go Report Card](https://goreportcard.com/badge/github.com/at-wat/ebml-go)](https://goreportcard.com/report/github.com/at-wat/ebml-go) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![GoDoc](https://godoc.org/github.com/at-wat/ebml-go?status.svg)](http://godoc.org/github.com/at-wat/ebml-go) [![Build Status](https://travis-ci.com/at-wat/ebml-go.svg?branch=master)](https://travis-ci.com/at-wat/ebml-go) [![codecov](https://codecov.io/gh/at-wat/ebml-go/branch/master/graph/badge.svg)](https://codecov.io/gh/at-wat/ebml-go) [![Go Report Card](https://goreportcard.com/badge/github.com/at-wat/ebml-go)](https://goreportcard.com/report/github.com/at-wat/ebml-go) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## A pure Go implementation of bi-directional EBML encoder/decoder
 
