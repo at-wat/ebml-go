@@ -90,5 +90,4 @@ func main() {
 	if err := ebml.Marshal(&ret, w); err != nil {
 		panic(err)
 	}
->>>>>>> Stashed changes
 }
