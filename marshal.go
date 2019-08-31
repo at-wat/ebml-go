@@ -14,15 +14,14 @@ var (
 // Marshal struct to EBML bytes
 func Marshal(val interface{}, w io.Writer) error {
 	vo := reflect.ValueOf(val).Elem()
-	to := reflect.TypeOf(val).Elem()
 
-	return marshalImpl(vo, to, w)
+	return marshalImpl(vo, w)
 }
 
-func marshalImpl(vo reflect.Value, to reflect.Type, w io.Writer) error {
+func marshalImpl(vo reflect.Value, w io.Writer) error {
 	for i := 0; i < vo.NumField(); i++ {
 		vn := vo.Field(i)
-		tn := to.Field(i)
+		tn := vo.Type().Field(i)
 
 		if n, ok := tn.Tag.Lookup("ebml"); ok {
 			if t, err := ElementTypeFromString(n); err == nil {
@@ -30,29 +29,43 @@ func marshalImpl(vo reflect.Value, to reflect.Type, w io.Writer) error {
 				if !ok {
 					return errUnsupportedElement
 				}
-				if _, err := w.Write(e.b); err != nil {
-					return err
+
+				var lst []reflect.Value
+				if vn.Kind() == reflect.Slice && e.t != TypeBinary {
+					l := vn.Len()
+					for i := 0; i < l; i++ {
+						lst = append(lst, vn.Index(i))
+					}
+				} else {
+					lst = []reflect.Value{vn}
 				}
 
-				var bc []byte
-				if e.t == TypeMaster {
+				for _, vn := range lst {
+					if _, err := w.Write(e.b); err != nil {
+						return err
+					}
 					var b bytes.Buffer
-					if err := marshalImpl(vn, tn.Type, &b); err != nil {
+					if e.t == TypeMaster {
+						if err := marshalImpl(vn, &b); err != nil {
+							return err
+						}
+					} else {
+						bc, err := perTypeEncoder[e.t](vn.Interface())
+						if err != nil {
+							return err
+						}
+						if _, err := b.Write(bc); err != nil {
+							return err
+						}
+					}
+					l := b.Len()
+					bsz := encodeVInt(uint64(l))
+					if _, err := w.Write(bsz); err != nil {
 						return err
 					}
-					bc = b.Bytes()
-				} else {
-					var err error
-					if bc, err = perTypeEncoder[e.t](vn.Interface()); err != nil {
+					if _, err := w.Write(b.Bytes()); err != nil {
 						return err
 					}
-				}
-				bsz := encodeVInt(uint64(len(bc)))
-				if _, err := w.Write(bsz); err != nil {
-					return err
-				}
-				if _, err := w.Write(bc); err != nil {
-					return err
 				}
 			}
 		}
