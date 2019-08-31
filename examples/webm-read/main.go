@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -50,15 +51,21 @@ func main() {
 			Cluster []struct {
 				Timecode   uint64 `ebml:"Timecode"`
 				BlockGroup []struct {
-					BlockDuration uint64 `ebml:"BlockDuration"`
-					Block         []byte `ebml:"Block"`
+					BlockDuration uint64       `ebml:"BlockDuration"`
+					Block         []ebml.Block `ebml:"Block"`
 				} `ebml:"BlockGroup"`
-				SimpleBlock []byte `ebml:"SimpleBlock"`
+				SimpleBlock []ebml.Block `ebml:"SimpleBlock"`
 			} `ebml:"Cluster"`
 		} `ebml:"Segment"`
 	}
 	if err := ebml.Unmarshal(r, &ret); err != nil {
 		fmt.Printf("error: %v\n", err)
+		return
 	}
-	fmt.Printf("%+v\n", ret)
+	j, err := json.MarshalIndent(ret, "", "  ")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
+	}
+	fmt.Print(string(j))
 }
