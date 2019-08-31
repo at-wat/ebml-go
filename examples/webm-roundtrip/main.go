@@ -51,11 +51,11 @@ func main() {
 					TrackType       uint64 `ebml:"TrackType"`
 					DefaultDuration uint64 `ebml:"DefaultDuration"`
 					SeekPreRoll     uint64 `ebml:"SeekPreRoll"`
-					Audio           struct {
+					Audio           *struct {
 						SamplingFrequency float64 `ebml:"SamplingFrequency"`
 						Channels          uint64  `ebml:"Channels"`
 					} `ebml:"Audio"`
-					Video struct {
+					Video *struct {
 						PixedWidth  uint64 `ebml:"PixelWidth"`
 						PixedHeight uint64 `ebml:"PixelHeight"`
 					} `ebml:"Video"`
@@ -68,7 +68,7 @@ func main() {
 					Block         []ebml.Block `ebml:"Block"`
 				} `ebml:"BlockGroup"`
 				SimpleBlock []ebml.Block `ebml:"SimpleBlock"`
-			} `ebml:"Cluster"`
+			} `ebml:"Cluster,inf"`
 		} `ebml:"Segment"`
 	}
 	if err := ebml.Unmarshal(r, &ret); err != nil {
