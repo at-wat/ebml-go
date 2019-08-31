@@ -69,7 +69,7 @@ func main() {
 				} `ebml:"BlockGroup"`
 				SimpleBlock []ebml.Block `ebml:"SimpleBlock"`
 			} `ebml:"Cluster,inf"`
-		} `ebml:"Segment"`
+		} `ebml:"Segment,inf"`
 	}
 	if err := ebml.Unmarshal(r, &ret); err != nil {
 		fmt.Printf("error: %v\n", err)
