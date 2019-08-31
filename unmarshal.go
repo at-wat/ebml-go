@@ -27,7 +27,7 @@ func Unmarshal(r io.Reader, val interface{}) error {
 	voe := vo.Elem()
 
 	for {
-		if _, err := readElement(r, sizeInf, voe, ElementRoot); err != nil {
+		if _, err := readElement(r, sizeInf, voe); err != nil {
 			if err == io.EOF {
 				return nil
 			}
@@ -36,7 +36,7 @@ func Unmarshal(r io.Reader, val interface{}) error {
 	}
 }
 
-func readElement(r0 io.Reader, n int64, vo reflect.Value, parent ElementType) (io.Reader, error) {
+func readElement(r0 io.Reader, n int64, vo reflect.Value) (io.Reader, error) {
 	var r io.Reader
 	if n != sizeInf {
 		r = io.LimitReader(r0, n)
@@ -93,8 +93,8 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, parent ElementType) (i
 
 			switch v.t {
 			case TypeMaster:
-				if v.top && v.e == parent {
-					b := bytes.Join([][]byte{table[v.e].b, encodeVInt(sizeInf)}, []byte{})
+				if v.top && !vnext.IsValid() {
+					b := bytes.Join([][]byte{table[v.e].b, encodeVInt(size)}, []byte{})
 					return bytes.NewBuffer(b), io.EOF
 				}
 				var vn reflect.Value
@@ -109,12 +109,12 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, parent ElementType) (i
 						vn = vnext
 					}
 				}
-				r0, err := readElement(r, int64(size), vn, v.e)
+				r0, err := readElement(r, int64(size), vn)
 				if err != nil && err != io.EOF {
 					return r0, err
 				}
 				if r0 != nil {
-					r0 = io.MultiReader(r0, r)
+					r = io.MultiReader(r0, r)
 				}
 			default:
 				val, err := perTypeReader[v.t](r, size)
