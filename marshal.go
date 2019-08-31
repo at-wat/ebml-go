@@ -38,10 +38,12 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 					return errUnsupportedElement
 				}
 
-				var inf bool
+				var inf, omitempty bool
 				for _, n := range nn {
 					if n == "inf" {
 						inf = true
+					} else if n == "omitempty" {
+						omitempty = true
 					}
 				}
 
@@ -58,6 +60,9 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 						lst = append(lst, vn.Index(i))
 					}
 				} else {
+					if omitempty && reflect.DeepEqual(reflect.Zero(vn.Type()), vn) {
+						continue
+					}
 					lst = []reflect.Value{vn}
 				}
 
