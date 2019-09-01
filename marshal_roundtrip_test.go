@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/at-wat/ebml-go"
 	"github.com/at-wat/ebml-go/webm"
@@ -42,6 +43,7 @@ func TestMarshal_RoundtripWebM(t *testing.T) {
 				TimecodeScale: 1000000, // 1ms
 				MuxingApp:     "ebml-go example",
 				WritingApp:    "ebml-go example",
+				DateUTC:       time.Now().Truncate(time.Millisecond),
 			},
 			Tracks: webm.Tracks{
 				TrackEntry: []webm.TrackEntry{
@@ -56,6 +58,7 @@ func TestMarshal_RoundtripWebM(t *testing.T) {
 							PixelWidth:  320,
 							PixelHeight: 240,
 						},
+						CodecPrivate: []byte{0x01, 0x02},
 					},
 					{
 						Name:            "Audio",
