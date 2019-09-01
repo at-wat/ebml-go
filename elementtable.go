@@ -14,6 +14,10 @@
 
 package ebml
 
+import (
+	"bytes"
+)
+
 type elementDef struct {
 	b   []byte
 	t   Type
@@ -68,7 +72,7 @@ var table = elementTable{
 	ElementVoid:                   elementDef{[]byte{0xEC}, TypeMaster, false},
 }
 
-type elementRevTable map[uint8]interface{}
+type elementRevTable map[uint32]element
 type element struct {
 	e   ElementType
 	t   Type
@@ -81,18 +85,10 @@ func init() {
 	revTable = make(elementRevTable)
 
 	for k, v := range table {
-		var p interface{}
-		p = revTable
-		for i := 0; i < len(v.b); i++ {
-			b := v.b[i]
-			if p.(elementRevTable)[b] == nil {
-				p.(elementRevTable)[b] = make(elementRevTable)
-			}
-			if i == len(v.b)-1 {
-				p.(elementRevTable)[b] = element{e: k, t: v.t, top: v.top}
-			} else {
-				p = p.(elementRevTable)[b]
-			}
+		e, err := readVInt(bytes.NewBuffer(v.b))
+		if err != nil {
+			panic(err)
 		}
+		revTable[uint32(e)] = element{e: k, t: v.t, top: v.top}
 	}
 }
