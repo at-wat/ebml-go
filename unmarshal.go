@@ -78,73 +78,63 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value) (io.Reader, error) {
 		}
 	}
 
-	tb := revTable
 	for {
-		var bs [1]byte
-		_, err := r.Read(bs[:])
+		e, err := readVInt(r)
 		if err != nil {
 			return nil, err
 		}
-		b := bs[0]
-
-		n, ok := tb[b]
+		v, ok := revTable[uint32(e)]
 		if !ok {
 			return nil, errUnknownElement
 		}
 
-		switch v := n.(type) {
-		case elementRevTable:
-			tb = v
-		case element:
-			size, err := readVInt(r)
+		size, err := readVInt(r)
+		if err != nil {
+			return nil, err
+		}
+		var vnext reflect.Value
+		if fm, ok := fieldMap[v.e.String()]; ok {
+			vnext = fm.v
+		}
+
+		switch v.t {
+		case TypeMaster:
+			if v.top && !vnext.IsValid() {
+				b := bytes.Join([][]byte{table[v.e].b, encodeVInt(size)}, []byte{})
+				return bytes.NewBuffer(b), io.EOF
+			}
+			var vn reflect.Value
+			if vnext.IsValid() && vnext.CanSet() {
+				if vnext.Kind() == reflect.Ptr {
+					vnext.Set(reflect.New(vnext.Type().Elem()))
+					vn = vnext.Elem()
+				} else if vnext.Kind() == reflect.Slice {
+					vnext.Set(reflect.Append(vnext, reflect.New(vnext.Type().Elem()).Elem()))
+					vn = vnext.Index(vnext.Len() - 1)
+				} else {
+					vn = vnext
+				}
+			}
+			r0, err := readElement(r, int64(size), vn)
+			if err != nil && err != io.EOF {
+				return r0, err
+			}
+			if r0 != nil {
+				r = io.MultiReader(r0, r)
+			}
+		default:
+			val, err := perTypeReader[v.t](r, size)
 			if err != nil {
 				return nil, err
 			}
-			var vnext reflect.Value
-			if fm, ok := fieldMap[v.e.String()]; ok {
-				vnext = fm.v
-			}
-
-			switch v.t {
-			case TypeMaster:
-				if v.top && !vnext.IsValid() {
-					b := bytes.Join([][]byte{table[v.e].b, encodeVInt(size)}, []byte{})
-					return bytes.NewBuffer(b), io.EOF
-				}
-				var vn reflect.Value
-				if vnext.IsValid() && vnext.CanSet() {
-					if vnext.Kind() == reflect.Ptr {
-						vnext.Set(reflect.New(vnext.Type().Elem()))
-						vn = vnext.Elem()
-					} else if vnext.Kind() == reflect.Slice {
-						vnext.Set(reflect.Append(vnext, reflect.New(vnext.Type().Elem()).Elem()))
-						vn = vnext.Index(vnext.Len() - 1)
-					} else {
-						vn = vnext
-					}
-				}
-				r0, err := readElement(r, int64(size), vn)
-				if err != nil && err != io.EOF {
-					return r0, err
-				}
-				if r0 != nil {
-					r = io.MultiReader(r0, r)
-				}
-			default:
-				val, err := perTypeReader[v.t](r, size)
-				if err != nil {
-					return nil, err
-				}
-				vr := reflect.ValueOf(val)
-				if vnext.IsValid() && vnext.CanSet() {
-					if vr.Type() == vnext.Type() {
-						vnext.Set(reflect.ValueOf(val))
-					} else if vnext.Kind() == reflect.Slice && vr.Type() == vnext.Type().Elem() {
-						vnext.Set(reflect.Append(vnext, reflect.ValueOf(val)))
-					}
+			vr := reflect.ValueOf(val)
+			if vnext.IsValid() && vnext.CanSet() {
+				if vr.Type() == vnext.Type() {
+					vnext.Set(reflect.ValueOf(val))
+				} else if vnext.Kind() == reflect.Slice && vr.Type() == vnext.Type().Elem() {
+					vnext.Set(reflect.Append(vnext, reflect.ValueOf(val)))
 				}
 			}
-			tb = revTable
 		}
 	}
 }
