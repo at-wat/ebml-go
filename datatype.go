@@ -19,7 +19,7 @@ type Type int
 
 // EBML Element data types
 const (
-	TypeMaster = iota
+	TypeMaster Type = iota
 	TypeInt
 	TypeUInt
 	TypeDate
