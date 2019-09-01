@@ -88,3 +88,29 @@ func ExampleMarshal() {
 	// Output:
 	// 0x1a, 0x45, 0xdf, 0xa3, 0x90, 0x42, 0x82, 0x85, 0x77, 0x65, 0x62, 0x6d, 0x00, 0x42, 0x87, 0x81, 0x02, 0x42, 0x85, 0x81, 0x02,
 }
+
+func BenchmarkMarshal(b *testing.B) {
+	type EBMLHeader struct {
+		DocType            string `ebml:"EBMLDocType"`
+		DocTypeVersion     uint64 `ebml:"EBMLDocTypeVersion"`
+		DocTypeReadVersion uint64 `ebml:"EBMLDocTypeReadVersion"`
+	}
+	type TestEBML struct {
+		Header EBMLHeader `ebml:"EBML"`
+	}
+	s := TestEBML{
+		Header: EBMLHeader{
+			DocType:            "webm",
+			DocTypeVersion:     2,
+			DocTypeReadVersion: 2,
+		},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var buf bytes.Buffer
+		if err := Marshal(&s, &buf); err != nil {
+			b.Fatalf("error: %+v\n", err)
+		}
+	}
+}
