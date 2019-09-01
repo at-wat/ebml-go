@@ -19,7 +19,8 @@ type ElementType int
 
 // EBML Element types
 const (
-	ElementRoot ElementType = iota
+	ElementInvalid ElementType = iota
+
 	ElementEBML
 	ElementEBMLVersion
 	ElementEBMLReadVersion
@@ -104,6 +105,8 @@ const (
 	ElementContentEncKeyID
 	ElementContentEncAESSettings
 	ElementAESSettingsCipherMode
+
+	elementMax
 )
 
 func (i ElementType) String() string {
