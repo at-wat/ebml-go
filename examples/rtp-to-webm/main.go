@@ -82,7 +82,6 @@ func main() {
 	}
 
 	// Store cluster start position to make it seekable later
-	w.Sync()
 	clusterHeadOffset, err := w.Seek(0, 1)
 	if err != nil {
 		panic(err)
@@ -130,16 +129,14 @@ func main() {
 			fmt.Println(err)
 			break
 		}
-		if n < 12 {
+		if n < 14 {
 			fmt.Print("RTP packet size is too small.\n")
 			continue
 		}
 
-		// RTP Header must be fully parsed in the real application.
-		// And, 32bit counter overflow must be treated in real.
-		tsAbs := binary.BigEndian.Uint32(buffer[4:8]) / 90 // VP8 ts rate is 90000.
-
+		// RTP descriptor and header must be fully parsed in the real application.
 		vp8Desc := buffer[12]
+
 		// *Extended control bits present flag* is not supported in this example
 		if vp8Desc&0x80 != 0 {
 			panic("Incoming VP8 payload descriptor has extended fields which is not supported by this example!")
@@ -150,48 +147,47 @@ func main() {
 			if keyframe {
 				keyframeCnt++
 			}
-			if len(frame) > 0 {
-				if keyframeCnt > 0 {
-					if ts0 == 0 {
-						ts0 = tsAbs
-					}
-					ts = tsAbs - ts0
-					if ts >= 0x8000 {
-						fmt.Print("Cluster is full.\n")
-						break
-					}
-					fmt.Printf("RTP frame received. (len: %d, timestamp: %d, keyframe: %v)\n", len(frame), tsAbs, keyframe)
-					b := struct {
-						Block ebml.Block `ebml:"SimpleBlock"`
-					}{
-						ebml.Block{
-							TrackNumber: 1,
-							Timecode:    int16(ts),
-							Keyframe:    keyframe,
-							Data:        [][]byte{frame},
-						},
-					}
-					// Write SimpleBlock to the file
-					if err := ebml.Marshal(&b, w); err != nil {
-						panic(err)
-					}
+			if len(frame) > 0 && keyframeCnt > 0 {
+				// 32bit counter overflow must be treated in real.
+				tsAbs := binary.BigEndian.Uint32(buffer[4:8]) / 90 // VP8 ts rate is 90000.
+				if ts0 == 0 {
+					ts0 = tsAbs
+				}
+				ts = tsAbs - ts0
+				if ts >= 0x8000 {
+					fmt.Print("Cluster is full.\n")
+					break
+				}
+				fmt.Printf("RTP frame received. (len: %d, timestamp: %d, keyframe: %v)\n", len(frame), tsAbs, keyframe)
+				b := struct {
+					Block ebml.Block `ebml:"SimpleBlock"`
+				}{
+					ebml.Block{
+						TrackNumber: 1,
+						Timecode:    int16(ts),
+						Keyframe:    keyframe,
+						Data:        [][]byte{frame},
+					},
+				}
+				// Write SimpleBlock to the file
+				if err := ebml.Marshal(&b, w); err != nil {
+					panic(err)
 				}
 			}
 			frame = []byte{}
 			keyframe = false
-		}
 
-		// RTP header 12 bytes, VP8 payload descriptor 1 byte.
-		vp8Header := buffer[13]
-		if vp8Header&0x01 == 0 {
-			keyframe = true
+			// RTP header 12 bytes, VP8 payload descriptor 1 byte.
+			vp8Header := buffer[13]
+			if vp8Header&0x01 == 0 {
+				keyframe = true
+			}
 		}
 
 		frame = append(frame, buffer[13:n]...)
 	}
 
 	// Calculate cluster size and finalize
-	w.Sync()
 	clusterTailOffset, err := w.Seek(0, 1)
 	if err != nil {
 		panic(err)
