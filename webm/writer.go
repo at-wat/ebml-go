@@ -73,8 +73,9 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry) ([]*FrameWriter, er
 	}()
 
 	go func() {
-		tc0 := int64(0xFFFFFFFF)
-		tc1 := int64(0xFFFFFFFF)
+		const invalidTimestamp = int64(0x7FFFFFFFFFFFFFFF)
+		tc0 := invalidTimestamp
+		tc1 := invalidTimestamp
 		lastTc := int64(0)
 
 		defer func() {
@@ -101,12 +102,12 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry) ([]*FrameWriter, er
 			case <-closed:
 				break L_WRITE
 			case f := <-ch:
-				if tc0 == 0xFFFFFFFF {
+				if tc0 == invalidTimestamp {
 					tc0 = f.timestamp
 				}
 				lastTc = f.timestamp
 				tc := f.timestamp - tc1
-				if tc >= 0x7FFF || tc1 == 0xFFFFFFFF {
+				if tc >= 0x7FFF || tc1 == invalidTimestamp {
 					// Create new Cluster
 					tc1 := f.timestamp
 					tc = 0
