@@ -49,6 +49,7 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry) ([]*FrameWriter, er
 	w.Clear()
 
 	ch := make(chan *frame)
+	fin := make(chan struct{}, len(tracks)-1)
 	wg := sync.WaitGroup{}
 	var ws []*FrameWriter
 
@@ -58,6 +59,7 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry) ([]*FrameWriter, er
 			trackNumber: t.TrackNumber,
 			f:           ch,
 			wg:          &wg,
+			fin:         fin,
 		})
 	}
 
@@ -72,6 +74,24 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry) ([]*FrameWriter, er
 		tc0 := invalidTimestamp
 		tc1 := invalidTimestamp
 		lastTc := int64(0)
+
+		defer func() {
+			// Finalize WebM
+			cluster := struct {
+				Cluster Cluster `ebml:"Cluster,inf"`
+			}{
+				Cluster: Cluster{
+					Timecode: uint64(lastTc - tc0),
+					PrevSize: uint64(w.Size()),
+				},
+			}
+			if err := ebml.Marshal(&cluster, w); err != nil {
+				// TODO: output error
+				panic(err)
+			}
+			w.Close()
+			<-fin // read one data to release blocked Close()
+		}()
 
 	L_WRITE:
 		for {
@@ -126,22 +146,6 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry) ([]*FrameWriter, er
 				}
 			}
 		}
-
-		// Finalize WebM
-		cluster := struct {
-			Cluster Cluster `ebml:"Cluster,inf"`
-		}{
-			Cluster: Cluster{
-				Timecode: uint64(lastTc - tc0),
-				PrevSize: uint64(w.Size()),
-			},
-		}
-		w.Clear()
-		if err := ebml.Marshal(&cluster, w); err != nil {
-			// TODO: output error
-			panic(err)
-		}
-		w.Close()
 	}()
 
 	return ws, nil

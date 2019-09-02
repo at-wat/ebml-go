@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/at-wat/ebml-go"
 )
@@ -67,7 +66,7 @@ func TestSimpleWriter(t *testing.T) {
 	ws[1].Close()
 	select {
 	case <-buf.closed:
-	case <-time.After(time.Second):
+	default:
 		t.Errorf("Base io.WriteCloser is not closed by SimpleWriter")
 	}
 

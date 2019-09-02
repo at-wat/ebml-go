@@ -10,6 +10,7 @@ type FrameWriter struct {
 	trackNumber uint64
 	f           chan *frame
 	wg          *sync.WaitGroup
+	fin         chan struct{}
 }
 
 type frame struct {
@@ -33,6 +34,11 @@ func (w *FrameWriter) Write(keyframe bool, timestamp int64, b []byte) (int, erro
 
 // Close closes a stream frame writer.
 // Output WebM will be closed after closing all FrameWriter.
-func (w *FrameWriter) Close() {
+func (w *FrameWriter) Close() error {
 	w.wg.Done()
+
+	// If it is the last writer, block until closing output writer.
+	w.fin <- struct{}{}
+
+	return nil
 }

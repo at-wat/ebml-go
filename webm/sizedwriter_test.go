@@ -3,7 +3,6 @@ package webm
 import (
 	"bytes"
 	"testing"
-	"time"
 )
 
 type bufferCloser struct {
@@ -40,7 +39,7 @@ func TestWriterWithSizeCount(t *testing.T) {
 	}
 	select {
 	case <-buf.closed:
-	case <-time.After(time.Second):
+	default:
 		t.Errorf("Base io.WriteCloser is not closed by writerWithSizeCount.Close()")
 	}
 }
