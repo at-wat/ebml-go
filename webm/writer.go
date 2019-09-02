@@ -24,7 +24,7 @@ var (
 	}
 )
 
-// NewSimpleWriter creates FrameWriter for each frame type specified by tracks argument.
+// NewSimpleWriter creates FrameWriter for each track specified as tracks argument.
 // Resultant WebM is written to given io.WriteCloser.
 // io.WriteCloser will be closed automatically; don't close it by yourself.
 func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry) ([]*FrameWriter, error) {

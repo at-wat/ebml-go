@@ -4,7 +4,7 @@ import (
 	"sync"
 )
 
-// FrameWriter is a stream frame.
+// FrameWriter is a stream frame writer.
 // It's simillar to io.Writer, but having additional arguments keyframe flag and timestamp.
 type FrameWriter struct {
 	trackNumber uint64
