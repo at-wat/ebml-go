@@ -18,8 +18,8 @@ func (w *writerWithSizeCount) Clear() {
 	w.size = 0
 }
 
-func (w *writerWithSizeCount) Close() {
-	w.w.Close()
+func (w *writerWithSizeCount) Close() error {
+	return w.w.Close()
 }
 
 func (w *writerWithSizeCount) Size() int {
