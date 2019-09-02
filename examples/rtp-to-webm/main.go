@@ -105,7 +105,6 @@ func main() {
 				keyframeCnt++
 			}
 			if len(frame) > 0 && keyframeCnt > 0 {
-				// 32bit counter overflow must be treated in real.
 				tcRaw := int64(binary.BigEndian.Uint32(buffer[4:8]))
 				if tcRawLast == -1 {
 					tcRawLast = tcRaw
@@ -117,7 +116,7 @@ func main() {
 					// counter underflow
 					tcRawBase -= 0x100000000
 				}
-				tc := (tcRaw + tcRawBase) / 90 // VP8 ts rate is 90000.
+				tc := (tcRaw + tcRawBase) / 90 // VP8 timestamp rate is 90000.
 				fmt.Printf("RTP frame received. (len: %d, timestamp: %d, keyframe: %v)\n", len(frame), tc, keyframe)
 				ws[0].Write(keyframe, int64(tc), frame)
 			}
