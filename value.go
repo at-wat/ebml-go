@@ -189,14 +189,14 @@ func encodeVInt(v uint64) []byte {
 		return []byte{byte(v>>16) | 0x20, byte(v >> 8), byte(v)}
 	} else if v < 0x10000000 {
 		return []byte{byte(v>>24) | 0x10, byte(v >> 16), byte(v >> 8), byte(v)}
-	} else if v < 0x80000000 {
+	} else if v < 0x8000000000 {
 		return []byte{byte(v>>32) | 0x8, byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
-	} else if v < 0x4000000000 {
+	} else if v < 0x400000000000 {
 		return []byte{byte(v>>40) | 0x4, byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
-	} else if v < 0x2000000000 {
+	} else if v < 0x20000000000000 {
 		return []byte{byte(v>>48) | 0x2, byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
-	} else if v < 0x1000000000 {
-		return []byte{byte(v>>56) | 0x1, byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
+	} else if v < sizeInf {
+		return []byte{0x1, byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
 	} else {
 		return []byte{0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 	}
