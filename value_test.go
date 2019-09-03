@@ -1,0 +1,90 @@
+package ebml
+
+import (
+	"bytes"
+	"reflect"
+	"testing"
+	"time"
+)
+
+func TestVInt(t *testing.T) {
+	testCases := map[string]struct {
+		b []byte
+		i uint64
+	}{
+		"1 byte":  {[]byte{0x81}, 0x01},
+		"2 bytes": {[]byte{0x41, 0x23}, 0x0123},
+		"3 bytes": {[]byte{0x21, 0x23, 0x45}, 0x012345},
+		"4 bytes": {[]byte{0x11, 0x23, 0x45, 0x67}, 0x01234567},
+		"5 bytes": {[]byte{0x09, 0x23, 0x45, 0x67, 0x89}, 0x0123456789},
+		"6 bytes": {[]byte{0x05, 0x23, 0x45, 0x67, 0x89, 0xab}, 0x0123456789ab},
+		"7 bytes": {[]byte{0x03, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd}, 0x0123456789abcd},
+		"8 bytes": {[]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef}, 0x23456789abcdef},
+	}
+
+	for n, c := range testCases {
+		t.Run("Decode "+n, func(t *testing.T) {
+			r, err := readVInt(bytes.NewBuffer(c.b))
+			if err != nil {
+				t.Fatalf("Failed to readVInt: %v", err)
+			}
+			if r != c.i {
+				t.Errorf("Unexpected readVInt result, expected: %d, got: %d", c.i, r)
+			}
+		})
+	}
+	for n, c := range testCases {
+		t.Run("Encode "+n, func(t *testing.T) {
+			b := encodeVInt(c.i)
+			if bytes.Compare(b, c.b) != 0 {
+				t.Errorf("Unexpected encodeVInt result, expected: %d, got: %d", c.b, b)
+			}
+		})
+	}
+}
+
+func TestValue(t *testing.T) {
+	testCases := map[string]struct {
+		b    []byte
+		t    Type
+		v    interface{}
+		vEnc interface{}
+	}{
+		"Binary":  {[]byte{0x01, 0x02, 0x03}, TypeBinary, []byte{0x01, 0x02, 0x03}, nil},
+		"String":  {[]byte{0x31, 0x32, 0x00}, TypeString, "12", nil},
+		"Int":     {[]byte{0x01, 0x02, 0x03}, TypeInt, int64(0x010203), nil},
+		"UInt":    {[]byte{0x01, 0x02, 0x03}, TypeUInt, uint64(0x010203), nil},
+		"Date":    {[]byte{0x01, 0x02, 0x03}, TypeDate, time.Unix(dateEpochInUnixtime, 0x010203), nil},
+		"Float32": {[]byte{0x40, 0x10, 0x00, 0x00}, TypeFloat, float64(2.25), float32(2.25)},
+		"Float64": {[]byte{0x40, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, TypeFloat, float64(2.25), nil},
+		"Block": {[]byte{0x85, 0x12, 0x34, 0x80, 0x34, 0x56}, TypeBlock,
+			Block{uint64(5), int16(0x1234), true, false, LacingNo, false, nil, [][]byte{[]byte{0x34, 0x56}}}, nil,
+		},
+	}
+	for n, c := range testCases {
+		t.Run("Read "+n, func(t *testing.T) {
+			v, err := perTypeReader[c.t](bytes.NewBuffer(c.b), uint64(len(c.b)))
+			if err != nil {
+				t.Fatalf("Failed to read%s: %v", n, err)
+			}
+			if !reflect.DeepEqual(v, c.v) {
+				t.Errorf("Unexpected read%s result, expected: %v, got: %v", n, c.v, v)
+			}
+		})
+		t.Run("Encode "+n, func(t *testing.T) {
+			var v interface{}
+			if c.vEnc != nil {
+				v = c.vEnc
+			} else {
+				v = c.v
+			}
+			b, err := perTypeEncoder[c.t](v)
+			if err != nil {
+				t.Fatalf("Failed to encode%s: %v", n, err)
+			}
+			if bytes.Compare(b, c.b) != 0 {
+				t.Errorf("Unexpected encode%s result, expected: %v, got: %v", n, c.b, b)
+			}
+		})
+	}
+}
