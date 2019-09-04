@@ -101,13 +101,41 @@ func TestEncodeValue_WrongInputType(t *testing.T) {
 		v   []interface{}
 		err error
 	}{
-		"Binary": {TypeBinary, []interface{}{"aaa", int64(1), uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}}, errInvalidType},
-		"String": {TypeString, []interface{}{[]byte{0x01}, int64(1), uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}}, errInvalidType},
-		"Int":    {TypeInt, []interface{}{"aaa", []byte{0x01}, uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}}, errInvalidType},
-		"UInt":   {TypeUInt, []interface{}{"aaa", []byte{0x01}, int64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}}, errInvalidType},
-		"Date":   {TypeDate, []interface{}{"aaa", []byte{0x01}, int64(1), uint64(1), float32(1.0), float64(1.0), Block{}}, errInvalidType},
-		"Float":  {TypeFloat, []interface{}{"aaa", []byte{0x01}, int64(1), uint64(1), time.Unix(1, 0), Block{}}, errInvalidType},
-		"Block":  {TypeBlock, []interface{}{"aaa", []byte{0x01}, int64(1), uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0)}, errInvalidType},
+		"Binary": {
+			TypeBinary,
+			[]interface{}{"aaa", int64(1), uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
+			errInvalidType,
+		},
+		"String": {
+			TypeString,
+			[]interface{}{[]byte{0x01}, int64(1), uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
+			errInvalidType,
+		},
+		"Int": {
+			TypeInt,
+			[]interface{}{"aaa", []byte{0x01}, uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
+			errInvalidType,
+		},
+		"UInt": {
+			TypeUInt,
+			[]interface{}{"aaa", []byte{0x01}, int64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
+			errInvalidType,
+		},
+		"Date": {
+			TypeDate,
+			[]interface{}{"aaa", []byte{0x01}, int64(1), uint64(1), float32(1.0), float64(1.0), Block{}},
+			errInvalidType,
+		},
+		"Float": {
+			TypeFloat,
+			[]interface{}{"aaa", []byte{0x01}, int64(1), uint64(1), time.Unix(1, 0), Block{}},
+			errInvalidType,
+		},
+		"Block": {
+			TypeBlock,
+			[]interface{}{"aaa", []byte{0x01}, int64(1), uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0)},
+			errInvalidType,
+		},
 	}
 	for n, c := range testCases {
 		t.Run("Encode "+n, func(t *testing.T) {
