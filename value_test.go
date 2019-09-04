@@ -94,3 +94,57 @@ func TestValue(t *testing.T) {
 		})
 	}
 }
+
+func TestEncodeValue_WrongInputType(t *testing.T) {
+	testCases := map[string]struct {
+		t   Type
+		v   []interface{}
+		err error
+	}{
+		"Binary": {
+			TypeBinary,
+			[]interface{}{"aaa", int64(1), uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
+			errInvalidType,
+		},
+		"String": {
+			TypeString,
+			[]interface{}{[]byte{0x01}, int64(1), uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
+			errInvalidType,
+		},
+		"Int": {
+			TypeInt,
+			[]interface{}{"aaa", []byte{0x01}, uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
+			errInvalidType,
+		},
+		"UInt": {
+			TypeUInt,
+			[]interface{}{"aaa", []byte{0x01}, int64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
+			errInvalidType,
+		},
+		"Date": {
+			TypeDate,
+			[]interface{}{"aaa", []byte{0x01}, int64(1), uint64(1), float32(1.0), float64(1.0), Block{}},
+			errInvalidType,
+		},
+		"Float": {
+			TypeFloat,
+			[]interface{}{"aaa", []byte{0x01}, int64(1), uint64(1), time.Unix(1, 0), Block{}},
+			errInvalidType,
+		},
+		"Block": {
+			TypeBlock,
+			[]interface{}{"aaa", []byte{0x01}, int64(1), uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0)},
+			errInvalidType,
+		},
+	}
+	for n, c := range testCases {
+		t.Run("Encode "+n, func(t *testing.T) {
+			for _, v := range c.v {
+				_, err := perTypeEncoder[c.t](v)
+				if err != c.err {
+					t.Fatalf("encode%s returned unexpected error to wrong input type: %v", n, err)
+				}
+			}
+		})
+	}
+}
