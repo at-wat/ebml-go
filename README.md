@@ -11,6 +11,14 @@ This package implements EBML Marshaler and Unmarshaler for Go.
 Currently, commonly used elements of WebM subset is supported.
 
 
+## Usage
+
+Check out the examples placed under [./examples](./examples/) directory.
+
+API is documented using [GoDoc](http://godoc.org/github.com/at-wat/ebml-go).
+EBML can be `Marshal`-ed and `Unmarshal`-ed between tagged struct and binary stream through `io.Reader` and `io.Writer`.
+
+
 ## License
 
 This package is licensed under [Apache License Version 2.0](./LICENSE).
