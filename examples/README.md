@@ -10,7 +10,7 @@ Receive RTP VP8 stream UDP packets and pack it to WebM file.
     $ go build .
     $ ./rtp-to-webm
     ```
-2. Send RTP stream to `./rtp-to-webm` by using GStreamer.
+2. Send RTP stream to `./rtp-to-webm` using GStreamer.
     ```shell
     $ gst-launch-1.0 videotestsrc \
         ! video/x-raw,width=320,height=240,framerate=30/1 \
