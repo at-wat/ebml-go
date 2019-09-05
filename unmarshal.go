@@ -65,16 +65,17 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value) (io.Reader, error) {
 	fieldMap := make(map[string]field)
 	if vo.IsValid() {
 		for i := 0; i < vo.NumField(); i++ {
+			var nn []string
 			if n, ok := vo.Type().Field(i).Tag.Lookup("ebml"); ok {
-				nn := strings.Split(n, ",")
-				var name string
-				if len(nn) > 0 {
-					name = nn[0]
-				} else {
-					name = vo.Type().Field(i).Name
-				}
-				fieldMap[name] = field{vo.Field(i), vo.Type().Field(i).Type}
+				nn = strings.Split(n, ",")
 			}
+			var name string
+			if len(nn) > 0 && len(nn[0]) > 0 {
+				name = nn[0]
+			} else {
+				name = vo.Type().Field(i).Name
+			}
+			fieldMap[name] = field{vo.Field(i), vo.Type().Field(i).Type}
 		}
 	}
 
