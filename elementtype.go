@@ -14,8 +14,16 @@
 
 package ebml
 
+import (
+	"errors"
+)
+
 // ElementType represents EBML Element type
 type ElementType int
+
+var (
+	errUnknownElementType = errors.New("Unknown element type")
+)
 
 // EBML Element types
 const (
@@ -436,6 +444,6 @@ func ElementTypeFromString(s string) (ElementType, error) {
 	case "AESSettingsCipherMode":
 		return ElementAESSettingsCipherMode, nil
 	default:
-		return 0, nil
+		return 0, errUnknownElementType
 	}
 }
