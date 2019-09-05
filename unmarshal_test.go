@@ -46,6 +46,28 @@ func ExampleUnmarshal() {
 	// Output: {{webm 2 2}}
 }
 
+func TestUnmarshal_Tag(t *testing.T) {
+	var tagged struct {
+		DocCustomNamedType string `ebml:"EBMLDocType"`
+	}
+	var untagged struct {
+		EBMLDocType string
+	}
+
+	b := []byte{0x42, 0x82, 0x85, 0x68, 0x6F, 0x67, 0x65, 0x00}
+
+	if err := Unmarshal(bytes.NewBuffer(b), &tagged); err != nil {
+		t.Fatalf("error: %+v\n", err)
+	}
+	if err := Unmarshal(bytes.NewBuffer(b), &untagged); err != nil {
+		t.Fatalf("error: %+v\n", err)
+	}
+
+	if tagged.DocCustomNamedType != untagged.EBMLDocType {
+		t.Errorf("Unmarshal result to tagged and and untagged struct must be same, tagged: %v, untagged: %v", tagged, untagged)
+	}
+}
+
 func BenchmarkUnmarshal(b *testing.B) {
 	TestBinary := []byte{
 		0x1a, 0x45, 0xdf, 0xa3, // EBML
