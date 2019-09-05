@@ -31,4 +31,4 @@ Read WebM file, parse, and write back to the file.
     $ ./webm-roundtrip
     ```
 2. Contents (EBML document) of the file is shown to the stdout.
-3. Check out `copy.webm` generated at the current directory. It should be playable and seekable.
+3. Check out `copy.webm` generated at the current directory. It should be playable and seekable as same as `sample.webm`.
