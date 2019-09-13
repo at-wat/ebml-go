@@ -116,6 +116,8 @@ func main() {
 					// counter underflow
 					tcRawBase -= 0x100000000
 				}
+				tcRawLast = tcRaw
+
 				tc := (tcRaw + tcRawBase) / 90 // VP8 timestamp rate is 90000.
 				fmt.Printf("RTP frame received. (len: %d, timestamp: %d, keyframe: %v)\n", len(frame), tc, keyframe)
 				ws[0].Write(keyframe, int64(tc), frame)
