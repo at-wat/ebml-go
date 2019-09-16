@@ -19,6 +19,12 @@ API is documented using [GoDoc](http://godoc.org/github.com/at-wat/ebml-go).
 EBML can be `Marshal`-ed and `Unmarshal`-ed between tagged struct and binary stream through `io.Reader` and `io.Writer`.
 
 
+## References
+
+- [Matroska Container Specifications](https://matroska.org/technical/specs/index.html)
+- [WebM Container Guidelines](https://www.webmproject.org/docs/container/)
+
+
 ## License
 
 This package is licensed under [Apache License Version 2.0](./LICENSE).
