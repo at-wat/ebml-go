@@ -5,7 +5,7 @@
 ## A pure Go implementation of bi-directional EBML encoder/decoder
 
 EBML (Extensible Binary Meta Language) is a binary and byte-aligned format that was originally developed for the Matroska audio-visual container.
-See https://matroska.org/technical/specs/index.html for details.
+See https://matroska.org/ for details.
 
 This package implements EBML Marshaler and Unmarshaler for Go.
 Currently, commonly used elements of WebM subset is supported.
