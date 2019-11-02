@@ -181,25 +181,43 @@ var perTypeEncoder = map[Type]func(interface{}) ([]byte, error){
 }
 
 func encodeVInt(v uint64) []byte {
-	if v < 0x80 {
+	if v < 0x80-1 {
 		return []byte{byte(v) | 0x80}
-	} else if v < 0x4000 {
+	} else if v < 0x4000-1 {
 		return []byte{byte(v>>8) | 0x40, byte(v)}
-	} else if v < 0x200000 {
+	} else if v < 0x200000-1 {
 		return []byte{byte(v>>16) | 0x20, byte(v >> 8), byte(v)}
-	} else if v < 0x10000000 {
+	} else if v < 0x10000000-1 {
 		return []byte{byte(v>>24) | 0x10, byte(v >> 16), byte(v >> 8), byte(v)}
-	} else if v < 0x8000000000 {
+	} else if v < 0x8000000000-1 {
 		return []byte{byte(v>>32) | 0x8, byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
-	} else if v < 0x400000000000 {
+	} else if v < 0x400000000000-1 {
 		return []byte{byte(v>>40) | 0x4, byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
-	} else if v < 0x20000000000000 {
+	} else if v < 0x20000000000000-1 {
 		return []byte{byte(v>>48) | 0x2, byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
 	} else if v < sizeInf {
 		return []byte{0x1, byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
 	} else {
 		return []byte{0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 	}
+}
+func encodeTrackNumber(v uint64) ([]byte, error) {
+	if v < 0x80 {
+		return []byte{byte(v) | 0x80}, nil
+	} else if v < 0x4000 {
+		return []byte{byte(v>>8) | 0x40, byte(v)}, nil
+	} else if v < 0x200000 {
+		return []byte{byte(v>>16) | 0x20, byte(v >> 8), byte(v)}, nil
+	} else if v < 0x10000000 {
+		return []byte{byte(v>>24) | 0x10, byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	} else if v < 0x8000000000 {
+		return []byte{byte(v>>32) | 0x8, byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	} else if v < 0x400000000000 {
+		return []byte{byte(v>>40) | 0x4, byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	} else if v < 0x20000000000000 {
+		return []byte{byte(v>>48) | 0x2, byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	}
+	return nil, errors.New("more than 2^56-1 tracks are not supported")
 }
 func encodeBinary(i interface{}) ([]byte, error) {
 	v, ok := i.([]byte)
