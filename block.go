@@ -117,7 +117,11 @@ func UnmarshalBlock(r io.Reader) (*Block, error) {
 
 // MarshalBlock marshals EBML Block structure
 func MarshalBlock(b *Block, w io.Writer) error {
-	if _, err := w.Write(encodeVInt(b.TrackNumber)); err != nil {
+	n, err := encodeElementID(b.TrackNumber)
+	if err != nil {
+		return err
+	}
+	if _, err := w.Write(n); err != nil {
 		return err
 	}
 	if _, err := w.Write([]byte{byte(b.Timecode >> 8), byte(b.Timecode)}); err != nil {
