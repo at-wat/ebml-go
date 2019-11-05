@@ -36,9 +36,9 @@ func TestVInt(t *testing.T) {
 	}
 	for n, c := range testCases {
 		t.Run("Encode "+n, func(t *testing.T) {
-			b := encodeVInt(c.i)
+			b := encodeDataSize(c.i)
 			if bytes.Compare(b, c.b) != 0 {
-				t.Errorf("Unexpected encodeVInt result, expected: %d, got: %d", c.b, b)
+				t.Errorf("Unexpected encodeDataSize result, expected: %d, got: %d", c.b, b)
 			}
 		})
 	}

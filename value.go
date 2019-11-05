@@ -180,7 +180,7 @@ var perTypeEncoder = map[Type]func(interface{}) ([]byte, error){
 	TypeBlock:  encodeBlock,
 }
 
-func encodeVInt(v uint64) []byte {
+func encodeDataSize(v uint64) []byte {
 	if v < 0x80-1 {
 		return []byte{byte(v) | 0x80}
 	} else if v < 0x4000-1 {
