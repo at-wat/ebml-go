@@ -201,7 +201,7 @@ func encodeDataSize(v uint64) []byte {
 		return []byte{0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 	}
 }
-func encodeTrackNumber(v uint64) ([]byte, error) {
+func encodeElementID(v uint64) ([]byte, error) {
 	if v < 0x80 {
 		return []byte{byte(v) | 0x80}, nil
 	} else if v < 0x4000 {
@@ -217,7 +217,7 @@ func encodeTrackNumber(v uint64) ([]byte, error) {
 	} else if v < 0x20000000000000 {
 		return []byte{byte(v>>48) | 0x2, byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
 	}
-	return nil, errors.New("more than 2^56-1 tracks are not supported")
+	return nil, errors.New("more than 2^56-1 are not supported")
 }
 func encodeBinary(i interface{}) ([]byte, error) {
 	v, ok := i.([]byte)
