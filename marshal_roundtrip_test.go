@@ -82,6 +82,16 @@ func TestMarshal_RoundtripWebM(t *testing.T) {
 					Timecode: 1234567,
 				},
 			},
+			Cues: &webm.Cues{
+				CuePoint: []webm.CuePoint{
+					{
+						CueTime: 1,
+						CueTrackPositions: []webm.CueTrackPosition{
+							{CueTrack: 2, CueClusterPosition: 3},
+						},
+					},
+				},
+			},
 		},
 	}
 

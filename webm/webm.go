@@ -91,12 +91,27 @@ type Cluster struct {
 	SimpleBlock []ebml.Block `ebml:"SimpleBlock"`
 }
 
+type Cues struct {
+	CuePoint []CuePoint `ebml:"CuePoint"`
+}
+
+type CuePoint struct {
+	CueTime           uint64             `ebml:"CueTime"`
+	CueTrackPositions []CueTrackPosition `ebml:"CueTrackPositions"`
+}
+
+type CueTrackPosition struct {
+	CueTrack           uint64 `ebml:"CueTrack"`
+	CueClusterPosition uint64 `ebml:"CueClusterPosition"`
+}
+
 // Segment represents Segment element struct
 type Segment struct {
 	SeekHead *SeekHead `ebml:"SeekHead"`
 	Info     Info      `ebml:"Info"`
 	Tracks   Tracks    `ebml:"Tracks"`
 	Cluster  []Cluster `ebml:"Cluster"`
+	Cues     *Cues     `ebml:"Cues"`
 }
 
 // SegmentStream represents Segment element struct for streaming

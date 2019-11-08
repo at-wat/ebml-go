@@ -114,6 +114,13 @@ const (
 	ElementContentEncAESSettings
 	ElementAESSettingsCipherMode
 
+	ElementCues
+	ElementCuePoint
+	ElementCueTime
+	ElementCueTrackPositions
+	ElementCueTrack
+	ElementCueClusterPosition
+
 	elementMax
 )
 
@@ -277,6 +284,18 @@ func (i ElementType) String() string {
 		return "ContentEncAESSettings"
 	case ElementAESSettingsCipherMode:
 		return "AESSettingsCipherMode"
+	case ElementCues:
+		return "Cues"
+	case ElementCuePoint:
+		return "CuePoint"
+	case ElementCueTime:
+		return "CueTime"
+	case ElementCueTrackPositions:
+		return "CueTrackPositions"
+	case ElementCueTrack:
+		return "CueTrack"
+	case ElementCueClusterPosition:
+		return "CueClusterPosition"
 	default:
 		return "unknown"
 	}
@@ -443,6 +462,18 @@ func ElementTypeFromString(s string) (ElementType, error) {
 		return ElementContentEncAESSettings, nil
 	case "AESSettingsCipherMode":
 		return ElementAESSettingsCipherMode, nil
+	case "Cues":
+		return ElementCues, nil
+	case "CuePoint":
+		return ElementCuePoint, nil
+	case "CueTime":
+		return ElementCueTime, nil
+	case "CueTrackPositions":
+		return ElementCueTrackPositions, nil
+	case "CueTrack":
+		return ElementCueTrack, nil
+	case "CueClusterPosition":
+		return ElementCueClusterPosition, nil
 	default:
 		return 0, errUnknownElementType
 	}

@@ -31,6 +31,7 @@ var table = elementTable{
 	ElementSegment:                elementDef{[]byte{0x18, 0x53, 0x80, 0x67}, TypeMaster, false},
 	ElementTracks:                 elementDef{[]byte{0x16, 0x54, 0xAE, 0x6B}, TypeMaster, true},
 	ElementEBML:                   elementDef{[]byte{0x1A, 0x45, 0xDF, 0xA3}, TypeMaster, false},
+	ElementCues:                   elementDef{[]byte{0x1C, 0x53, 0xBB, 0x6B}, TypeMaster, true},
 	ElementCluster:                elementDef{[]byte{0x1F, 0x43, 0xB6, 0x75}, TypeMaster, true},
 	ElementDefaultDuration:        elementDef{[]byte{0x23, 0xE3, 0x83}, TypeUInt, false},
 	ElementTimecodeScale:          elementDef{[]byte{0x2A, 0xD7, 0xB1}, TypeUInt, false},
@@ -63,13 +64,18 @@ var table = elementTable{
 	ElementPrevSize:               elementDef{[]byte{0xAB}, TypeUInt, false},
 	ElementTrackEntry:             elementDef{[]byte{0xAE}, TypeMaster, false},
 	ElementPixelWidth:             elementDef{[]byte{0xB0}, TypeUInt, false},
+	ElementCueTime:                elementDef{[]byte{0xB3}, TypeUInt, false},
 	ElementSamplingFrequency:      elementDef{[]byte{0xB5}, TypeFloat, false},
+	ElementCueTrackPositions:      elementDef{[]byte{0xB7}, TypeMaster, false},
 	ElementPixelHeight:            elementDef{[]byte{0xBA}, TypeUInt, false},
+	ElementCuePoint:               elementDef{[]byte{0xBB}, TypeMaster, false},
 	ElementTrackNumber:            elementDef{[]byte{0xD7}, TypeUInt, false},
 	ElementVideo:                  elementDef{[]byte{0xE0}, TypeMaster, false},
 	ElementAudio:                  elementDef{[]byte{0xE1}, TypeMaster, false},
 	ElementTimecode:               elementDef{[]byte{0xE7}, TypeUInt, false},
 	ElementVoid:                   elementDef{[]byte{0xEC}, TypeMaster, false},
+	ElementCueClusterPosition:     elementDef{[]byte{0xF1}, TypeUInt, false},
+	ElementCueTrack:               elementDef{[]byte{0xF7}, TypeUInt, false},
 }
 
 type elementRevTable map[uint32]element
