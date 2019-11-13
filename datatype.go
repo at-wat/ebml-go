@@ -51,3 +51,8 @@ func (t Type) String() string {
 		return "Unknown type"
 	}
 }
+
+// Metadata represents a metadata (position) of the EBML element
+type Metadata struct {
+	Position uint64
+}

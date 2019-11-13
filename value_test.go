@@ -32,9 +32,12 @@ func TestDataSize(t *testing.T) {
 
 	for n, c := range testCases {
 		t.Run("Decode "+n, func(t *testing.T) {
-			r, err := readVInt(bytes.NewBuffer(c.b))
+			r, br, err := readVInt(bytes.NewBuffer(c.b))
 			if err != nil {
 				t.Fatalf("Failed to readVInt: %v", err)
+			}
+			if br != len(c.b) {
+				t.Errorf("Unexpected number of read bytes, expected: %d, got: %d", len(c.b), br)
 			}
 			if r != c.i {
 				t.Errorf("Unexpected readVInt result, expected: %d, got: %d", c.i, r)
@@ -73,9 +76,12 @@ func TestElementID(t *testing.T) {
 
 	for n, c := range testCases {
 		t.Run("Decode "+n, func(t *testing.T) {
-			r, err := readVInt(bytes.NewBuffer(c.b))
+			r, br, err := readVInt(bytes.NewBuffer(c.b))
 			if err != nil {
 				t.Fatalf("Failed to readVInt: %v", err)
+			}
+			if br != len(c.b) {
+				t.Errorf("Unexpected number of read bytes, expected: %d, got: %d", len(c.b), br)
 			}
 			if r != c.i {
 				t.Errorf("Unexpected readVInt result, expected: %d, got: %d", c.i, r)
@@ -121,14 +127,17 @@ func TestValue(t *testing.T) {
 		"Float32": {[]byte{0x40, 0x10, 0x00, 0x00}, TypeFloat, float64(2.25), float32(2.25)},
 		"Float64": {[]byte{0x40, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, TypeFloat, float64(2.25), nil},
 		"Block": {[]byte{0x85, 0x12, 0x34, 0x80, 0x34, 0x56}, TypeBlock,
-			Block{uint64(5), int16(0x1234), true, false, LacingNo, false, nil, [][]byte{[]byte{0x34, 0x56}}}, nil,
+			Block{Metadata{}, uint64(5), int16(0x1234), true, false, LacingNo, false, nil, [][]byte{{0x34, 0x56}}}, nil,
 		},
 	}
 	for n, c := range testCases {
 		t.Run("Read "+n, func(t *testing.T) {
-			v, err := perTypeReader[c.t](bytes.NewBuffer(c.b), uint64(len(c.b)))
+			v, br, err := perTypeReader[c.t](bytes.NewBuffer(c.b), uint64(len(c.b)))
 			if err != nil {
 				t.Fatalf("Failed to read%s: %v", n, err)
+			}
+			if br != len(c.b) {
+				t.Errorf("Unexpected number of read bytes, expected: %d, got: %d", len(c.b), br)
 			}
 			if !reflect.DeepEqual(v, c.v) {
 				t.Errorf("Unexpected read%s result, expected: %v, got: %v", n, c.v, v)

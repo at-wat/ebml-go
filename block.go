@@ -44,6 +44,7 @@ const (
 
 // Block represents EBML Block/SimpleBlock element
 type Block struct {
+	Metadata
 	TrackNumber uint64
 	Timecode    int16
 	Keyframe    bool
@@ -76,21 +77,26 @@ type Lace struct {
 }
 
 // UnmarshalBlock unmarshals EBML Block structure
-func UnmarshalBlock(r io.Reader) (*Block, error) {
+func UnmarshalBlock(r io.Reader) (*Block, int, error) {
+	var bytesRead int
 	var b Block
 	var err error
-	if b.TrackNumber, err = readVInt(r); err != nil {
-		return nil, err
+	if b.TrackNumber, bytesRead, err = readVInt(r); err != nil {
+		return nil, bytesRead, err
 	}
-	if v, err := readInt(r, 2); err == nil {
+	v, n, err := readInt(r, 2)
+	bytesRead += n
+	if err == nil {
 		b.Timecode = int16(v.(int64))
 	} else {
-		return nil, err
+		return nil, bytesRead, err
 	}
 
 	var bs [1]byte
-	if _, err := r.Read(bs[:]); err != nil {
-		return nil, err
+	n, err = r.Read(bs[:])
+	bytesRead += n
+	if err != nil {
+		return nil, bytesRead, err
 	}
 	if bs[0]&blockFlagMaskKeyframe != 0 {
 		b.Keyframe = true
@@ -104,15 +110,16 @@ func UnmarshalBlock(r io.Reader) (*Block, error) {
 	b.Lacing = LacingMode((bs[0] & blockFlagMaskLacing) >> 1)
 
 	if b.Lacing != LacingNo {
-		return nil, errLaceUnimplemented
+		return nil, bytesRead, errLaceUnimplemented
 	}
 
 	b.Data = [][]byte{[]byte{}}
 	b.Data[0], err = ioutil.ReadAll(r)
+	bytesRead += len(b.Data[0])
 	if err != nil {
-		return nil, err
+		return nil, bytesRead, err
 	}
-	return &b, nil
+	return &b, bytesRead, nil
 }
 
 // MarshalBlock marshals EBML Block structure

@@ -16,23 +16,34 @@ package ebml
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"testing"
 )
 
 func ExampleUnmarshal() {
+	b := encodeDataSize(0x10)
+	println(hex.EncodeToString(b))
 	TestBinary := []byte{
 		0x1a, 0x45, 0xdf, 0xa3, // EBML
 		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, // 0x10
-		0x42, 0x82, 0x85, 0x77, 0x65, 0x62, 0x6d, 0x00,
-		0x42, 0x87, 0x81, 0x02, 0x42, 0x85, 0x81, 0x02,
+		0x42, 0x82, 0x85, 0x77, 0x65, 0x62, 0x6d, 0x00, // EBMLDocType
+		0x42, 0x87, 0x81, 0x02, // EBMLDocTypeVersion
+		0x42, 0x85, 0x81, 0x02, // EBMLDocTypeReadVersion
+		0x18, 0x53, 0x80, 0x67, 0x85, // Segment
+		0x2a, 0xd7, 0xb1, 0x81, 0x03, // TimecodeScale
 	}
 	type TestEBML struct {
 		Header struct {
+			Metadata
 			DocType            string `ebml:"EBMLDocType"`
 			DocTypeVersion     uint64 `ebml:"EBMLDocTypeVersion"`
 			DocTypeReadVersion uint64 `ebml:"EBMLDocTypeReadVersion"`
 		} `ebml:"EBML"`
+		Segment struct {
+			Metadata
+			TimecodeScale uint64 `ebml:"TimecodeScale"`
+		} `ebml:"Segment"`
 	}
 
 	r := bytes.NewReader(TestBinary)
@@ -43,7 +54,7 @@ func ExampleUnmarshal() {
 	}
 	fmt.Println(ret)
 
-	// Output: {{webm 2 2}}
+	// Output: {{{0} webm 2 2} {{28} 3}}
 }
 
 func TestUnmarshal_Tag(t *testing.T) {

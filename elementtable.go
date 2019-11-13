@@ -91,7 +91,7 @@ func init() {
 	revTable = make(elementRevTable)
 
 	for k, v := range table {
-		e, err := readVInt(bytes.NewBuffer(v.b))
+		e, _, err := readVInt(bytes.NewBuffer(v.b))
 		if err != nil {
 			panic(err)
 		}

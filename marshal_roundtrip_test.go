@@ -30,6 +30,7 @@ func TestMarshal_RoundtripWebM(t *testing.T) {
 		Segment webm.Segment    `ebml:"Segment,inf"`
 	}{
 		Header: webm.EBMLHeader{
+			Metadata:           ebml.Metadata{Position: 0},
 			EBMLVersion:        1,
 			EBMLReadVersion:    1,
 			EBMLMaxIDLength:    4,
@@ -39,15 +40,19 @@ func TestMarshal_RoundtripWebM(t *testing.T) {
 			DocTypeReadVersion: 2,
 		},
 		Segment: webm.Segment{
+			Metadata: ebml.Metadata{Position: 37},
 			Info: webm.Info{
+				Metadata:      ebml.Metadata{Position: 49},
 				TimecodeScale: 1000000, // 1ms
 				MuxingApp:     "ebml-go example",
 				WritingApp:    "ebml-go example",
 				DateUTC:       time.Now().Truncate(time.Millisecond),
 			},
 			Tracks: webm.Tracks{
+				Metadata: ebml.Metadata{Position: 110},
 				TrackEntry: []webm.TrackEntry{
 					{
+						Metadata:        ebml.Metadata{Position: 115},
 						Name:            "Video",
 						TrackNumber:     1,
 						TrackUID:        12345,
@@ -55,12 +60,14 @@ func TestMarshal_RoundtripWebM(t *testing.T) {
 						TrackType:       1,
 						DefaultDuration: 33333333,
 						Video: &webm.Video{
+							Metadata:    ebml.Metadata{Position: 158},
 							PixelWidth:  320,
 							PixelHeight: 240,
 						},
 						CodecPrivate: []byte{0x01, 0x02},
 					},
 					{
+						Metadata:        ebml.Metadata{Position: 167},
 						Name:            "Audio",
 						TrackNumber:     2,
 						TrackUID:        54321,
@@ -68,6 +75,7 @@ func TestMarshal_RoundtripWebM(t *testing.T) {
 						TrackType:       2,
 						DefaultDuration: 33333333,
 						Audio: &webm.Audio{
+							Metadata:          ebml.Metadata{Position: 206},
 							SamplingFrequency: 48000.0,
 							Channels:          2,
 						},
@@ -76,18 +84,26 @@ func TestMarshal_RoundtripWebM(t *testing.T) {
 			},
 			Cluster: []webm.Cluster{
 				{
+					Metadata: ebml.Metadata{Position: 221},
 					Timecode: 0,
 				},
 				{
+					Metadata: ebml.Metadata{Position: 229},
 					Timecode: 1234567,
 				},
 			},
 			Cues: &webm.Cues{
+				Metadata: ebml.Metadata{Position: 239},
 				CuePoint: []webm.CuePoint{
 					{
-						CueTime: 1,
+						Metadata: ebml.Metadata{Position: 244},
+						CueTime:  1,
 						CueTrackPositions: []webm.CueTrackPosition{
-							{CueTrack: 2, CueClusterPosition: 3},
+							{
+								Metadata:           ebml.Metadata{Position: 249},
+								CueTrack:           2,
+								CueClusterPosition: 3,
+							},
 						},
 					},
 				},

@@ -119,8 +119,38 @@ func TestSimpleWriter(t *testing.T) {
 		if err := ebml.Unmarshal(bytes.NewReader(buf.Bytes()), &result); err != nil {
 			t.Fatalf("Failed to Unmarshal resultant binary: %v", err)
 		}
+		// Clear all metadata because metadata is not an interest of this test case
+		clearAllMetadata(reflect.ValueOf(&result).Elem())
 		if !reflect.DeepEqual(expected, result) {
 			t.Errorf("Unexpected WebM data,\nexpected: %+v\n     got: %+v", expected, result)
 		}
 	}()
+}
+
+func clearAllMetadata(vo reflect.Value) {
+	switch vo.Kind() {
+	case reflect.Struct:
+		for i := 0; i < vo.NumField(); i++ {
+			if vo.Type().Field(i).Name == "Metadata" {
+				vo.Field(i).Set(reflect.ValueOf(ebml.Metadata{}))
+			} else {
+				clearAllMetadata(vo.Field(i))
+			}
+		}
+	case reflect.Ptr:
+		if !vo.IsNil() {
+			vo = vo.Elem()
+			for i := 0; i < vo.NumField(); i++ {
+				if vo.Type().Field(i).Name == "Metadata" {
+					vo.Field(i).Set(reflect.ValueOf(ebml.Metadata{}))
+				} else {
+					clearAllMetadata(vo.Field(i))
+				}
+			}
+		}
+	case reflect.Slice:
+		for i := 0; i < vo.Len(); i++ {
+			clearAllMetadata(vo.Index(i))
+		}
+	}
 }
