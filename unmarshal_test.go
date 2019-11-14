@@ -16,14 +16,11 @@ package ebml
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"testing"
 )
 
 func ExampleUnmarshal() {
-	b := encodeDataSize(0x10)
-	println(hex.EncodeToString(b))
 	TestBinary := []byte{
 		0x1a, 0x45, 0xdf, 0xa3, // EBML
 		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, // 0x10
