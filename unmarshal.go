@@ -41,7 +41,7 @@ func Unmarshal(r io.Reader, val interface{}) error {
 	voe := vo.Elem()
 
 	for {
-		if _, _, err := readElement(r, sizeInf, voe, 0); err != nil {
+		if _, err := readElement(r, sizeInf, voe, 0); err != nil {
 			if err == io.EOF {
 				return nil
 			}
@@ -50,7 +50,7 @@ func Unmarshal(r io.Reader, val interface{}) error {
 	}
 }
 
-func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64) (io.Reader, uint64, error) {
+func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64) (io.Reader, error) {
 	var r io.Reader
 	if n != sizeInf {
 		r = io.LimitReader(r0, n)
@@ -79,22 +79,22 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64) (io.Reader
 		}
 	}
 
-	var offset uint64
 	for {
+		var headerSize uint64 = 0
 		e, nb, err := readVInt(r)
-		bytesRead := uint64(nb)
+		headerSize += uint64(nb)
 		if err != nil {
-			return nil, offset + bytesRead, err
+			return nil, err
 		}
 		v, ok := revTable[uint32(e)]
 		if !ok {
-			return nil, offset + bytesRead, errUnknownElement
+			return nil, errUnknownElement
 		}
 
 		size, nb, err := readVInt(r)
-		bytesRead += uint64(nb)
+		headerSize += uint64(nb)
 		if err != nil {
-			return nil, offset + bytesRead, err
+			return nil, err
 		}
 		var vnext reflect.Value
 		if fm, ok := fieldMap[v.e.String()]; ok {
@@ -105,7 +105,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64) (io.Reader
 		case TypeMaster:
 			if v.top && !vnext.IsValid() {
 				b := bytes.Join([][]byte{table[v.e].b, encodeDataSize(size)}, []byte{})
-				return bytes.NewBuffer(b), offset, io.EOF
+				return bytes.NewBuffer(b), io.EOF
 			}
 			var vn reflect.Value
 			if vnext.IsValid() && vnext.CanSet() {
@@ -119,20 +119,18 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64) (io.Reader
 					vn = vnext
 				}
 			}
-			r0, br, err := readElement(r, int64(size), vn, pos+offset+bytesRead)
-			setMetadataIfExists(vn, pos+offset)
-			bytesRead += br
+			r0, err := readElement(r, int64(size), vn, pos+headerSize)
+			setMetadataIfExists(vn, pos)
 			if err != nil && err != io.EOF {
-				return r0, bytesRead, err
+				return r0, err
 			}
 			if r0 != nil {
 				r = io.MultiReader(r0, r)
 			}
 		default:
 			val, err := perTypeReader[v.t](r, size)
-			bytesRead += size
 			if err != nil {
-				return nil, bytesRead, err
+				return nil, err
 			}
 			vr := reflect.ValueOf(val)
 			if vnext.IsValid() && vnext.CanSet() {
@@ -143,7 +141,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64) (io.Reader
 				}
 			}
 		}
-		offset += bytesRead
+		pos += headerSize + size
 	}
 }
 
