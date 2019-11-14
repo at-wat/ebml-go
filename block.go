@@ -44,7 +44,6 @@ const (
 
 // Block represents EBML Block/SimpleBlock element
 type Block struct {
-	Metadata
 	TrackNumber uint64
 	Timecode    int16
 	Keyframe    bool
