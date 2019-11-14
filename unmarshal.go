@@ -129,8 +129,8 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64) (io.Reader
 				r = io.MultiReader(r0, r)
 			}
 		default:
-			val, nb, err := perTypeReader[v.t](r, size)
-			bytesRead += uint64(nb)
+			val, err := perTypeReader[v.t](r, size)
+			bytesRead += size
 			if err != nil {
 				return nil, bytesRead, err
 			}

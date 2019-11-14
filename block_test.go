@@ -40,12 +40,9 @@ func TestUnmarshalBlock(t *testing.T) {
 	}
 	for n, c := range testCases {
 		t.Run(n, func(t *testing.T) {
-			block, br, err := UnmarshalBlock(bytes.NewBuffer(c.input))
+			block, err := UnmarshalBlock(bytes.NewBuffer(c.input))
 			if err != nil {
 				t.Fatalf("Failed to unmarshal block: %v", err)
-			}
-			if br != len(c.input) {
-				t.Errorf("Unexpected number of read bytes, expected: %v, got: %v", len(c.input), br)
 			}
 			if !reflect.DeepEqual(c.expected, *block) {
 				t.Errorf("Unexpected unmarshal result, expected: %v, got: %v", c.expected, *block)

@@ -33,7 +33,7 @@ var (
 	errUnsupportedElementID = errors.New("Unsupported Element ID")
 )
 
-var perTypeReader = map[Type]func(io.Reader, uint64) (interface{}, int, error){
+var perTypeReader = map[Type]func(io.Reader, uint64) (interface{}, error){
 	TypeInt:    readInt,
 	TypeUInt:   readUInt,
 	TypeDate:   readDate,
@@ -95,83 +95,81 @@ func readVInt(r io.Reader) (uint64, int, error) {
 		vc--
 	}
 }
-func readBinary(r io.Reader, n uint64) (interface{}, int, error) {
+func readBinary(r io.Reader, n uint64) (interface{}, error) {
 	bs := make([]byte, n)
-	bytesRead, err := r.Read(bs)
+	_, err := r.Read(bs)
 	if err != nil {
-		return []byte{}, bytesRead, err
+		return []byte{}, err
 	}
-	return bs, bytesRead, nil
+	return bs, nil
 }
-func readString(r io.Reader, n uint64) (interface{}, int, error) {
-	bs, bytesRead, err := readBinary(r, n)
+func readString(r io.Reader, n uint64) (interface{}, error) {
+	bs, err := readBinary(r, n)
 	if err != nil {
-		return "", bytesRead, err
+		return "", err
 	}
 	s := string(bs.([]byte))
 	// null terminated
 	if s[len(s)-1] == '\x00' {
 		s = s[:len(s)-1]
 	}
-	return s, bytesRead, nil
+	return s, nil
 }
-func readInt(r io.Reader, n uint64) (interface{}, int, error) {
+func readInt(r io.Reader, n uint64) (interface{}, error) {
 	bs := make([]byte, n)
-	bytesRead, err := r.Read(bs[:])
+	_, err := r.Read(bs[:])
 	if err != nil {
-		return 0, bytesRead, err
+		return 0, err
 	}
 	var v int64
 	for _, b := range bs {
 		v = v<<8 | int64(b)
 	}
-	return v, bytesRead, nil
+	return v, nil
 }
-func readUInt(r io.Reader, n uint64) (interface{}, int, error) {
+func readUInt(r io.Reader, n uint64) (interface{}, error) {
 	bs := make([]byte, n)
-	bytesRead, err := r.Read(bs[:])
+	_, err := r.Read(bs[:])
 	if err != nil {
-		return 0, bytesRead, err
+		return 0, err
 	}
 	var v uint64
 	for _, b := range bs {
 		v = v<<8 | uint64(b)
 	}
-	return v, bytesRead, nil
+	return v, nil
 }
-func readDate(r io.Reader, n uint64) (interface{}, int, error) {
-	i, bytesRead, err := readInt(r, n)
+func readDate(r io.Reader, n uint64) (interface{}, error) {
+	i, err := readInt(r, n)
 	if err != nil {
-		return time.Unix(0, 0), bytesRead, err
+		return time.Unix(0, 0), err
 	}
-	return time.Unix(dateEpochInUnixtime, i.(int64)), bytesRead, nil
+	return time.Unix(dateEpochInUnixtime, i.(int64)), nil
 }
-func readFloat(r io.Reader, n uint64) (interface{}, int, error) {
+func readFloat(r io.Reader, n uint64) (interface{}, error) {
 	if n != 4 && n != 8 {
-		return 0.0, 0, errInvalidFloatSize
+		return 0.0, errInvalidFloatSize
 	}
 	bs := make([]byte, n)
-	bytesRead, err := r.Read(bs[:])
+	_, err := r.Read(bs[:])
 	if err != nil {
-		return 0, bytesRead, err
+		return 0, err
 	}
-	var f float64
 	switch n {
 	case 4:
-		f = float64(math.Float32frombits(binary.BigEndian.Uint32(bs)))
+		return float64(math.Float32frombits(binary.BigEndian.Uint32(bs))), nil
 	case 8:
-		f = math.Float64frombits(binary.BigEndian.Uint64(bs))
+		return math.Float64frombits(binary.BigEndian.Uint64(bs)), nil
 	default:
 		panic("Invalid float size validation")
 	}
-	return f, bytesRead, nil
 }
-func readBlock(r io.Reader, n uint64) (interface{}, int, error) {
-	b, bytesRead, err := UnmarshalBlock(io.LimitReader(r, int64(n)))
+func readBlock(r io.Reader, n uint64) (interface{}, error) {
+	b, err := UnmarshalBlock(io.LimitReader(r, int64(n)))
 	if err != nil {
-		return nil, bytesRead, err
+		return nil, err
 	}
-	return *b, bytesRead, nil
+	return *b, nil
 }
 
 var perTypeEncoder = map[Type]func(interface{}) ([]byte, error){

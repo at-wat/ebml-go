@@ -132,12 +132,9 @@ func TestValue(t *testing.T) {
 	}
 	for n, c := range testCases {
 		t.Run("Read "+n, func(t *testing.T) {
-			v, br, err := perTypeReader[c.t](bytes.NewBuffer(c.b), uint64(len(c.b)))
+			v, err := perTypeReader[c.t](bytes.NewBuffer(c.b), uint64(len(c.b)))
 			if err != nil {
 				t.Fatalf("Failed to read%s: %v", n, err)
-			}
-			if br != len(c.b) {
-				t.Errorf("Unexpected number of read bytes, expected: %d, got: %d", len(c.b), br)
 			}
 			if !reflect.DeepEqual(v, c.v) {
 				t.Errorf("Unexpected read%s result, expected: %v, got: %v", n, c.v, v)

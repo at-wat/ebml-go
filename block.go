@@ -77,26 +77,21 @@ type Lace struct {
 }
 
 // UnmarshalBlock unmarshals EBML Block structure
-func UnmarshalBlock(r io.Reader) (*Block, int, error) {
-	var bytesRead int
+func UnmarshalBlock(r io.Reader) (*Block, error) {
 	var b Block
 	var err error
-	if b.TrackNumber, bytesRead, err = readVInt(r); err != nil {
-		return nil, bytesRead, err
+	if b.TrackNumber, _, err = readVInt(r); err != nil {
+		return nil, err
 	}
-	v, n, err := readInt(r, 2)
-	bytesRead += n
-	if err == nil {
+	if v, err := readInt(r, 2); err == nil {
 		b.Timecode = int16(v.(int64))
 	} else {
-		return nil, bytesRead, err
+		return nil, err
 	}
 
 	var bs [1]byte
-	n, err = r.Read(bs[:])
-	bytesRead += n
-	if err != nil {
-		return nil, bytesRead, err
+	if _, err := r.Read(bs[:]); err != nil {
+		return nil, err
 	}
 	if bs[0]&blockFlagMaskKeyframe != 0 {
 		b.Keyframe = true
@@ -110,16 +105,15 @@ func UnmarshalBlock(r io.Reader) (*Block, int, error) {
 	b.Lacing = LacingMode((bs[0] & blockFlagMaskLacing) >> 1)
 
 	if b.Lacing != LacingNo {
-		return nil, bytesRead, errLaceUnimplemented
+		return nil, errLaceUnimplemented
 	}
 
 	b.Data = [][]byte{[]byte{}}
 	b.Data[0], err = ioutil.ReadAll(r)
-	bytesRead += len(b.Data[0])
 	if err != nil {
-		return nil, bytesRead, err
+		return nil, err
 	}
-	return &b, bytesRead, nil
+	return &b, nil
 }
 
 // MarshalBlock marshals EBML Block structure
