@@ -30,7 +30,6 @@ func TestMarshal_RoundtripWebM(t *testing.T) {
 		Segment webm.Segment    `ebml:"Segment,inf"`
 	}{
 		Header: webm.EBMLHeader{
-			Metadata:           ebml.Metadata{Position: 0},
 			EBMLVersion:        1,
 			EBMLReadVersion:    1,
 			EBMLMaxIDLength:    4,

@@ -22,7 +22,6 @@ import (
 
 // EBMLHeader represents EBML header struct
 type EBMLHeader struct {
-	ebml.Metadata
 	EBMLVersion        uint64 `ebml:"EBMLVersion"`
 	EBMLReadVersion    uint64 `ebml:"EBMLReadVersion"`
 	EBMLMaxIDLength    uint64 `ebml:"EBMLMaxIDLength"`
