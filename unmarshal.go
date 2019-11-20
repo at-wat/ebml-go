@@ -41,7 +41,7 @@ func Unmarshal(r io.Reader, val interface{}) error {
 	voe := vo.Elem()
 
 	for {
-		if _, err := readElement(r, sizeInf, voe, 0); err != nil {
+		if _, err := readElement(r, sizeInf, voe, 0, 0); err != nil {
 			if err == io.EOF {
 				return nil
 			}
@@ -50,7 +50,7 @@ func Unmarshal(r io.Reader, val interface{}) error {
 	}
 }
 
-func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64) (io.Reader, error) {
+func readElement(r0 io.Reader, n int64, vo reflect.Value, currentPos, elementPos uint64) (io.Reader, error) {
 	var r io.Reader
 	if n != sizeInf {
 		r = io.LimitReader(r0, n)
@@ -63,8 +63,13 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64) (io.Reader
 		t reflect.Type
 	}
 	fieldMap := make(map[string]field)
+	var metadataField *field
 	if vo.IsValid() {
 		for i := 0; i < vo.NumField(); i++ {
+			if vo.Type().Field(i).Name == "Metadata" {
+				println("aaa")
+			}
+
 			var nn []string
 			if n, ok := vo.Type().Field(i).Tag.Lookup("ebml"); ok {
 				nn = strings.Split(n, ",")
@@ -75,7 +80,12 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64) (io.Reader
 			} else {
 				name = vo.Type().Field(i).Name
 			}
-			fieldMap[name] = field{vo.Field(i), vo.Type().Field(i).Type}
+			f := field{vo.Field(i), vo.Type().Field(i).Type}
+			fieldMap[name] = f
+
+			if vo.Type().Field(i).Name == "Metadata" {
+				metadataField = &f
+			}
 		}
 	}
 
@@ -101,6 +111,12 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64) (io.Reader
 			vnext = fm.v
 		}
 
+		if metadataField != nil {
+			metadataField.v.Set(reflect.ValueOf(Metadata{
+				Position: elementPos,
+			}))
+		}
+
 		switch v.t {
 		case TypeMaster:
 			if v.top && !vnext.IsValid() {
@@ -119,8 +135,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64) (io.Reader
 					vn = vnext
 				}
 			}
-			r0, err := readElement(r, int64(size), vn, pos+headerSize)
-			setMetadataIfExists(vn, pos)
+			r0, err := readElement(r, int64(size), vn, currentPos+headerSize, currentPos)
 			if err != nil && err != io.EOF {
 				return r0, err
 			}
@@ -141,16 +156,6 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64) (io.Reader
 				}
 			}
 		}
-		pos += headerSize + size
-	}
-}
-
-func setMetadataIfExists(vo reflect.Value, pos uint64) {
-	for i := 0; i < vo.NumField(); i++ {
-		if vo.Type().Field(i).Name == "Metadata" {
-			vo.Field(i).Set(reflect.ValueOf(Metadata{
-				Position: pos,
-			}))
-		}
+		currentPos += headerSize + size
 	}
 }
