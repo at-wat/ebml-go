@@ -32,14 +32,24 @@ func ExampleUnmarshal() {
 	}
 	type TestEBML struct {
 		Header struct {
-			Metadata
 			DocType            string `ebml:"EBMLDocType"`
 			DocTypeVersion     uint64 `ebml:"EBMLDocTypeVersion"`
 			DocTypeReadVersion uint64 `ebml:"EBMLDocTypeReadVersion"`
 		} `ebml:"EBML"`
 		Segment struct {
-			Metadata
 			TimecodeScale uint64 `ebml:"TimecodeScale"`
+		} `ebml:"Segment"`
+	}
+	type TestEBMLWithMetadata struct {
+		Header struct {
+			Metadata           Metadata `ebml:"-"`
+			DocType            string   `ebml:"EBMLDocType"`
+			DocTypeVersion     uint64   `ebml:"EBMLDocTypeVersion"`
+			DocTypeReadVersion uint64   `ebml:"EBMLDocTypeReadVersion"`
+		} `ebml:"EBML"`
+		Segment struct {
+			Metadata      Metadata `ebml:"-"`
+			TimecodeScale uint64   `ebml:"TimecodeScale"`
 		} `ebml:"Segment"`
 	}
 
@@ -51,7 +61,17 @@ func ExampleUnmarshal() {
 	}
 	fmt.Println(ret)
 
-	// Output: {{{0} webm 2 2} {{28} 3}}
+	r = bytes.NewReader(TestBinary)
+
+	var ret2 TestEBMLWithMetadata
+	if err := Unmarshal(r, &ret2); err != nil {
+		fmt.Printf("error: %+v\n", err)
+	}
+	fmt.Println(ret2)
+
+	// Output:
+	// {{webm 2 2} {3}}
+	// {{{0} webm 2 2} {{28} 3}}
 }
 
 func TestUnmarshal_Tag(t *testing.T) {
