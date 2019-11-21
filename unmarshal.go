@@ -66,10 +66,6 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, currentPos, elementPos
 	var metadataField *field
 	if vo.IsValid() {
 		for i := 0; i < vo.NumField(); i++ {
-			if vo.Type().Field(i).Name == "Metadata" {
-				println("aaa")
-			}
-
 			var nn []string
 			if n, ok := vo.Type().Field(i).Tag.Lookup("ebml"); ok {
 				nn = strings.Split(n, ",")
