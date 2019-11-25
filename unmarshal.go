@@ -17,6 +17,7 @@ package ebml
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"strings"
@@ -33,15 +34,14 @@ var (
 )
 
 // Unmarshal EBML stream
-func Unmarshal(r io.Reader, val interface{}) error {
+func Unmarshal(r io.Reader, val interface{}, hooks ...UnmarshalHook) error {
 	vo := reflect.ValueOf(val)
 	if !vo.IsValid() {
 		return errIndefiniteType
 	}
 	voe := vo.Elem()
-
 	for {
-		if _, err := readElement(r, sizeInf, voe); err != nil {
+		if _, err := readElement(r, sizeInf, voe, 0, nil, hooks...); err != nil {
 			if err == io.EOF {
 				return nil
 			}
@@ -50,7 +50,7 @@ func Unmarshal(r io.Reader, val interface{}) error {
 	}
 }
 
-func readElement(r0 io.Reader, n int64, vo reflect.Value) (io.Reader, error) {
+func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *Element, hooks ...UnmarshalHook) (io.Reader, error) {
 	var r io.Reader
 	if n != sizeInf {
 		r = io.LimitReader(r0, n)
@@ -80,7 +80,9 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value) (io.Reader, error) {
 	}
 
 	for {
-		e, _, err := readVInt(r)
+		var headerSize uint64
+		e, nb, err := readVInt(r)
+		headerSize += uint64(nb)
 		if err != nil {
 			return nil, err
 		}
@@ -89,7 +91,8 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value) (io.Reader, error) {
 			return nil, errUnknownElement
 		}
 
-		size, _, err := readVInt(r)
+		size, nb, err := readVInt(r)
+		headerSize += uint64(nb)
 		if err != nil {
 			return nil, err
 		}
@@ -116,7 +119,19 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value) (io.Reader, error) {
 					vn = vnext
 				}
 			}
-			r0, err := readElement(r, int64(size), vn)
+
+			elem := &Element{
+				Value:    vn.Interface(),
+				Name:     v.e.String(),
+				Position: pos,
+				Size:     size,
+				Parent:   parent,
+			}
+			r0, err := readElement(r, int64(size), vn, pos+headerSize, elem, hooks...)
+			for _, hook := range hooks {
+				hook(elem)
+			}
+
 			if err != nil && err != io.EOF {
 				return r0, err
 			}
@@ -137,5 +152,38 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value) (io.Reader, error) {
 				}
 			}
 		}
+		pos += headerSize + size
+	}
+}
+
+type UnmarshalHook func(elem *Element)
+
+// Element represents an EBML element
+type Element struct {
+	Value    interface{}
+	Name     string
+	Position uint64
+	Size     uint64
+	Parent   *Element
+}
+
+// WithElementMap is an UnmarshalHook creates a map that has element name as key and its element as value.
+func WithElementMap(m map[string][]*Element) UnmarshalHook {
+	return func(elem *Element) {
+		key := elem.Name
+		e := elem
+		for {
+			if e.Parent == nil {
+				break
+			}
+			e = e.Parent
+			key = fmt.Sprintf("%s.%s", e.Name, key)
+		}
+		elements, ok := m[key]
+		if !ok {
+			elements = make([]*Element, 0)
+		}
+		elements = append(elements, elem)
+		m[key] = elements
 	}
 }
