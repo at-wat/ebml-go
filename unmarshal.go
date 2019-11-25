@@ -80,7 +80,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value) (io.Reader, error) {
 	}
 
 	for {
-		e, err := readVInt(r)
+		e, _, err := readVInt(r)
 		if err != nil {
 			return nil, err
 		}
@@ -89,7 +89,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value) (io.Reader, error) {
 			return nil, errUnknownElement
 		}
 
-		size, err := readVInt(r)
+		size, _, err := readVInt(r)
 		if err != nil {
 			return nil, err
 		}

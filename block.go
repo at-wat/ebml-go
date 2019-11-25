@@ -79,7 +79,7 @@ type Lace struct {
 func UnmarshalBlock(r io.Reader) (*Block, error) {
 	var b Block
 	var err error
-	if b.TrackNumber, err = readVInt(r); err != nil {
+	if b.TrackNumber, _, err = readVInt(r); err != nil {
 		return nil, err
 	}
 	if v, err := readInt(r, 2); err == nil {

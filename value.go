@@ -43,11 +43,11 @@ var perTypeReader = map[Type]func(io.Reader, uint64) (interface{}, error){
 	TypeBlock:  readBlock,
 }
 
-func readVInt(r io.Reader) (uint64, error) {
+func readVInt(r io.Reader) (uint64, int, error) {
 	var bs [1]byte
-	_, err := r.Read(bs[:])
+	bytesRead, err := r.Read(bs[:])
 	if err != nil {
-		return 0, err
+		return 0, bytesRead, err
 	}
 
 	var vc int
@@ -82,14 +82,15 @@ func readVInt(r io.Reader) (uint64, error) {
 
 	for {
 		if vc == 0 {
-			return value, nil
+			return value, bytesRead, nil
 		}
 
 		var bs [1]byte
-		_, err := r.Read(bs[:])
+		n, err := r.Read(bs[:])
 		if err != nil {
-			return 0, err
+			return 0, bytesRead, err
 		}
+		bytesRead += n
 		value = value<<8 | uint64(bs[0])
 		vc--
 	}
