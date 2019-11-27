@@ -17,7 +17,6 @@ package ebml
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"reflect"
 	"strings"
@@ -34,14 +33,14 @@ var (
 )
 
 // Unmarshal EBML stream
-func Unmarshal(r io.Reader, val interface{}, hooks ...UnmarshalHook) error {
+func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOptions) error {
 	vo := reflect.ValueOf(val)
 	if !vo.IsValid() {
 		return errIndefiniteType
 	}
 	voe := vo.Elem()
 	for {
-		if _, err := readElement(r, sizeInf, voe, 0, nil, hooks...); err != nil {
+		if _, err := readElement(r, sizeInf, voe, 0, nil, opts...); err != nil {
 			if err == io.EOF {
 				return nil
 			}
@@ -50,7 +49,7 @@ func Unmarshal(r io.Reader, val interface{}, hooks ...UnmarshalHook) error {
 	}
 }
 
-func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *Element, hooks ...UnmarshalHook) (io.Reader, error) {
+func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *Element, opts ...UnmarshalOptions) (io.Reader, error) {
 	var r io.Reader
 	if n != sizeInf {
 		r = io.LimitReader(r0, n)
@@ -127,9 +126,11 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 				Size:     size,
 				Parent:   parent,
 			}
-			r0, err := readElement(r, int64(size), vn, pos+headerSize, elem, hooks...)
-			for _, hook := range hooks {
-				hook(elem)
+			r0, err := readElement(r, int64(size), vn, pos+headerSize, elem, opts...)
+			for _, opt := range opts {
+				for _, hook := range opt.hooks {
+					hook(elem)
+				}
 			}
 
 			if err != nil && err != io.EOF {
@@ -156,7 +157,9 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 	}
 }
 
-type UnmarshalHook func(elem *Element)
+type UnmarshalOptions struct {
+	hooks []func(elem *Element)
+}
 
 // Element represents an EBML element
 type Element struct {
@@ -167,23 +170,9 @@ type Element struct {
 	Parent   *Element
 }
 
-// WithElementMap is an UnmarshalHook creates a map that has element name as key and its element as value.
-func WithElementMap(m map[string][]*Element) UnmarshalHook {
-	return func(elem *Element) {
-		key := elem.Name
-		e := elem
-		for {
-			if e.Parent == nil {
-				break
-			}
-			e = e.Parent
-			key = fmt.Sprintf("%s.%s", e.Name, key)
-		}
-		elements, ok := m[key]
-		if !ok {
-			elements = make([]*Element, 0)
-		}
-		elements = append(elements, elem)
-		m[key] = elements
+// WithElementHooks creates an UnmarshalOptions in which element hooks are registered
+func WithElementHooks(hooks ...func(*Element)) UnmarshalOptions {
+	return UnmarshalOptions{
+		hooks: hooks,
 	}
 }

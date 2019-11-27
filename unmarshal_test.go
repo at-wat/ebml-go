@@ -46,7 +46,7 @@ func ExampleUnmarshal() {
 	// Output: {{webm 2 2}}
 }
 
-func TestUnmarshal_Hook(t *testing.T) {
+func TestUnmarshal_WithElementHooks(t *testing.T) {
 	TestBinary := []byte{
 		0x18, 0x53, 0x80, 0x67, 0xa1, // Segment
 		0x16, 0x54, 0xae, 0x6b, 0x9c, // Tracks
@@ -73,7 +73,8 @@ func TestUnmarshal_Hook(t *testing.T) {
 
 	var ret TestEBML
 	m := make(map[string][]*Element)
-	if err := Unmarshal(r, &ret, WithElementMap(m)); err != nil {
+	hook := withElementMap(m)
+	if err := Unmarshal(r, &ret, WithElementHooks(hook)); err != nil {
 		t.Errorf("error: %+v\n", err)
 	}
 
@@ -142,5 +143,25 @@ func BenchmarkUnmarshal(b *testing.B) {
 		if err := Unmarshal(bytes.NewReader(TestBinary), &ret); err != nil {
 			b.Fatalf("error: %+v\n", err)
 		}
+	}
+}
+
+func withElementMap(m map[string][]*Element) func(*Element) {
+	return func(elem *Element) {
+		key := elem.Name
+		e := elem
+		for {
+			if e.Parent == nil {
+				break
+			}
+			e = e.Parent
+			key = fmt.Sprintf("%s.%s", e.Name, key)
+		}
+		elements, ok := m[key]
+		if !ok {
+			elements = make([]*Element, 0)
+		}
+		elements = append(elements, elem)
+		m[key] = elements
 	}
 }
