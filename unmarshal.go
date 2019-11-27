@@ -33,14 +33,19 @@ var (
 )
 
 // Unmarshal EBML stream
-func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOptions) error {
+func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
+	options := &UnmarshalOptions{}
+	for _, o := range opts {
+		o(options)
+	}
+
 	vo := reflect.ValueOf(val)
 	if !vo.IsValid() {
 		return errIndefiniteType
 	}
 	voe := vo.Elem()
 	for {
-		if _, err := readElement(r, sizeInf, voe, 0, nil, opts...); err != nil {
+		if _, err := readElement(r, sizeInf, voe, 0, nil, options); err != nil {
 			if err == io.EOF {
 				return nil
 			}
@@ -49,7 +54,7 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOptions) error {
 	}
 }
 
-func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *Element, opts ...UnmarshalOptions) (io.Reader, error) {
+func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *Element, options *UnmarshalOptions) (io.Reader, error) {
 	var r io.Reader
 	if n != sizeInf {
 		r = io.LimitReader(r0, n)
@@ -126,11 +131,9 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 				Size:     size,
 				Parent:   parent,
 			}
-			r0, err := readElement(r, int64(size), vn, pos+headerSize, elem, opts...)
-			for _, opt := range opts {
-				for _, hook := range opt.hooks {
-					hook(elem)
-				}
+			r0, err := readElement(r, int64(size), vn, pos+headerSize, elem, options)
+			for _, hook := range options.hooks {
+				hook(elem)
 			}
 
 			if err != nil && err != io.EOF {
@@ -157,6 +160,8 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 	}
 }
 
+type UnmarshalOption func(*UnmarshalOptions)
+
 type UnmarshalOptions struct {
 	hooks []func(elem *Element)
 }
@@ -171,8 +176,8 @@ type Element struct {
 }
 
 // WithElementHooks creates an UnmarshalOptions in which element hooks are registered
-func WithElementHooks(hooks ...func(*Element)) UnmarshalOptions {
-	return UnmarshalOptions{
-		hooks: hooks,
+func WithElementHooks(hooks ...func(*Element)) UnmarshalOption {
+	return func(opts *UnmarshalOptions) {
+		opts.hooks = hooks
 	}
 }
