@@ -46,7 +46,7 @@ func ExampleUnmarshal() {
 	// Output: {{webm 2 2}}
 }
 
-func TestUnmarshal_WithElementHooks(t *testing.T) {
+func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 	TestBinary := []byte{
 		0x18, 0x53, 0x80, 0x67, 0xa1, // Segment
 		0x16, 0x54, 0xae, 0x6b, 0x9c, // Tracks
@@ -74,7 +74,7 @@ func TestUnmarshal_WithElementHooks(t *testing.T) {
 	var ret TestEBML
 	m := make(map[string][]*Element)
 	hook := withElementMap(m)
-	if err := Unmarshal(r, &ret, WithElementHooks(hook)); err != nil {
+	if err := Unmarshal(r, &ret, WithElementReadHooks(hook)); err != nil {
 		t.Errorf("error: %+v\n", err)
 	}
 
