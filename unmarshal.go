@@ -175,7 +175,7 @@ type Element struct {
 	Parent   *Element
 }
 
-// WithElementReadHooks creates an UnmarshalOptions in which element hooks are registered
+// WithElementReadHooks returns an UnmarshalOption which registers element hooks
 func WithElementReadHooks(hooks ...func(*Element)) UnmarshalOption {
 	return func(opts *UnmarshalOptions) {
 		opts.hooks = hooks
