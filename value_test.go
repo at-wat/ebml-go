@@ -32,7 +32,7 @@ func TestDataSize(t *testing.T) {
 
 	for n, c := range testCases {
 		t.Run("Decode "+n, func(t *testing.T) {
-			r, err := readVInt(bytes.NewBuffer(c.b))
+			r, _, err := readVInt(bytes.NewBuffer(c.b))
 			if err != nil {
 				t.Fatalf("Failed to readVInt: %v", err)
 			}
@@ -73,7 +73,7 @@ func TestElementID(t *testing.T) {
 
 	for n, c := range testCases {
 		t.Run("Decode "+n, func(t *testing.T) {
-			r, err := readVInt(bytes.NewBuffer(c.b))
+			r, _, err := readVInt(bytes.NewBuffer(c.b))
 			if err != nil {
 				t.Fatalf("Failed to readVInt: %v", err)
 			}

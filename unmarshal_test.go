@@ -46,6 +46,59 @@ func ExampleUnmarshal() {
 	// Output: {{webm 2 2}}
 }
 
+func TestUnmarshal_WithElementReadHooks(t *testing.T) {
+	TestBinary := []byte{
+		0x18, 0x53, 0x80, 0x67, 0xa1, // Segment
+		0x16, 0x54, 0xae, 0x6b, 0x9c, // Tracks
+		0xae, 0x8c, // TrackEntry[0]
+		0x53, 0x6e, 0x86, 0x56, 0x69, 0x64, 0x65, 0x6f, 0x00, // Name=Video
+		0xd7, 0x81, 0x01, // TrackNumber=1
+		0xae, 0x8c, // TrackEntry[1]
+		0x53, 0x6e, 0x86, 0x41, 0x75, 0x64, 0x69, 0x6f, 0x00, // Name=Audio
+		0xd7, 0x81, 0x02, // TrackNumber=2
+	}
+
+	type TestEBML struct {
+		Segment struct {
+			Tracks struct {
+				TrackEntry []struct {
+					Name        string `ebml:"Name,omitempty"`
+					TrackNumber uint64 `ebml:"TrackNumber"`
+				} `ebml:"TrackEntry"`
+			} `ebml:"Tracks"`
+		} `ebml:"Segment"`
+	}
+
+	r := bytes.NewReader(TestBinary)
+
+	var ret TestEBML
+	m := make(map[string][]*Element)
+	hook := withElementMap(m)
+	if err := Unmarshal(r, &ret, WithElementReadHooks(hook)); err != nil {
+		t.Errorf("error: %+v\n", err)
+	}
+
+	// Verify positions of elements
+	expected := map[string][]uint64{
+		"Segment.Tracks":            {5},
+		"Segment.Tracks.TrackEntry": {10, 24},
+	}
+	for key, positions := range expected {
+		elem, ok := m[key]
+		if !ok {
+			t.Errorf("Key '%s' doesn't exist\n", key)
+		}
+		if len(elem) != len(positions) {
+			t.Errorf("Unexpected element size of '%s', expected: %d, got: %d\n", key, len(positions), len(elem))
+		}
+		for i, pos := range positions {
+			if elem[i].Position != pos {
+				t.Errorf("Unexpected element positon of '%s[%d]', expected: %d, got: %d\n", key, i, pos, elem[i].Position)
+			}
+		}
+	}
+}
+
 func TestUnmarshal_Tag(t *testing.T) {
 	var tagged struct {
 		DocCustomNamedType string `ebml:"EBMLDocType"`
@@ -90,5 +143,25 @@ func BenchmarkUnmarshal(b *testing.B) {
 		if err := Unmarshal(bytes.NewReader(TestBinary), &ret); err != nil {
 			b.Fatalf("error: %+v\n", err)
 		}
+	}
+}
+
+func withElementMap(m map[string][]*Element) func(*Element) {
+	return func(elem *Element) {
+		key := elem.Name
+		e := elem
+		for {
+			if e.Parent == nil {
+				break
+			}
+			e = e.Parent
+			key = fmt.Sprintf("%s.%s", e.Name, key)
+		}
+		elements, ok := m[key]
+		if !ok {
+			elements = make([]*Element, 0)
+		}
+		elements = append(elements, elem)
+		m[key] = elements
 	}
 }
