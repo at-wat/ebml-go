@@ -87,7 +87,7 @@ func TestMarshal_RoundtripWebM(t *testing.T) {
 					{
 						CueTime: 1,
 						CueTrackPositions: []webm.CueTrackPosition{
-							{CueTrack: 2, CueClusterPosition: 3},
+							{CueTrack: 2, CueClusterPosition: 3, CueBlockNumber: 4},
 						},
 					},
 				},

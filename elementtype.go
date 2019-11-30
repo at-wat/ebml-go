@@ -120,6 +120,7 @@ const (
 	ElementCueTrackPositions
 	ElementCueTrack
 	ElementCueClusterPosition
+	ElementCueBlockNumber
 
 	elementMax
 )
@@ -296,6 +297,8 @@ func (i ElementType) String() string {
 		return "CueTrack"
 	case ElementCueClusterPosition:
 		return "CueClusterPosition"
+	case ElementCueBlockNumber:
+		return "CueBlockNumber"
 	default:
 		return "unknown"
 	}
@@ -474,6 +477,8 @@ func ElementTypeFromString(s string) (ElementType, error) {
 		return ElementCueTrack, nil
 	case "CueClusterPosition":
 		return ElementCueClusterPosition, nil
+	case "CueBlockNumber":
+		return ElementCueBlockNumber, nil
 	default:
 		return 0, errUnknownElementType
 	}
