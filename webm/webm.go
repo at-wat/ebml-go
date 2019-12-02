@@ -103,6 +103,7 @@ type CuePoint struct {
 type CueTrackPosition struct {
 	CueTrack           uint64 `ebml:"CueTrack"`
 	CueClusterPosition uint64 `ebml:"CueClusterPosition"`
+	CueBlockNumber     uint64 `ebml:"CueBlockNumber,omitempty"`
 }
 
 // Segment represents Segment element struct

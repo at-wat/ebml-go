@@ -49,6 +49,7 @@ var table = elementTable{
 	ElementSeekPosition:           elementDef{[]byte{0x53, 0xAC}, TypeUInt, false},
 	ElementMuxingApp:              elementDef{[]byte{0x4D, 0x80}, TypeString, false},
 	ElementName:                   elementDef{[]byte{0x53, 0x6E}, TypeString, false},
+	ElementCueBlockNumber:         elementDef{[]byte{0x53, 0x78}, TypeUInt, false},
 	ElementCodecDelay:             elementDef{[]byte{0x56, 0xAA}, TypeUInt, false},
 	ElementSeekPreRoll:            elementDef{[]byte{0x56, 0xBB}, TypeUInt, false},
 	ElementWritingApp:             elementDef{[]byte{0x57, 0x41}, TypeString, false},
