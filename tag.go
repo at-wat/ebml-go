@@ -27,9 +27,6 @@ func parseTag(rawtag string) (*structTag, error) {
 	}
 
 	for i, t := range ts {
-		if len(t) == 0 {
-			return nil, errEmptyTag
-		}
 		kv := strings.SplitN(t, "=", 2)
 
 		if len(kv) == 1 {
@@ -37,6 +34,8 @@ func parseTag(rawtag string) (*structTag, error) {
 				tag.name = kv[0]
 			} else {
 				switch kv[0] {
+				case "":
+					return nil, errEmptyTag
 				case "omitempty":
 					tag.omitEmpty = true
 				case "inf":
@@ -50,6 +49,8 @@ func parseTag(rawtag string) (*structTag, error) {
 		}
 
 		switch kv[0] {
+		case "":
+			return nil, errEmptyTag
 		case "size":
 			if kv[1] == "unknown" {
 				tag.size = sizeUnknown

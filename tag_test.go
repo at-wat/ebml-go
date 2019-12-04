@@ -19,6 +19,10 @@ func TestParseTag(t *testing.T) {
 			"Name123,omitempty",
 			&structTag{name: "Name123", omitEmpty: true}, nil,
 		},
+		"OmitEmptyWithDefaultName": {
+			",omitempty",
+			&structTag{omitEmpty: true}, nil,
+		},
 		"Size": {
 			"Name123,size=45",
 			&structTag{name: "Name123", size: 45}, nil,
