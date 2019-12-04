@@ -53,7 +53,7 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 				return errUnsupportedElement
 			}
 
-			inf := tag.size == sizeInf
+			unknown := tag.size == sizeUnknown
 
 			var lst []reflect.Value
 			if vn.Kind() == reflect.Ptr {
@@ -80,9 +80,9 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 					return err
 				}
 				var bw io.Writer
-				if inf {
+				if unknown {
 					// Directly write length unspecified element
-					bsz := encodeDataSize(uint64(sizeInf))
+					bsz := encodeDataSize(uint64(sizeUnknown))
 					if _, err := w.Write(bsz); err != nil {
 						return err
 					}
@@ -106,7 +106,7 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 				}
 
 				// Write element with length
-				if !inf {
+				if !unknown {
 					bsz := encodeDataSize(uint64(bw.(*bytes.Buffer).Len()))
 					if _, err := w.Write(bsz); err != nil {
 						return err

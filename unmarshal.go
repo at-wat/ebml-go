@@ -22,10 +22,6 @@ import (
 	"strings"
 )
 
-const (
-	sizeInf = 0xffffffffffffff
-)
-
 var (
 	errUnknownElement = errors.New("Unknown element")
 	errInvalidIntSize = errors.New("Invalid int size")
@@ -45,7 +41,7 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 	}
 	voe := vo.Elem()
 	for {
-		if _, err := readElement(r, sizeInf, voe, 0, nil, options); err != nil {
+		if _, err := readElement(r, sizeUnknown, voe, 0, nil, options); err != nil {
 			if err == io.EOF {
 				return nil
 			}
@@ -56,7 +52,7 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 
 func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *Element, options *UnmarshalOptions) (io.Reader, error) {
 	var r io.Reader
-	if n != sizeInf {
+	if n != sizeUnknown {
 		r = io.LimitReader(r0, n)
 	} else {
 		r = r0

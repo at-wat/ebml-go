@@ -25,6 +25,7 @@ import (
 
 const (
 	dateEpochInUnixtime = 978307200
+	sizeUnknown         = 0xffffffffffffff
 )
 
 var (
@@ -197,7 +198,7 @@ func encodeDataSize(v uint64) []byte {
 		return []byte{byte(v>>40) | 0x4, byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
 	} else if v < 0x2000000000000-1 {
 		return []byte{byte(v>>48) | 0x2, byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
-	} else if v < sizeInf {
+	} else if v < sizeUnknown {
 		return []byte{0x1, byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
 	} else {
 		return []byte{0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}

@@ -41,7 +41,7 @@ func parseTag(rawtag string) (*structTag, error) {
 					tag.omitEmpty = true
 				case "inf":
 					os.Stderr.WriteString("Deprecated: \"inf\" tag is replaced by \"size=unknown\"\n")
-					tag.size = sizeInf
+					tag.size = sizeUnknown
 				default:
 					return nil, errInvalidTag
 				}
@@ -52,7 +52,7 @@ func parseTag(rawtag string) (*structTag, error) {
 		switch kv[0] {
 		case "size":
 			if kv[1] == "unknown" {
-				tag.size = sizeInf
+				tag.size = sizeUnknown
 			} else {
 				s, err := strconv.Atoi(kv[1])
 				if err != nil {
