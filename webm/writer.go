@@ -32,7 +32,7 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry) ([]*FrameWriter, er
 
 	header := struct {
 		Header  EBMLHeader `ebml:"EBML"`
-		Segment Segment    `ebml:"Segment,inf"`
+		Segment Segment    `ebml:"Segment,size=unknown"`
 	}{
 		Header: defaultEBMLHeader,
 		Segment: Segment{
@@ -78,7 +78,7 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry) ([]*FrameWriter, er
 		defer func() {
 			// Finalize WebM
 			cluster := struct {
-				Cluster Cluster `ebml:"Cluster,inf"`
+				Cluster Cluster `ebml:"Cluster,size=unknown"`
 			}{
 				Cluster: Cluster{
 					Timecode: uint64(lastTc - tc0),
@@ -110,7 +110,7 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry) ([]*FrameWriter, er
 					tc = 0
 
 					cluster := struct {
-						Cluster Cluster `ebml:"Cluster,inf"`
+						Cluster Cluster `ebml:"Cluster,size=unknown"`
 					}{
 						Cluster: Cluster{
 							Timecode: uint64(tc1 - tc0),

@@ -120,5 +120,5 @@ type SegmentStream struct {
 	SeekHead *SeekHead `ebml:"SeekHead"`
 	Info     Info      `ebml:"Info"`
 	Tracks   Tracks    `ebml:"Tracks"`
-	Cluster  []Cluster `ebml:"Cluster,inf"`
+	Cluster  []Cluster `ebml:"Cluster,size=unknown"`
 }

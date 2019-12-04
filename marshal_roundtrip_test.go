@@ -27,7 +27,7 @@ import (
 func TestMarshal_RoundtripWebM(t *testing.T) {
 	webm0 := struct {
 		Header  webm.EBMLHeader `ebml:"EBML"`
-		Segment webm.Segment    `ebml:"Segment,inf"`
+		Segment webm.Segment    `ebml:"Segment,size=unknown"`
 	}{
 		Header: webm.EBMLHeader{
 			EBMLVersion:        1,
@@ -101,7 +101,7 @@ func TestMarshal_RoundtripWebM(t *testing.T) {
 	}
 	var webm1 struct {
 		Header  webm.EBMLHeader `ebml:"EBML"`
-		Segment webm.Segment    `ebml:"Segment,inf"`
+		Segment webm.Segment    `ebml:"Segment,size=unknown"`
 	}
 	if err := ebml.Unmarshal(bytes.NewBuffer(b.Bytes()), &webm1); err != nil {
 		t.Fatalf("Failed to Unmarshal: %v", err)
