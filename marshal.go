@@ -19,7 +19,6 @@ import (
 	"errors"
 	"io"
 	"reflect"
-	"strings"
 )
 
 var (
@@ -38,30 +37,23 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 		vn := vo.Field(i)
 		tn := vo.Type().Field(i)
 
-		var nn []string
+		tag := &structTag{}
 		if n, ok := tn.Tag.Lookup("ebml"); ok {
-			nn = strings.Split(n, ",")
+			var err error
+			if tag, err = parseTag(n); err != nil {
+				return err
+			}
 		}
-		var name string
-		if len(nn) > 0 && len(nn[0]) > 0 {
-			name = nn[0]
-		} else {
-			name = tn.Name
+		if tag.name == "" {
+			tag.name = tn.Name
 		}
-		if t, err := ElementTypeFromString(name); err == nil {
+		if t, err := ElementTypeFromString(tag.name); err == nil {
 			e, ok := table[t]
 			if !ok {
 				return errUnsupportedElement
 			}
 
-			var inf, omitempty bool
-			for _, n := range nn {
-				if n == "inf" {
-					inf = true
-				} else if n == "omitempty" {
-					omitempty = true
-				}
-			}
+			inf := tag.size == sizeInf
 
 			var lst []reflect.Value
 			if vn.Kind() == reflect.Ptr {
@@ -76,7 +68,7 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 					lst = append(lst, vn.Index(i))
 				}
 			} else {
-				if omitempty && reflect.DeepEqual(reflect.Zero(vn.Type()).Interface(), vn.Interface()) {
+				if tag.omitEmpty && reflect.DeepEqual(reflect.Zero(vn.Type()).Interface(), vn.Interface()) {
 					continue
 				}
 				lst = []reflect.Value{vn}

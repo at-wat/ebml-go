@@ -1,0 +1,60 @@
+package ebml
+
+import (
+	"reflect"
+	"testing"
+)
+
+func TestParseTag(t *testing.T) {
+	cases := map[string]struct {
+		input    string
+		expected *structTag
+		err      error
+	}{
+		"Name": {
+			"Name123",
+			&structTag{name: "Name123"}, nil,
+		},
+		"OmitEmpty": {
+			"Name123,omitempty",
+			&structTag{name: "Name123", omitEmpty: true}, nil,
+		},
+		"Size": {
+			"Name123,size=45",
+			&structTag{name: "Name123", size: 45}, nil,
+		},
+		"UnknownSize": {
+			"Name123,size=unknown",
+			&structTag{name: "Name123", size: sizeInf}, nil,
+		},
+		"UnknownSizeDeprecated": {
+			"Name123,inf",
+			&structTag{name: "Name123", size: sizeInf}, nil,
+		},
+		"InvalidTag": {
+			"Name,invalidtag",
+			nil, errInvalidTag,
+		},
+		"EmptyTag": {
+			"Name,",
+			nil, errEmptyTag,
+		},
+		"TwoEmptyTags": {
+			"Name,,",
+			nil, errEmptyTag,
+		},
+	}
+	for n, c := range cases {
+		t.Run(n, func(t *testing.T) {
+			tag, err := parseTag(c.input)
+			if err != c.err {
+				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
+			}
+			if (c.expected == nil) != (tag == nil) {
+				t.Errorf("Unexpected output nil-ness, expected: %v, got: %v", c.expected == nil, tag == nil)
+			} else if tag != nil && !reflect.DeepEqual(*c.expected, *tag) {
+				t.Errorf("Unexpected output, expected: %v, got: %v", *c.expected, *tag)
+			}
+		})
+	}
+}
