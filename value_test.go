@@ -43,7 +43,7 @@ func TestDataSize(t *testing.T) {
 	}
 	for n, c := range testCases {
 		t.Run("Encode "+n, func(t *testing.T) {
-			b := encodeDataSize(c.i)
+			b := encodeDataSize(c.i, 0)
 			if bytes.Compare(b, c.b) != 0 {
 				t.Errorf("Unexpected encodeDataSize result, expected: %d, got: %d", c.b, b)
 			}
@@ -84,7 +84,7 @@ func TestElementID(t *testing.T) {
 	}
 	for n, c := range testCases {
 		t.Run("Encode "+n, func(t *testing.T) {
-			b, err := encodeElementID(c.i)
+			b, err := encodeElementID(c.i, 0)
 			if err != nil {
 				t.Fatalf("Failed to encodeElementID: %v", err)
 			}
@@ -94,7 +94,7 @@ func TestElementID(t *testing.T) {
 		})
 	}
 
-	_, err := encodeElementID(0x2000000000000)
+	_, err := encodeElementID(0x2000000000000, 0)
 	if err != errUnsupportedElementID {
 		t.Errorf("Unexpected error type result, expected: %s, got: %s", errUnsupportedElementID, err)
 	}
@@ -141,7 +141,7 @@ func TestValue(t *testing.T) {
 			} else {
 				v = c.v
 			}
-			b, err := perTypeEncoder[c.t](v)
+			b, err := perTypeEncoder[c.t](v, 0)
 			if err != nil {
 				t.Fatalf("Failed to encode%s: %v", n, err)
 			}
@@ -197,7 +197,7 @@ func TestEncodeValue_WrongInputType(t *testing.T) {
 	for n, c := range testCases {
 		t.Run("Encode "+n, func(t *testing.T) {
 			for _, v := range c.v {
-				_, err := perTypeEncoder[c.t](v)
+				_, err := perTypeEncoder[c.t](v, 0)
 				if err != c.err {
 					t.Fatalf("encode%s returned unexpected error to wrong input type: %v", n, err)
 				}

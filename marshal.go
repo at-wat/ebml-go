@@ -104,7 +104,7 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 				var bw io.Writer
 				if unknown {
 					// Directly write length unspecified element
-					bsz := encodeDataSize(uint64(sizeUnknown))
+					bsz := encodeDataSize(uint64(sizeUnknown), 0)
 					if _, err := w.Write(bsz); err != nil {
 						return err
 					}
@@ -118,7 +118,7 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 						return err
 					}
 				} else {
-					bc, err := perTypeEncoder[e.t](vn.Interface())
+					bc, err := perTypeEncoder[e.t](vn.Interface(), tag.size)
 					if err != nil {
 						return err
 					}
@@ -129,7 +129,7 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 
 				// Write element with length
 				if !unknown {
-					bsz := encodeDataSize(uint64(bw.(*bytes.Buffer).Len()))
+					bsz := encodeDataSize(uint64(bw.(*bytes.Buffer).Len()), 0)
 					if _, err := w.Write(bsz); err != nil {
 						return err
 					}

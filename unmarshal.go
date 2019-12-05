@@ -104,7 +104,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 		switch v.t {
 		case TypeMaster:
 			if v.top && !vnext.IsValid() {
-				b := bytes.Join([][]byte{table[v.e].b, encodeDataSize(size)}, []byte{})
+				b := bytes.Join([][]byte{table[v.e].b, encodeDataSize(size, 0)}, []byte{})
 				return bytes.NewBuffer(b), io.EOF
 			}
 			var vn reflect.Value

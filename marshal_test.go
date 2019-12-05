@@ -20,18 +20,21 @@ import (
 	"testing"
 )
 
-func TestMarshal_Omitempty(t *testing.T) {
+func TestMarshal(t *testing.T) {
 	type TestOmitempty struct {
-		EBML struct {
-			DocType        string `ebml:"EBMLDocType,omitempty"`
-			DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion,omitempty"`
-		} `ebml:"EBML"`
+		DocType        string `ebml:"EBMLDocType,omitempty"`
+		DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion,omitempty"`
 	}
 	type TestNoOmitempty struct {
-		EBML struct {
-			DocType        string `ebml:"EBMLDocType"`
-			DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"`
-		} `ebml:"EBML"`
+		DocType        string `ebml:"EBMLDocType"`
+		DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"`
+	}
+	type TestSized struct {
+		DocType        string  `ebml:"EBMLDocType,size=3"`
+		DocTypeVersion uint64  `ebml:"EBMLDocTypeVersion,size=2"`
+		Duration0      float32 `ebml:"Duration,size=8"`
+		Duration1      float64 `ebml:"Duration,size=4"`
+		SeekID         []byte  `ebml:"SeekID,size=2"`
 	}
 
 	testCases := map[string]struct {
@@ -39,12 +42,34 @@ func TestMarshal_Omitempty(t *testing.T) {
 		expected []byte
 	}{
 		"Omitempty": {
-			&TestOmitempty{},
+			&struct{ EBML TestOmitempty }{},
 			[]byte{0x1a, 0x45, 0xDF, 0xA3, 0x80},
 		},
 		"NoOmitempty": {
-			&TestNoOmitempty{},
+			&struct{ EBML TestNoOmitempty }{},
 			[]byte{0x1A, 0x45, 0xDF, 0xA3, 0x88, 0x42, 0x82, 0x81, 0x00, 0x42, 0x87, 0x81, 0x00},
+		},
+		"Sized": {
+			&struct{ EBML TestSized }{TestSized{"a", 1, 0.0, 0.0, []byte{0x01}}},
+			[]byte{
+				0x1A, 0x45, 0xDF, 0xA3, 0xA2,
+				0x42, 0x82, 0x83, 0x61, 0x00, 0x00,
+				0x42, 0x87, 0x82, 0x00, 0x01,
+				0x44, 0x89, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x44, 0x89, 0x84, 0x00, 0x00, 0x00, 0x00,
+				0x53, 0xAB, 0x82, 0x01, 0x00,
+			},
+		},
+		"SizedAndOverflow": {
+			&struct{ EBML TestSized }{TestSized{"abc", 0x012345, 0.0, 0.0, []byte{0x01, 0x02, 0x03}}},
+			[]byte{
+				0x1A, 0x45, 0xDF, 0xA3, 0xA5,
+				0x42, 0x82, 0x84, 0x61, 0x62, 0x63, 0x00,
+				0x42, 0x87, 0x83, 0x01, 0x23, 0x45,
+				0x44, 0x89, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x44, 0x89, 0x84, 0x00, 0x00, 0x00, 0x00,
+				0x53, 0xAB, 0x83, 0x01, 0x02, 0x03,
+			},
 		},
 	}
 
