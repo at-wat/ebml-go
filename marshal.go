@@ -29,23 +29,23 @@ var (
 //
 // Examples of struct field tags:
 //
-//   // Field encoded as element "EBMLVersion".
+//   // Field appears as element "EBMLVersion".
 //   Field uint64 `ebml:EBMLVersion`
 //
-//   // Field encoded as element "EBMLVersion" and
+//   // Field appears as element "EBMLVersion" and
 //   // the field is ommited from the output if the value is empty.
 //   Field uint64 `ebml:TheElement,omitempty`
 //
-//   // Field encoded as element "EBMLVersion" and
+//   // Field appears as element "EBMLVersion" and
 //   // the field is ommited from the output if the value is empty.
 //   EBMLVersion uint64 `ebml:,omitempty`
 //
-//   // Field encoded as master element "Segment" and
+//   // Field appears as master element "Segment" and
 //   // the size of the element contents is left unknown for streaming data.
 //   Field struct{} `ebml:Segment,size=unknown`
 //
-//   // Field encoded as master element "Segment" and
-//   // the size of the element is left unknown for streaming data.
+//   // Field appears as master element "Segment" and
+//   // the size of the element contents is left unknown for streaming data.
 //   // This style may be deprecated in the future.
 //   Field struct{} `ebml:Segment,inf`
 func Marshal(val interface{}, w io.Writer) error {
