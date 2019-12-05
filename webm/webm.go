@@ -91,15 +91,18 @@ type Cluster struct {
 	SimpleBlock []ebml.Block `ebml:"SimpleBlock"`
 }
 
+// Cues represents Cues element struct
 type Cues struct {
 	CuePoint []CuePoint `ebml:"CuePoint"`
 }
 
+// CuePoint represents CuePoint element struct
 type CuePoint struct {
 	CueTime           uint64             `ebml:"CueTime"`
 	CueTrackPositions []CueTrackPosition `ebml:"CueTrackPositions"`
 }
 
+// CueTrackPosition represents CueTrackPosition element struct
 type CueTrackPosition struct {
 	CueTrack           uint64 `ebml:"CueTrack"`
 	CueClusterPosition uint64 `ebml:"CueClusterPosition"`
