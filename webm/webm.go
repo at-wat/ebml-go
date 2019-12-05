@@ -20,7 +20,6 @@ import (
 	"github.com/at-wat/ebml-go"
 )
 
-// EBMLHeader represents EBML header struct
 type EBMLHeader struct {
 	EBMLVersion        uint64 `ebml:"EBMLVersion"`
 	EBMLReadVersion    uint64 `ebml:"EBMLReadVersion"`
