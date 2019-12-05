@@ -54,7 +54,7 @@ func TestMarshal_Omitempty(t *testing.T) {
 			if err := Marshal(c.input, &b); err != nil {
 				t.Fatalf("error: %+v\n", err)
 			}
-			if bytes.Compare(c.expected, b.Bytes()) != 0 {
+			if !bytes.Equal(c.expected, b.Bytes()) {
 				t.Errorf("Marshaled binary doesn't match:\n expected: %v,\n      got: %v", c.expected, b.Bytes())
 			}
 		})
@@ -109,7 +109,7 @@ func TestMarshal_Tag(t *testing.T) {
 		t.Fatalf("error: %+v\n", err)
 	}
 
-	if bytes.Compare(bTagged.Bytes(), bUntagged.Bytes()) != 0 {
+	if !bytes.Equal(bTagged.Bytes(), bUntagged.Bytes()) {
 		t.Errorf("Tagged struct and untagged struct must be marshal-ed to same binary, tagged: %v, untagged: %v", bTagged.Bytes(), bUntagged.Bytes())
 	}
 }

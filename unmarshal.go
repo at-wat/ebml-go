@@ -109,13 +109,14 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 			}
 			var vn reflect.Value
 			if vnext.IsValid() && vnext.CanSet() {
-				if vnext.Kind() == reflect.Ptr {
+				switch vnext.Kind() {
+				case reflect.Ptr:
 					vnext.Set(reflect.New(vnext.Type().Elem()))
 					vn = vnext.Elem()
-				} else if vnext.Kind() == reflect.Slice {
+				case reflect.Slice:
 					vnext.Set(reflect.Append(vnext, reflect.New(vnext.Type().Elem()).Elem()))
 					vn = vnext.Index(vnext.Len() - 1)
-				} else {
+				default:
 					vn = vnext
 				}
 			}

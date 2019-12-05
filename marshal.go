@@ -33,11 +33,11 @@ var (
 //   Field uint64 `ebml:EBMLVersion`
 //
 //   // Field appears as element "EBMLVersion" and
-//   // the field is ommited from the output if the value is empty.
+//   // the field is omitted from the output if the value is empty.
 //   Field uint64 `ebml:TheElement,omitempty`
 //
 //   // Field appears as element "EBMLVersion" and
-//   // the field is ommited from the output if the value is empty.
+//   // the field is omitted from the output if the value is empty.
 //   EBMLVersion uint64 `ebml:,omitempty`
 //
 //   // Field appears as master element "Segment" and
@@ -78,18 +78,18 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 			unknown := tag.size == sizeUnknown
 
 			var lst []reflect.Value
-			if vn.Kind() == reflect.Ptr {
-				if !vn.IsNil() {
-					lst = []reflect.Value{vn.Elem()}
-				} else {
+			switch {
+			case vn.Kind() == reflect.Ptr:
+				if vn.IsNil() {
 					continue
 				}
-			} else if vn.Kind() == reflect.Slice && e.t != TypeBinary {
+				lst = []reflect.Value{vn.Elem()}
+			case vn.Kind() == reflect.Slice && e.t != TypeBinary:
 				l := vn.Len()
 				for i := 0; i < l; i++ {
 					lst = append(lst, vn.Index(i))
 				}
-			} else {
+			default:
 				if tag.omitEmpty && reflect.DeepEqual(reflect.Zero(vn.Type()).Interface(), vn.Interface()) {
 					continue
 				}
