@@ -11,6 +11,10 @@ func TestParseTag(t *testing.T) {
 		expected *structTag
 		err      error
 	}{
+		"Empty": {
+			"",
+			&structTag{}, nil,
+		},
 		"Name": {
 			"Name123",
 			&structTag{name: "Name123"}, nil,
@@ -39,8 +43,16 @@ func TestParseTag(t *testing.T) {
 			"Name,invalidtag",
 			nil, errInvalidTag,
 		},
+		"InvalidTagWithValue": {
+			"Name,invalidtag=1",
+			nil, errInvalidTag,
+		},
 		"EmptyTag": {
 			"Name,",
+			nil, errEmptyTag,
+		},
+		"EmptyTagWithValue": {
+			"Name,=45",
 			nil, errEmptyTag,
 		},
 		"TwoEmptyTags": {
