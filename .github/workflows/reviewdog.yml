@@ -2,7 +2,7 @@ name: reviewdog
 on: [pull_request]
 jobs:
   golint:
-    name: runner / golint
+    name: golint
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
@@ -24,4 +24,4 @@ jobs:
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          golint ./... | reviewdog -reporter=github-pr-review
+          golint ./... | reviewdog -f=golint -reporter=github-pr-review
