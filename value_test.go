@@ -106,22 +106,31 @@ func TestValue(t *testing.T) {
 		b    []byte
 		t    Type
 		v    interface{}
+		n    uint64
 		vEnc interface{}
 	}{
-		"Binary":  {[]byte{0x01, 0x02, 0x03}, TypeBinary, []byte{0x01, 0x02, 0x03}, nil},
-		"String":  {[]byte{0x31, 0x32, 0x00}, TypeString, "12", nil},
-		"Int(3B)": {[]byte{0x01, 0x02, 0x03}, TypeInt, int64(0x010203), nil},
-		"Int(4B)": {[]byte{0x01, 0x02, 0x03, 0x04}, TypeInt, int64(0x01020304), nil},
-		"Int(5B)": {[]byte{0x01, 0x02, 0x03, 0x04, 0x05}, TypeInt, int64(0x0102030405), nil},
-		"Int(6B)": {[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06}, TypeInt, int64(0x010203040506), nil},
-		"Int(7B)": {[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07}, TypeInt, int64(0x01020304050607), nil},
-		"Int(8B)": {[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, TypeInt, int64(0x0102030405060708), nil},
-		"UInt":    {[]byte{0x01, 0x02, 0x03}, TypeUInt, uint64(0x010203), nil},
-		"Date":    {[]byte{0x01, 0x02, 0x03}, TypeDate, time.Unix(dateEpochInUnixtime, 0x010203), nil},
-		"Float32": {[]byte{0x40, 0x10, 0x00, 0x00}, TypeFloat, float64(2.25), float32(2.25)},
-		"Float64": {[]byte{0x40, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, TypeFloat, float64(2.25), nil},
+		"Binary":      {[]byte{0x01, 0x02, 0x03}, TypeBinary, []byte{0x01, 0x02, 0x03}, 0, nil},
+		"String":      {[]byte{0x31, 0x32, 0x00}, TypeString, "12", 0, nil},
+		"Int24":       {[]byte{0x01, 0x02, 0x03}, TypeInt, int64(0x010203), 0, nil},
+		"Int32":       {[]byte{0x01, 0x02, 0x03, 0x04}, TypeInt, int64(0x01020304), 0, nil},
+		"Int40":       {[]byte{0x01, 0x02, 0x03, 0x04, 0x05}, TypeInt, int64(0x0102030405), 0, nil},
+		"Int48":       {[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06}, TypeInt, int64(0x010203040506), 0, nil},
+		"Int56":       {[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07}, TypeInt, int64(0x01020304050607), 0, nil},
+		"Int64":       {[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, TypeInt, int64(0x0102030405060708), 0, nil},
+		"Int8(2B)":    {[]byte{0x00, 0x01}, TypeInt, int64(0x01), 2, nil},
+		"Int16(3B)":   {[]byte{0x00, 0x01, 0x02}, TypeInt, int64(0x0102), 3, nil},
+		"Int24(4B)":   {[]byte{0x00, 0x01, 0x02, 0x03}, TypeInt, int64(0x010203), 4, nil},
+		"Int32(5B)":   {[]byte{0x00, 0x01, 0x02, 0x03, 0x04}, TypeInt, int64(0x01020304), 5, nil},
+		"Int40(6B)":   {[]byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05}, TypeInt, int64(0x0102030405), 6, nil},
+		"Int48(7B)":   {[]byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06}, TypeInt, int64(0x010203040506), 7, nil},
+		"UInt":        {[]byte{0x01, 0x02, 0x03}, TypeUInt, uint64(0x010203), 0, nil},
+		"Date":        {[]byte{0x01, 0x02, 0x03}, TypeDate, time.Unix(dateEpochInUnixtime, 0x010203), 0, nil},
+		"Float32":     {[]byte{0x40, 0x10, 0x00, 0x00}, TypeFloat, float64(2.25), 0, float32(2.25)},
+		"Float64":     {[]byte{0x40, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, TypeFloat, float64(2.25), 0, nil},
+		"Float32(8B)": {[]byte{0x40, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, TypeFloat, float64(2.25), 0, float64(2.25)},
+		"Float64(4B)": {[]byte{0x40, 0x10, 0x00, 0x00}, TypeFloat, float64(2.25), 0, float32(2.25)},
 		"Block": {[]byte{0x85, 0x12, 0x34, 0x80, 0x34, 0x56}, TypeBlock,
-			Block{uint64(5), int16(0x1234), true, false, LacingNo, false, nil, [][]byte{[]byte{0x34, 0x56}}}, nil,
+			Block{uint64(5), int16(0x1234), true, false, LacingNo, false, nil, [][]byte{[]byte{0x34, 0x56}}}, 0, nil,
 		},
 	}
 	for n, c := range testCases {
@@ -141,7 +150,7 @@ func TestValue(t *testing.T) {
 			} else {
 				v = c.v
 			}
-			b, err := perTypeEncoder[c.t](v, 0)
+			b, err := perTypeEncoder[c.t](v, c.n)
 			if err != nil {
 				t.Fatalf("Failed to encode%s: %v", n, err)
 			}
@@ -201,6 +210,36 @@ func TestEncodeValue_WrongInputType(t *testing.T) {
 				if err != c.err {
 					t.Fatalf("encode%s returned unexpected error to wrong input type: %v", n, err)
 				}
+			}
+		})
+	}
+}
+
+func TestEncodeValue_WrongSize(t *testing.T) {
+	testCases := map[string]struct {
+		t   Type
+		v   interface{}
+		n   uint64
+		err error
+	}{
+		"Float32(3B)": {
+			TypeFloat,
+			float32(1.0),
+			3,
+			errInvalidFloatSize,
+		},
+		"Float64(9B)": {
+			TypeFloat,
+			float64(1.0),
+			9,
+			errInvalidFloatSize,
+		},
+	}
+	for n, c := range testCases {
+		t.Run("Encode "+n, func(t *testing.T) {
+			_, err := perTypeEncoder[c.t](c.v, c.n)
+			if err != c.err {
+				t.Fatalf("encode%s returned unexpected error to wrong input type: %v", n, err)
 			}
 		})
 	}

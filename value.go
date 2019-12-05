@@ -31,7 +31,6 @@ const (
 var (
 	errInvalidFloatSize     = errors.New("Invalid float size")
 	errInvalidType          = errors.New("Invalid type")
-	errInvalidSize          = errors.New("Invalid element size")
 	errUnsupportedElementID = errors.New("Unsupported Element ID")
 )
 
@@ -302,7 +301,7 @@ func encodeFloat(i interface{}, n uint64) ([]byte, error) {
 		case 8:
 			return encodeFloat64(v)
 		default:
-			return []byte{}, errInvalidSize
+			return []byte{}, errInvalidFloatSize
 		}
 	case float32:
 		switch n {
@@ -313,7 +312,7 @@ func encodeFloat(i interface{}, n uint64) ([]byte, error) {
 		case 8:
 			return encodeFloat64(float64(v))
 		default:
-			return []byte{}, errInvalidSize
+			return []byte{}, errInvalidFloatSize
 		}
 	default:
 		return []byte{}, errInvalidType
