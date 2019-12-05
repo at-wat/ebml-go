@@ -107,7 +107,7 @@ func UnmarshalBlock(r io.Reader) (*Block, error) {
 		return nil, errLaceUnimplemented
 	}
 
-	b.Data = [][]byte{[]byte{}}
+	b.Data = [][]byte{{}}
 	b.Data[0], err = ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err

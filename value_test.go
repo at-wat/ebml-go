@@ -121,7 +121,7 @@ func TestValue(t *testing.T) {
 		"Float32": {[]byte{0x40, 0x10, 0x00, 0x00}, TypeFloat, float64(2.25), float32(2.25)},
 		"Float64": {[]byte{0x40, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, TypeFloat, float64(2.25), nil},
 		"Block": {[]byte{0x85, 0x12, 0x34, 0x80, 0x34, 0x56}, TypeBlock,
-			Block{uint64(5), int16(0x1234), true, false, LacingNo, false, nil, [][]byte{[]byte{0x34, 0x56}}}, nil,
+			Block{uint64(5), int16(0x1234), true, false, LacingNo, false, nil, [][]byte{{0x34, 0x56}}}, nil,
 		},
 	}
 	for n, c := range testCases {
