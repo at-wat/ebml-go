@@ -156,8 +156,10 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 	}
 }
 
+// UnmarshalOption configures a UnmarshalOptions struct
 type UnmarshalOption func(*UnmarshalOptions)
 
+// UnmarshalOptions stores options for unmarshalling
 type UnmarshalOptions struct {
 	hooks []func(elem *Element)
 }
