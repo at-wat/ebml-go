@@ -72,7 +72,7 @@ func TestSimpleWriter(t *testing.T) {
 
 	expected := struct {
 		Header  EBMLHeader `ebml:"EBML"`
-		Segment Segment    `ebml:"Segment,inf"`
+		Segment Segment    `ebml:"Segment,size=unknown"`
 	}{
 		Header: defaultEBMLHeader,
 		Segment: Segment{
@@ -114,7 +114,7 @@ func TestSimpleWriter(t *testing.T) {
 	defer func() {
 		var result struct {
 			Header  EBMLHeader `ebml:"EBML"`
-			Segment Segment    `ebml:"Segment,inf"`
+			Segment Segment    `ebml:"Segment,size=unknown"`
 		}
 		if err := ebml.Unmarshal(bytes.NewReader(buf.Bytes()), &result); err != nil {
 			t.Fatalf("Failed to Unmarshal resultant binary: %v", err)

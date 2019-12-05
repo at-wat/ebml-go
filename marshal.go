@@ -19,7 +19,6 @@ import (
 	"errors"
 	"io"
 	"reflect"
-	"strings"
 )
 
 var (
@@ -27,6 +26,28 @@ var (
 )
 
 // Marshal struct to EBML bytes
+//
+// Examples of struct field tags:
+//
+//   // Field appears as element "EBMLVersion".
+//   Field uint64 `ebml:EBMLVersion`
+//
+//   // Field appears as element "EBMLVersion" and
+//   // the field is ommited from the output if the value is empty.
+//   Field uint64 `ebml:TheElement,omitempty`
+//
+//   // Field appears as element "EBMLVersion" and
+//   // the field is ommited from the output if the value is empty.
+//   EBMLVersion uint64 `ebml:,omitempty`
+//
+//   // Field appears as master element "Segment" and
+//   // the size of the element contents is left unknown for streaming data.
+//   Field struct{} `ebml:Segment,size=unknown`
+//
+//   // Field appears as master element "Segment" and
+//   // the size of the element contents is left unknown for streaming data.
+//   // This style may be deprecated in the future.
+//   Field struct{} `ebml:Segment,inf`
 func Marshal(val interface{}, w io.Writer) error {
 	vo := reflect.ValueOf(val).Elem()
 
@@ -38,30 +59,23 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 		vn := vo.Field(i)
 		tn := vo.Type().Field(i)
 
-		var nn []string
+		tag := &structTag{}
 		if n, ok := tn.Tag.Lookup("ebml"); ok {
-			nn = strings.Split(n, ",")
+			var err error
+			if tag, err = parseTag(n); err != nil {
+				return err
+			}
 		}
-		var name string
-		if len(nn) > 0 && len(nn[0]) > 0 {
-			name = nn[0]
-		} else {
-			name = tn.Name
+		if tag.name == "" {
+			tag.name = tn.Name
 		}
-		if t, err := ElementTypeFromString(name); err == nil {
+		if t, err := ElementTypeFromString(tag.name); err == nil {
 			e, ok := table[t]
 			if !ok {
 				return errUnsupportedElement
 			}
 
-			var inf, omitempty bool
-			for _, n := range nn {
-				if n == "inf" {
-					inf = true
-				} else if n == "omitempty" {
-					omitempty = true
-				}
-			}
+			unknown := tag.size == sizeUnknown
 
 			var lst []reflect.Value
 			if vn.Kind() == reflect.Ptr {
@@ -76,7 +90,7 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 					lst = append(lst, vn.Index(i))
 				}
 			} else {
-				if omitempty && reflect.DeepEqual(reflect.Zero(vn.Type()).Interface(), vn.Interface()) {
+				if tag.omitEmpty && reflect.DeepEqual(reflect.Zero(vn.Type()).Interface(), vn.Interface()) {
 					continue
 				}
 				lst = []reflect.Value{vn}
@@ -88,9 +102,9 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 					return err
 				}
 				var bw io.Writer
-				if inf {
+				if unknown {
 					// Directly write length unspecified element
-					bsz := encodeDataSize(uint64(sizeInf))
+					bsz := encodeDataSize(uint64(sizeUnknown))
 					if _, err := w.Write(bsz); err != nil {
 						return err
 					}
@@ -114,7 +128,7 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 				}
 
 				// Write element with length
-				if !inf {
+				if !unknown {
 					bsz := encodeDataSize(uint64(bw.(*bytes.Buffer).Len()))
 					if _, err := w.Write(bsz); err != nil {
 						return err
