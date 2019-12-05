@@ -29,9 +29,9 @@ const (
 )
 
 var (
-	errInvalidFloatSize     = errors.New("Invalid float size")
-	errInvalidType          = errors.New("Invalid type")
-	errUnsupportedElementID = errors.New("Unsupported Element ID")
+	errInvalidFloatSize     = errors.New("invalid float size")
+	errInvalidType          = errors.New("invalid type")
+	errUnsupportedElementID = errors.New("unsupported Element ID")
 )
 
 var perTypeReader = map[Type]func(io.Reader, uint64) (interface{}, error){

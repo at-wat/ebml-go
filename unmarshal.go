@@ -23,9 +23,8 @@ import (
 )
 
 var (
-	errUnknownElement = errors.New("Unknown element")
-	errInvalidIntSize = errors.New("Invalid int size")
-	errIndefiniteType = errors.New("Unmarshal to indefinite type")
+	errUnknownElement = errors.New("unknown element")
+	errIndefiniteType = errors.New("unmarshal to indefinite type")
 )
 
 // Unmarshal EBML stream

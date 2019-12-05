@@ -22,7 +22,7 @@ import (
 type ElementType int
 
 var (
-	errUnknownElementType = errors.New("Unknown element type")
+	errUnknownElementType = errors.New("unknown element type")
 )
 
 // EBML Element types

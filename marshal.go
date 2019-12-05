@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	errUnsupportedElement = errors.New("Unsupported element")
+	errUnsupportedElement = errors.New("unsupported element")
 )
 
 // Marshal struct to EBML bytes

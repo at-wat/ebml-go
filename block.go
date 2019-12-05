@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	errLaceUnimplemented = errors.New("Lacing in unimplementd")
+	errLaceUnimplemented = errors.New("lacing in unimplementd")
 )
 
 // LacingMode is type of laced data
