@@ -20,6 +20,7 @@ import (
 	"errors"
 	"io"
 	"math"
+	"strings"
 	"time"
 )
 
@@ -110,11 +111,9 @@ func readString(r io.Reader, n uint64) (interface{}, error) {
 		return "", err
 	}
 	s := string(bs.([]byte))
-	// null terminated
-	if s[len(s)-1] == '\x00' {
-		s = s[:len(s)-1]
-	}
-	return s, nil
+	// remove trailing null charactors
+	ss := strings.Split(s, "\x00")
+	return ss[0], nil
 }
 func readInt(r io.Reader, n uint64) (interface{}, error) {
 	bs := make([]byte, n)
