@@ -84,7 +84,7 @@ func TestElementID(t *testing.T) {
 	}
 	for n, c := range testCases {
 		t.Run("Encode "+n, func(t *testing.T) {
-			b, err := encodeElementID(c.i, 0)
+			b, err := encodeElementID(c.i)
 			if err != nil {
 				t.Fatalf("Failed to encodeElementID: %v", err)
 			}
@@ -94,7 +94,7 @@ func TestElementID(t *testing.T) {
 		})
 	}
 
-	_, err := encodeElementID(0x2000000000000, 0)
+	_, err := encodeElementID(0x2000000000000)
 	if err != errUnsupportedElementID {
 		t.Errorf("Unexpected error type result, expected: %s, got: %s", errUnsupportedElementID, err)
 	}

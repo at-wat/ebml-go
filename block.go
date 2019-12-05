@@ -117,7 +117,7 @@ func UnmarshalBlock(r io.Reader) (*Block, error) {
 
 // MarshalBlock marshals EBML Block structure
 func MarshalBlock(b *Block, w io.Writer) error {
-	n, err := encodeElementID(b.TrackNumber, 0)
+	n, err := encodeElementID(b.TrackNumber)
 	if err != nil {
 		return err
 	}

@@ -203,20 +203,20 @@ func encodeDataSize(v uint64, n uint64) []byte {
 		return []byte{0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 	}
 }
-func encodeElementID(v uint64, n uint64) ([]byte, error) {
-	if v < 0x80 && n < 2 {
+func encodeElementID(v uint64) ([]byte, error) {
+	if v < 0x80 {
 		return []byte{byte(v) | 0x80}, nil
-	} else if v < 0x4000 && n < 3 {
+	} else if v < 0x4000 {
 		return []byte{byte(v>>8) | 0x40, byte(v)}, nil
-	} else if v < 0x200000 && n < 4 {
+	} else if v < 0x200000 {
 		return []byte{byte(v>>16) | 0x20, byte(v >> 8), byte(v)}, nil
-	} else if v < 0x10000000 && n < 5 {
+	} else if v < 0x10000000 {
 		return []byte{byte(v>>24) | 0x10, byte(v >> 16), byte(v >> 8), byte(v)}, nil
-	} else if v < 0x800000000 && n < 6 {
+	} else if v < 0x800000000 {
 		return []byte{byte(v>>32) | 0x8, byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
-	} else if v < 0x40000000000 && n < 7 {
+	} else if v < 0x40000000000 {
 		return []byte{byte(v>>40) | 0x4, byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
-	} else if v < 0x2000000000000 && n < 8 {
+	} else if v < 0x2000000000000 {
 		return []byte{byte(v>>48) | 0x2, byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
 	}
 	return nil, errUnsupportedElementID
