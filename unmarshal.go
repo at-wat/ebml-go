@@ -27,6 +27,7 @@ var (
 	errIndefiniteType = errors.New("unmarshal to indefinite type")
 )
 
+// Unmarshal EBML stream
 func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 	options := &UnmarshalOptions{}
 	for _, o := range opts {
