@@ -31,12 +31,15 @@ type EBMLHeader struct {
 	DocTypeReadVersion uint64 `ebml:"EBMLDocTypeReadVersion"`
 }
 
+// Seek represents Seek element struct
+type Seek struct {
+	SeekID       []byte `ebml:"SeekID"`
+	SeekPosition uint64 `ebml:"SeekPosition"`
+}
+
 // SeekHead represents SeekHead element struct
 type SeekHead struct {
-	Seek []struct {
-		SeekID       []byte `ebml:"SeekID"`
-		SeekPosition uint64 `ebml:"SeekPosition"`
-	} `ebml:"Seek"`
+	Seek []Seek `ebml:"Seek"`
 }
 
 // Info represents Info element struct
