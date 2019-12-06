@@ -16,6 +16,7 @@ package ebml
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"testing"
 )
@@ -83,6 +84,18 @@ func TestMarshal(t *testing.T) {
 				t.Errorf("Marshaled binary doesn't match:\n expected: %v,\n      got: %v", c.expected, b.Bytes())
 			}
 		})
+	}
+}
+
+func TestMarshal_OptionError(t *testing.T) {
+	errExpected := errors.New("an error")
+	err := Marshal(&struct{}{}, &bytes.Buffer{},
+		func(*MarshalOptions) error {
+			return errExpected
+		},
+	)
+	if err != errExpected {
+		t.Errorf("Unexpected error for failing MarshalOption, expected: %v, got: %v", errExpected, err)
 	}
 }
 

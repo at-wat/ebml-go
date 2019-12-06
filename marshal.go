@@ -55,7 +55,9 @@ var (
 func Marshal(val interface{}, w io.Writer, opts ...MarshalOption) error {
 	options := &MarshalOptions{}
 	for _, o := range opts {
-		o(options)
+		if err := o(options); err != nil {
+			return err
+		}
 	}
 	vo := reflect.ValueOf(val).Elem()
 
@@ -152,7 +154,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, options *MarshalOptions) error {
 }
 
 // MarshalOption configures a MarshalOptions struct
-type MarshalOption func(*MarshalOptions)
+type MarshalOption func(*MarshalOptions) error
 
 // MarshalOptions stores options for marshalling
 type MarshalOptions struct {
@@ -161,7 +163,8 @@ type MarshalOptions struct {
 
 // WithDataSizeLen returns an MarshalOption which sets number of reserved bytes of element data size
 func WithDataSizeLen(l int) MarshalOption {
-	return func(opts *MarshalOptions) {
+	return func(opts *MarshalOptions) error {
 		opts.dataSizeLen = uint64(l)
+		return nil
 	}
 }

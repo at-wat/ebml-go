@@ -16,6 +16,7 @@ package ebml
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"testing"
 )
@@ -44,6 +45,18 @@ func ExampleUnmarshal() {
 	fmt.Println(ret)
 
 	// Output: {{webm 2 2}}
+}
+
+func TestUnmarshal_OptionError(t *testing.T) {
+	errExpected := errors.New("an error")
+	err := Unmarshal(&bytes.Buffer{}, &struct{}{},
+		func(*UnmarshalOptions) error {
+			return errExpected
+		},
+	)
+	if err != errExpected {
+		t.Errorf("Unexpected error for failing UnmarshalOption, expected: %v, got: %v", errExpected, err)
+	}
 }
 
 func TestUnmarshal_WithElementReadHooks(t *testing.T) {
