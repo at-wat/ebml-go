@@ -23,7 +23,8 @@ before_script:
     if [ ${TRAVIS_GO_VERSION} == ${REVIEW_DOG_ON} ]; then
       mkdir -p ${GOPATH}/bin
       (mkdir -p /tmp/golint && cd /tmp/golint && go get golang.org/x/lint/golint)
-      curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b ${GOPATH}/bin
+      curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh \
+        | sh -s -- -b ${GOPATH}/bin
       chmod +x ${GOPATH}/bin/reviewdog
     fi
 
@@ -33,8 +34,7 @@ script:
   - go test $(go list ./... | grep -v examples) -race -coverprofile=coverage.txt -covermode=atomic
   - |
     if [ ${TRAVIS_GO_VERSION} == ${REVIEW_DOG_ON} ]; then
-      golint ./... | tee /tmp/lint-result.log
-      cat /tmp/lint-result.log | reviewdog -f=golint -reporter=github-pr-review
+      golint ./...  | reviewdog -f=golint -reporter=github-pr-review
     fi
 
 after_success:
