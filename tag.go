@@ -27,8 +27,8 @@ type structTag struct {
 }
 
 var (
-	errEmptyTag   = errors.New("Empty tag in tag string")
-	errInvalidTag = errors.New("Invalid tag in tag string")
+	errEmptyTag   = errors.New("empty tag in tag string")
+	errInvalidTag = errors.New("invalid tag in tag string")
 )
 
 func parseTag(rawtag string) (*structTag, error) {
