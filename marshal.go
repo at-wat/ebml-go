@@ -168,7 +168,3 @@ func WithDataSizeLen(l int) MarshalOption {
 		return nil
 	}
 }
-
-func LintError() {
-	return
-}
