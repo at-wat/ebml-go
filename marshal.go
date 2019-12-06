@@ -153,7 +153,6 @@ func marshalImpl(vo reflect.Value, w io.Writer, options *MarshalOptions) error {
 	return nil
 }
 
-// MarshalOption configures a MarshalOptions struct
 type MarshalOption func(*MarshalOptions) error
 
 // MarshalOptions stores options for marshalling
