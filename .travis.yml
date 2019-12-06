@@ -13,14 +13,14 @@ go:
 env:
   global:
     - GO111MODULE=on
-    - REVIEW_DOG_ON=1.13
+    - REVIEWDOG_ON=1.13
 
 install:
   - go mod download
 
 before_script:
   - |
-    if [ ${TRAVIS_GO_VERSION} == ${REVIEW_DOG_ON} ]; then
+    if [ ${TRAVIS_GO_VERSION} == ${REVIEWDOG_ON} ]; then
       mkdir -p ${GOPATH}/bin
       (mkdir -p /tmp/golint && cd /tmp/golint && go get golang.org/x/lint/golint)
       curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh \
@@ -33,7 +33,7 @@ script:
   - go vet ./...
   - go test $(go list ./... | grep -v examples) -race -coverprofile=coverage.txt -covermode=atomic
   - |
-    if [ ${TRAVIS_GO_VERSION} == ${REVIEW_DOG_ON} ]; then
+    if [ ${TRAVIS_GO_VERSION} == ${REVIEWDOG_ON} ]; then
       golint ./...  | reviewdog -f=golint -reporter=github-pr-review
     fi
 
