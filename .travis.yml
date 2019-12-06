@@ -14,7 +14,6 @@ env:
   global:
     - GO111MODULE=on
     - REVIEW_DOG_ON=1.13
-    - REVIEW_DOG_VERSION=0.9.12
 
 install:
   - go mod download
@@ -24,7 +23,7 @@ before_script:
     if [ ${TRAVIS_GO_VERSION} == ${REVIEW_DOG_ON} ]; then
       mkdir -p ${GOPATH}/bin
       (mkdir -p /tmp/golint && cd /tmp/golint && go get golang.org/x/lint/golint)
-      curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b ${GOPATH}/bin v${REVIEW_DOG_VERSION}
+      curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b ${GOPATH}/bin
       chmod +x ${GOPATH}/bin/reviewdog
     fi
 
