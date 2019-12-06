@@ -114,6 +114,34 @@ func ExampleMarshal() {
 	// 0x1a, 0x45, 0xdf, 0xa3, 0x90, 0x42, 0x82, 0x85, 0x77, 0x65, 0x62, 0x6d, 0x00, 0x42, 0x87, 0x81, 0x02, 0x42, 0x85, 0x81, 0x02,
 }
 
+func ExampleMarshal_WithDataSizeLen() {
+	type EBMLHeader struct {
+		DocType            string `ebml:"EBMLDocType"`
+		DocTypeVersion     uint64 `ebml:"EBMLDocTypeVersion"`
+		DocTypeReadVersion uint64 `ebml:"EBMLDocTypeReadVersion"`
+	}
+	type TestEBML struct {
+		Header EBMLHeader `ebml:"EBML"`
+	}
+	s := TestEBML{
+		Header: EBMLHeader{
+			DocType:            "webm",
+			DocTypeVersion:     2,
+			DocTypeReadVersion: 2,
+		},
+	}
+
+	var b bytes.Buffer
+	if err := Marshal(&s, &b, WithDataSizeLen(2)); err != nil {
+		panic(err)
+	}
+	for _, b := range b.Bytes() {
+		fmt.Printf("0x%02x, ", int(b))
+	}
+	// Output:
+	// 0x1a, 0x45, 0xdf, 0xa3, 0x40, 0x13, 0x42, 0x82, 0x40, 0x05, 0x77, 0x65, 0x62, 0x6d, 0x00, 0x42, 0x87, 0x40, 0x01, 0x02, 0x42, 0x85, 0x40, 0x01, 0x02,
+}
+
 func TestMarshal_Tag(t *testing.T) {
 	tagged := struct {
 		DocCustomNamedType string `ebml:"EBMLDocType"`
