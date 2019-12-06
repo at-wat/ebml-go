@@ -27,15 +27,15 @@ func TestUnmarshalBlock(t *testing.T) {
 	}{
 		"Track1BKeyframeInvisible": {
 			[]byte{0x82, 0x01, 0x23, 0x88, 0xAA, 0xCC},
-			Block{0x02, 0x0123, true, true, LacingNo, false, nil, [][]byte{[]byte{0xAA, 0xCC}}},
+			Block{0x02, 0x0123, true, true, LacingNo, false, nil, [][]byte{{0xAA, 0xCC}}},
 		},
 		"Track2BDiscardable": {
 			[]byte{0x42, 0x13, 0x01, 0x23, 0x01, 0x11, 0x22, 0x33},
-			Block{0x0213, 0x0123, false, false, LacingNo, true, nil, [][]byte{[]byte{0x11, 0x22, 0x33}}},
+			Block{0x0213, 0x0123, false, false, LacingNo, true, nil, [][]byte{{0x11, 0x22, 0x33}}},
 		},
 		"Track3BNoData": {
 			[]byte{0x21, 0x23, 0x45, 0x00, 0x02, 0x00},
-			Block{0x012345, 0x0002, false, false, LacingNo, false, nil, [][]byte{[]byte{}}},
+			Block{0x012345, 0x0002, false, false, LacingNo, false, nil, [][]byte{{}}},
 		},
 	}
 	for n, c := range testCases {
@@ -57,15 +57,15 @@ func TestMarshalBlock(t *testing.T) {
 		expected []byte
 	}{
 		"Track1BKeyframeInvisible": {
-			Block{0x02, 0x0123, true, true, LacingNo, false, nil, [][]byte{[]byte{0xAA, 0xCC}}},
+			Block{0x02, 0x0123, true, true, LacingNo, false, nil, [][]byte{{0xAA, 0xCC}}},
 			[]byte{0x82, 0x01, 0x23, 0x88, 0xAA, 0xCC},
 		},
 		"Track2BDiscardable": {
-			Block{0x0213, 0x0123, false, false, LacingNo, true, nil, [][]byte{[]byte{0x11, 0x22, 0x33}}},
+			Block{0x0213, 0x0123, false, false, LacingNo, true, nil, [][]byte{{0x11, 0x22, 0x33}}},
 			[]byte{0x42, 0x13, 0x01, 0x23, 0x01, 0x11, 0x22, 0x33},
 		},
 		"Track3BNoData": {
-			Block{0x012345, 0x0002, false, false, LacingNo, false, nil, [][]byte{[]byte{}}},
+			Block{0x012345, 0x0002, false, false, LacingNo, false, nil, [][]byte{{}}},
 			[]byte{0x21, 0x23, 0x45, 0x00, 0x02, 0x00},
 		},
 	}

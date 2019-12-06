@@ -30,9 +30,9 @@ const (
 )
 
 var (
-	errInvalidFloatSize     = errors.New("Invalid float size")
-	errInvalidType          = errors.New("Invalid type")
-	errUnsupportedElementID = errors.New("Unsupported Element ID")
+	errInvalidFloatSize     = errors.New("invalid float size")
+	errInvalidType          = errors.New("invalid type")
+	errUnsupportedElementID = errors.New("unsupported Element ID")
 )
 
 var perTypeReader = map[Type]func(io.Reader, uint64) (interface{}, error){
@@ -56,28 +56,29 @@ func readVInt(r io.Reader) (uint64, int, error) {
 	var value uint64
 
 	b := bs[0]
-	if b&0x80 == 0x80 {
+	switch {
+	case b&0x80 == 0x80:
 		vc = 0
 		value = uint64(b & 0x7F)
-	} else if b&0xC0 == 0x40 {
+	case b&0xC0 == 0x40:
 		vc = 1
 		value = uint64(b & 0x3F)
-	} else if b&0xE0 == 0x20 {
+	case b&0xE0 == 0x20:
 		vc = 2
 		value = uint64(b & 0x1F)
-	} else if b&0xF0 == 0x10 {
+	case b&0xF0 == 0x10:
 		vc = 3
 		value = uint64(b & 0x0F)
-	} else if b&0xF8 == 0x08 {
+	case b&0xF8 == 0x08:
 		vc = 4
 		value = uint64(b & 0x07)
-	} else if b&0xFC == 0x04 {
+	case b&0xFC == 0x04:
 		vc = 5
 		value = uint64(b & 0x03)
-	} else if b&0xFE == 0x02 {
+	case b&0xFE == 0x02:
 		vc = 6
 		value = uint64(b & 0x01)
-	} else if b == 0x01 {
+	case b == 0x01:
 		vc = 7
 		value = 0
 	}
@@ -117,7 +118,7 @@ func readString(r io.Reader, n uint64) (interface{}, error) {
 }
 func readInt(r io.Reader, n uint64) (interface{}, error) {
 	bs := make([]byte, n)
-	_, err := r.Read(bs[:])
+	_, err := r.Read(bs)
 	if err != nil {
 		return 0, err
 	}
@@ -129,7 +130,7 @@ func readInt(r io.Reader, n uint64) (interface{}, error) {
 }
 func readUInt(r io.Reader, n uint64) (interface{}, error) {
 	bs := make([]byte, n)
-	_, err := r.Read(bs[:])
+	_, err := r.Read(bs)
 	if err != nil {
 		return 0, err
 	}
@@ -151,7 +152,7 @@ func readFloat(r io.Reader, n uint64) (interface{}, error) {
 		return 0.0, errInvalidFloatSize
 	}
 	bs := make([]byte, n)
-	_, err := r.Read(bs[:])
+	_, err := r.Read(bs)
 	if err != nil {
 		return 0, err
 	}
@@ -182,41 +183,43 @@ var perTypeEncoder = map[Type]func(interface{}, uint64) ([]byte, error){
 	TypeBlock:  encodeBlock,
 }
 
-func encodeDataSize(v uint64, n uint64) []byte {
-	if v < 0x80-1 && n < 2 {
+func encodeDataSize(v, n uint64) []byte {
+	switch {
+	case v < 0x80-1 && n < 2:
 		return []byte{byte(v) | 0x80}
-	} else if v < 0x4000-1 && n < 3 {
+	case v < 0x4000-1 && n < 3:
 		return []byte{byte(v>>8) | 0x40, byte(v)}
-	} else if v < 0x200000-1 && n < 4 {
+	case v < 0x200000-1 && n < 4:
 		return []byte{byte(v>>16) | 0x20, byte(v >> 8), byte(v)}
-	} else if v < 0x10000000-1 && n < 5 {
+	case v < 0x10000000-1 && n < 5:
 		return []byte{byte(v>>24) | 0x10, byte(v >> 16), byte(v >> 8), byte(v)}
-	} else if v < 0x800000000-1 && n < 6 {
+	case v < 0x800000000-1 && n < 6:
 		return []byte{byte(v>>32) | 0x8, byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
-	} else if v < 0x40000000000-1 && n < 7 {
+	case v < 0x40000000000-1 && n < 7:
 		return []byte{byte(v>>40) | 0x4, byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
-	} else if v < 0x2000000000000-1 && n < 8 {
+	case v < 0x2000000000000-1 && n < 8:
 		return []byte{byte(v>>48) | 0x2, byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
-	} else if v < sizeUnknown {
+	case v < sizeUnknown:
 		return []byte{0x1, byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
-	} else {
+	default:
 		return []byte{0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 	}
 }
 func encodeElementID(v uint64) ([]byte, error) {
-	if v < 0x80 {
+	switch {
+	case v < 0x80:
 		return []byte{byte(v) | 0x80}, nil
-	} else if v < 0x4000 {
+	case v < 0x4000:
 		return []byte{byte(v>>8) | 0x40, byte(v)}, nil
-	} else if v < 0x200000 {
+	case v < 0x200000:
 		return []byte{byte(v>>16) | 0x20, byte(v >> 8), byte(v)}, nil
-	} else if v < 0x10000000 {
+	case v < 0x10000000:
 		return []byte{byte(v>>24) | 0x10, byte(v >> 16), byte(v >> 8), byte(v)}, nil
-	} else if v < 0x800000000 {
+	case v < 0x800000000:
 		return []byte{byte(v>>32) | 0x8, byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
-	} else if v < 0x40000000000 {
+	case v < 0x40000000000:
 		return []byte{byte(v>>40) | 0x4, byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
-	} else if v < 0x2000000000000 {
+	case v < 0x2000000000000:
 		return []byte{byte(v>>48) | 0x2, byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
 	}
 	return nil, errUnsupportedElementID
@@ -253,21 +256,22 @@ func encodeUInt(i interface{}, n uint64) ([]byte, error) {
 	if !ok {
 		return []byte{}, errInvalidType
 	}
-	if v < 0x100 && n < 2 {
+	switch {
+	case v < 0x100 && n < 2:
 		return []byte{byte(v)}, nil
-	} else if v < 0x10000 && n < 3 {
+	case v < 0x10000 && n < 3:
 		return []byte{byte(v >> 8), byte(v)}, nil
-	} else if v < 0x1000000 && n < 4 {
+	case v < 0x1000000 && n < 4:
 		return []byte{byte(v >> 16), byte(v >> 8), byte(v)}, nil
-	} else if v < 0x100000000 && n < 5 {
+	case v < 0x100000000 && n < 5:
 		return []byte{byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
-	} else if v < 0x10000000000 && n < 6 {
+	case v < 0x10000000000 && n < 6:
 		return []byte{byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
-	} else if v < 0x1000000000000 && n < 7 {
+	case v < 0x1000000000000 && n < 7:
 		return []byte{byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
-	} else if v < 0x100000000000000 && n < 8 {
+	case v < 0x100000000000000 && n < 8:
 		return []byte{byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
-	} else {
+	default:
 		return []byte{byte(v >> 56), byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
 	}
 }
@@ -281,12 +285,12 @@ func encodeDate(i interface{}, n uint64) ([]byte, error) {
 }
 func encodeFloat32(i float32) ([]byte, error) {
 	b := make([]byte, 4)
-	binary.BigEndian.PutUint32(b[:], math.Float32bits(i))
+	binary.BigEndian.PutUint32(b, math.Float32bits(i))
 	return b, nil
 }
 func encodeFloat64(i float64) ([]byte, error) {
 	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b[:], math.Float64bits(i))
+	binary.BigEndian.PutUint64(b, math.Float64bits(i))
 	return b, nil
 }
 func encodeFloat(i interface{}, n uint64) ([]byte, error) {
