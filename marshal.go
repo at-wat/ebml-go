@@ -48,6 +48,10 @@ var (
 //   // the size of the element contents is left unknown for streaming data.
 //   // This style may be deprecated in the future.
 //   Field struct{} `ebml:Segment,inf`
+//
+//   // Field appears as element "EBMLVersion" and
+//   // the size of the element data is reserved by 4 bytes.
+//   Field uint64 `ebml:EBMLVersion,size=4`
 func Marshal(val interface{}, w io.Writer) error {
 	vo := reflect.ValueOf(val).Elem()
 
@@ -104,7 +108,7 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 				var bw io.Writer
 				if unknown {
 					// Directly write length unspecified element
-					bsz := encodeDataSize(uint64(sizeUnknown))
+					bsz := encodeDataSize(uint64(sizeUnknown), 0)
 					if _, err := w.Write(bsz); err != nil {
 						return err
 					}
@@ -118,7 +122,7 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 						return err
 					}
 				} else {
-					bc, err := perTypeEncoder[e.t](vn.Interface())
+					bc, err := perTypeEncoder[e.t](vn.Interface(), tag.size)
 					if err != nil {
 						return err
 					}
@@ -129,7 +133,7 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 
 				// Write element with length
 				if !unknown {
-					bsz := encodeDataSize(uint64(bw.(*bytes.Buffer).Len()))
+					bsz := encodeDataSize(uint64(bw.(*bytes.Buffer).Len()), 0)
 					if _, err := w.Write(bsz); err != nil {
 						return err
 					}
