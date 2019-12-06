@@ -55,7 +55,7 @@ func TestUnmarshal_OptionError(t *testing.T) {
 		},
 	)
 	if err != errExpected {
-		t.Errorf("Unexpected error for failing MarshalOption, expected: %v, got: %v", errExpected, err)
+		t.Errorf("Unexpected error for failing UnmarshalOption, expected: %v, got: %v", errExpected, err)
 	}
 }
 
