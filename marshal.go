@@ -52,13 +52,17 @@ var (
 //   // Field appears as element "EBMLVersion" and
 //   // the size of the element data is reserved by 4 bytes.
 //   Field uint64 `ebml:EBMLVersion,size=4`
-func Marshal(val interface{}, w io.Writer) error {
+func Marshal(val interface{}, w io.Writer, opts ...MarshalOption) error {
+	options := &MarshalOptions{}
+	for _, o := range opts {
+		o(options)
+	}
 	vo := reflect.ValueOf(val).Elem()
 
-	return marshalImpl(vo, w)
+	return marshalImpl(vo, w, options)
 }
 
-func marshalImpl(vo reflect.Value, w io.Writer) error {
+func marshalImpl(vo reflect.Value, w io.Writer, options *MarshalOptions) error {
 	for i := 0; i < vo.NumField(); i++ {
 		vn := vo.Field(i)
 		tn := vo.Type().Field(i)
@@ -118,7 +122,7 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 				}
 
 				if e.t == TypeMaster {
-					if err := marshalImpl(vn, bw); err != nil {
+					if err := marshalImpl(vn, bw, options); err != nil {
 						return err
 					}
 				} else {
@@ -133,7 +137,7 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 
 				// Write element with length
 				if !unknown {
-					bsz := encodeDataSize(uint64(bw.(*bytes.Buffer).Len()), 0)
+					bsz := encodeDataSize(uint64(bw.(*bytes.Buffer).Len()), options.dataSizeLen)
 					if _, err := w.Write(bsz); err != nil {
 						return err
 					}
@@ -145,4 +149,19 @@ func marshalImpl(vo reflect.Value, w io.Writer) error {
 		}
 	}
 	return nil
+}
+
+// MarshalOption configures a MarshalOptions struct
+type MarshalOption func(*MarshalOptions)
+
+// MarshalOptions stores options for marshalling
+type MarshalOptions struct {
+	dataSizeLen uint64
+}
+
+// WithDataSizeLen returns an MarshalOption which sets number of reserved bytes of element data size
+func WithDataSizeLen(l int) MarshalOption {
+	return func(opts *MarshalOptions) {
+		opts.dataSizeLen = uint64(l)
+	}
 }
