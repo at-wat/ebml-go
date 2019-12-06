@@ -93,7 +93,7 @@ func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 		}
 		for i, pos := range positions {
 			if elem[i].Position != pos {
-				t.Errorf("Unexpected element positon of '%s[%d]', expected: %d, got: %d\n", key, i, pos, elem[i].Position)
+				t.Errorf("Unexpected element position of '%s[%d]', expected: %d, got: %d\n", key, i, pos, elem[i].Position)
 			}
 		}
 	}
