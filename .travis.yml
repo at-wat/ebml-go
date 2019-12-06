@@ -35,7 +35,7 @@ script:
   - |
     if [ ${TRAVIS_GO_VERSION} == ${REVIEW_DOG_ON} ]; then
       golint ./... | tee /tmp/lint-result.log
-      cat /tmp/lint-result.log | reviewdog -f=golint -reporter=github-pr-review -level=warning
+      cat /tmp/lint-result.log | reviewdog -f=golint -reporter=github-pr-review
     fi
 
 after_success:
