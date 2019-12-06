@@ -48,6 +48,10 @@ var (
 //   // the size of the element contents is left unknown for streaming data.
 //   // This style may be deprecated in the future.
 //   Field struct{} `ebml:Segment,inf`
+//
+//   // Field appears as element "EBMLVersion" and
+//   // the size of the element data is reserved by 4 bytes.
+//   Field uint64 `ebml:EBMLVersion,size=4`
 func Marshal(val interface{}, w io.Writer) error {
 	vo := reflect.ValueOf(val).Elem()
 
