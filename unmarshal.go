@@ -31,7 +31,9 @@ var (
 func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 	options := &UnmarshalOptions{}
 	for _, o := range opts {
-		o(options)
+		if err := o(options); err != nil {
+			return err
+		}
 	}
 
 	vo := reflect.ValueOf(val)
@@ -157,7 +159,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 }
 
 // UnmarshalOption configures a UnmarshalOptions struct
-type UnmarshalOption func(*UnmarshalOptions)
+type UnmarshalOption func(*UnmarshalOptions) error
 
 // UnmarshalOptions stores options for unmarshalling
 type UnmarshalOptions struct {
@@ -175,7 +177,8 @@ type Element struct {
 
 // WithElementReadHooks returns an UnmarshalOption which registers element hooks
 func WithElementReadHooks(hooks ...func(*Element)) UnmarshalOption {
-	return func(opts *UnmarshalOptions) {
+	return func(opts *UnmarshalOptions) error {
 		opts.hooks = hooks
+		return nil
 	}
 }
