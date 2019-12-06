@@ -44,7 +44,7 @@ func TestDataSize(t *testing.T) {
 	for n, c := range testCases {
 		t.Run("Encode "+n, func(t *testing.T) {
 			b := encodeDataSize(c.i, 0)
-			if bytes.Compare(b, c.b) != 0 {
+			if !bytes.Equal(b, c.b) {
 				t.Errorf("Unexpected encodeDataSize result, expected: %d, got: %d", c.b, b)
 			}
 		})
@@ -88,7 +88,7 @@ func TestElementID(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to encodeElementID: %v", err)
 			}
-			if bytes.Compare(b, c.b) != 0 {
+			if !bytes.Equal(b, c.b) {
 				t.Errorf("Unexpected encodeDataSize result, expected: %d, got: %d", c.b, b)
 			}
 		})
@@ -146,7 +146,7 @@ func TestValue(t *testing.T) {
 		"Float32(4B)": {[]byte{0x40, 0x10, 0x00, 0x00}, TypeFloat, float64(2.25), 0, float32(2.25)},
 		"Float64(8B)": {[]byte{0x40, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, TypeFloat, float64(2.25), 0, nil},
 		"Block": {[]byte{0x85, 0x12, 0x34, 0x80, 0x34, 0x56}, TypeBlock,
-			Block{uint64(5), int16(0x1234), true, false, LacingNo, false, nil, [][]byte{[]byte{0x34, 0x56}}}, 0, nil,
+			Block{uint64(5), int16(0x1234), true, false, LacingNo, false, nil, [][]byte{{0x34, 0x56}}}, 0, nil,
 		},
 	}
 	for n, c := range testCases {
@@ -170,7 +170,7 @@ func TestValue(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to encode%s: %v", n, err)
 			}
-			if bytes.Compare(b, c.b) != 0 {
+			if !bytes.Equal(b, c.b) {
 				t.Errorf("Unexpected encode%s result, expected: %v, got: %v", n, c.b, b)
 			}
 		})
