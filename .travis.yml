@@ -25,7 +25,6 @@ before_script:
       (mkdir -p /tmp/golint && cd /tmp/golint && go get golang.org/x/lint/golint)
       curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh \
         | sh -s -- -b ${GOPATH}/bin
-      chmod +x ${GOPATH}/bin/reviewdog
     fi
 
 script:
