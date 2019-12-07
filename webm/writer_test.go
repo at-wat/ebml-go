@@ -16,6 +16,7 @@ package webm
 
 import (
 	"bytes"
+	"errors"
 	"reflect"
 	"testing"
 
@@ -178,5 +179,40 @@ func TestSimpleWriter_Options(t *testing.T) {
 	}
 	if !bytes.Equal(buf.Bytes(), expectedBytes) {
 		t.Errorf("Unexpected WebM binary,\nexpected: %+v\n     got: %+v", expectedBytes, buf.Bytes())
+	}
+}
+
+func TestSimpleWriter_FailingOptions(t *testing.T) {
+	errDummy0 := errors.New("an error 0")
+	errDummy1 := errors.New("an error 1")
+
+	cases := map[string]struct {
+		opts []SimpleWriterOption
+		err  error
+	}{
+		"WriterOptionError": {
+			opts: []SimpleWriterOption{
+				func(*SimpleWriterOptions) error { return errDummy0 },
+			},
+			err: errDummy0,
+		},
+		"MarshalOptionError": {
+			opts: []SimpleWriterOption{
+				WithMarshalOptions(
+					func(*ebml.MarshalOptions) error { return errDummy1 },
+				),
+			},
+			err: errDummy1,
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			buf := &bufferCloser{closed: make(chan struct{})}
+			_, err := NewSimpleWriter(buf, []TrackEntry{}, c.opts...)
+			if err != c.err {
+				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
+			}
+		})
 	}
 }
