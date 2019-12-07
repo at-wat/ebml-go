@@ -32,6 +32,12 @@ func TestMarshal(t *testing.T) {
 		DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"`
 		SeekID         []byte `ebml:"SeekID"`
 	}
+	type TestSliceOmitempty struct {
+		DocTypeVersion []uint64 `ebml:"EBMLDocTypeVersion,omitempty"`
+	}
+	type TestSliceNoOmitempty struct {
+		DocTypeVersion []uint64 `ebml:"EBMLDocTypeVersion"`
+	}
 	type TestSized struct {
 		DocType        string  `ebml:"EBMLDocType,size=3"`
 		DocTypeVersion uint64  `ebml:"EBMLDocTypeVersion,size=2"`
@@ -72,6 +78,24 @@ func TestMarshal(t *testing.T) {
 				0x42, 0x82, 0x81, 0x00,
 				0x42, 0x87, 0x81, 0x00,
 				0x53, 0xAB, 0x80,
+			},
+		},
+		"SliceOmitempty": {
+			&struct {
+				EBML TestSliceOmitempty
+			}{TestSliceOmitempty{make([]uint64, 0)}},
+			[]byte{
+				0x1a, 0x45, 0xDF, 0xA3, 0x80,
+			},
+		},
+		"SliceNoOmitempty": {
+			&struct {
+				EBML TestSliceNoOmitempty
+			}{TestSliceNoOmitempty{make([]uint64, 2)}},
+			[]byte{
+				0x1a, 0x45, 0xDF, 0xA3, 0x88,
+				0x42, 0x87, 0x81, 0x00,
+				0x42, 0x87, 0x81, 0x00,
 			},
 		},
 		"Sized": {
