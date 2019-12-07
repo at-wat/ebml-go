@@ -88,7 +88,7 @@ func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 	m := make(map[string][]*Element)
 	hook := withElementMap(m)
 	if err := Unmarshal(r, &ret, WithElementReadHooks(hook)); err != nil {
-		t.Errorf("error: %+v\n", err)
+		t.Errorf("Unexpected error: %+v\n", err)
 	}
 
 	// Verify positions of elements
@@ -99,14 +99,14 @@ func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 	for key, positions := range expected {
 		elem, ok := m[key]
 		if !ok {
-			t.Errorf("Key '%s' doesn't exist\n", key)
+			t.Errorf("Key '%s' doesn't exist", key)
 		}
 		if len(elem) != len(positions) {
-			t.Errorf("Unexpected element size of '%s', expected: %d, got: %d\n", key, len(positions), len(elem))
+			t.Errorf("Unexpected element size of '%s', expected: %d, got: %d", key, len(positions), len(elem))
 		}
 		for i, pos := range positions {
 			if elem[i].Position != pos {
-				t.Errorf("Unexpected element position of '%s[%d]', expected: %d, got: %d\n", key, i, pos, elem[i].Position)
+				t.Errorf("Unexpected element position of '%s[%d]', expected: %d, got: %d", key, i, pos, elem[i].Position)
 			}
 		}
 	}
