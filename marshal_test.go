@@ -25,10 +25,18 @@ func TestMarshal(t *testing.T) {
 	type TestOmitempty struct {
 		DocType        string `ebml:"EBMLDocType,omitempty"`
 		DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion,omitempty"`
+		SeekID         []byte `ebml:"SeekID,omitempty"`
 	}
 	type TestNoOmitempty struct {
 		DocType        string `ebml:"EBMLDocType"`
 		DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"`
+		SeekID         []byte `ebml:"SeekID"`
+	}
+	type TestSliceOmitempty struct {
+		DocTypeVersion []uint64 `ebml:"EBMLDocTypeVersion,omitempty"`
+	}
+	type TestSliceNoOmitempty struct {
+		DocTypeVersion []uint64 `ebml:"EBMLDocTypeVersion"`
 	}
 	type TestSized struct {
 		DocType        string  `ebml:"EBMLDocType,size=3"`
@@ -37,6 +45,21 @@ func TestMarshal(t *testing.T) {
 		Duration1      float64 `ebml:"Duration,size=4"`
 		SeekID         []byte  `ebml:"SeekID,size=2"`
 	}
+	type TestPtr struct {
+		DocType        *string `ebml:"EBMLDocType"`
+		DocTypeVersion *uint64 `ebml:"EBMLDocTypeVersion"`
+	}
+	type TestPtrOmitempty struct {
+		DocType        *string `ebml:"EBMLDocType,omitempty"`
+		DocTypeVersion *uint64 `ebml:"EBMLDocTypeVersion,omitempty"`
+	}
+	type TestInterface struct {
+		DocType        interface{} `ebml:"EBMLDocType"`
+		DocTypeVersion interface{} `ebml:"EBMLDocTypeVersion"`
+	}
+
+	var str string
+	var uinteger uint64
 
 	testCases := map[string]struct {
 		input    interface{}
@@ -44,11 +67,42 @@ func TestMarshal(t *testing.T) {
 	}{
 		"Omitempty": {
 			&struct{ EBML TestOmitempty }{},
-			[]byte{0x1a, 0x45, 0xDF, 0xA3, 0x80},
+			[]byte{
+				0x1a, 0x45, 0xDF, 0xA3, 0x80,
+			},
 		},
 		"NoOmitempty": {
 			&struct{ EBML TestNoOmitempty }{},
-			[]byte{0x1A, 0x45, 0xDF, 0xA3, 0x88, 0x42, 0x82, 0x81, 0x00, 0x42, 0x87, 0x81, 0x00},
+			[]byte{
+				0x1A, 0x45, 0xDF, 0xA3, 0x8B,
+				0x42, 0x82, 0x81, 0x00,
+				0x42, 0x87, 0x81, 0x00,
+				0x53, 0xAB, 0x80,
+			},
+		},
+		"SliceOmitempty": {
+			&struct {
+				EBML TestSliceOmitempty
+			}{TestSliceOmitempty{make([]uint64, 0)}},
+			[]byte{
+				0x1a, 0x45, 0xDF, 0xA3, 0x80,
+			},
+		},
+		"SliceOmitemptyNested": {
+			&struct {
+				EBML []TestSliceOmitempty `ebml:"EBML,omitempty"`
+			}{make([]TestSliceOmitempty, 3)},
+			[]byte{},
+		},
+		"SliceNoOmitempty": {
+			&struct {
+				EBML TestSliceNoOmitempty
+			}{TestSliceNoOmitempty{make([]uint64, 2)}},
+			[]byte{
+				0x1a, 0x45, 0xDF, 0xA3, 0x88,
+				0x42, 0x87, 0x81, 0x00,
+				0x42, 0x87, 0x81, 0x00,
+			},
 		},
 		"Sized": {
 			&struct{ EBML TestSized }{TestSized{"a", 1, 0.0, 0.0, []byte{0x01}}},
@@ -70,6 +124,36 @@ func TestMarshal(t *testing.T) {
 				0x44, 0x89, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 				0x44, 0x89, 0x84, 0x00, 0x00, 0x00, 0x00,
 				0x53, 0xAB, 0x83, 0x01, 0x02, 0x03,
+			},
+		},
+		"Ptr": {
+			&struct{ EBML TestPtr }{TestPtr{&str, &uinteger}},
+			[]byte{
+				0x1A, 0x45, 0xDF, 0xA3, 0x88,
+				0x42, 0x82, 0x81, 0x00,
+				0x42, 0x87, 0x81, 0x00,
+			},
+		},
+		"PtrOmitempty": {
+			&struct{ EBML TestPtrOmitempty }{TestPtrOmitempty{&str, &uinteger}},
+			[]byte{
+				0x1A, 0x45, 0xDF, 0xA3, 0x80,
+			},
+		},
+		"Interface": {
+			&struct{ EBML TestInterface }{TestInterface{str, uinteger}},
+			[]byte{
+				0x1A, 0x45, 0xDF, 0xA3, 0x88,
+				0x42, 0x82, 0x81, 0x00,
+				0x42, 0x87, 0x81, 0x00,
+			},
+		},
+		"InterfacePtr": {
+			&struct{ EBML TestInterface }{TestInterface{&str, &uinteger}},
+			[]byte{
+				0x1A, 0x45, 0xDF, 0xA3, 0x88,
+				0x42, 0x82, 0x81, 0x00,
+				0x42, 0x87, 0x81, 0x00,
 			},
 		},
 	}
