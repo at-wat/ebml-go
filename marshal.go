@@ -88,9 +88,6 @@ func pealElem(v reflect.Value, binary, omitEmpty bool) ([]reflect.Value, bool) {
 				}
 				lst = append(lst, vv...)
 			}
-			if omitEmpty && len(lst) == 0 {
-				return nil, false
-			}
 			return lst, true
 		default:
 			if omitEmpty && deepIsZero(v) {
