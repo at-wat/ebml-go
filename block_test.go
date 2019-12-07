@@ -58,9 +58,9 @@ func TestUnmarshalBlock_Error(t *testing.T) {
 	t.Run("EOF",
 		func(t *testing.T) {
 			for l := 0; l < len(input); l++ {
-				_, err := UnmarshalBlock(bytes.NewBuffer(input[:l]))
-				if err != io.EOF {
-					t.Errorf("UnmarshalBlock should return io.EOF against short data, but got %v", err)
+				if _, err := UnmarshalBlock(bytes.NewBuffer(input[:l])); err != io.ErrUnexpectedEOF {
+					t.Errorf("UnmarshalBlock should return %v against short data (%d bytes), but got %v",
+						io.ErrUnexpectedEOF, l, err)
 				}
 			}
 		},

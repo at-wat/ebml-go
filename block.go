@@ -89,7 +89,11 @@ func UnmarshalBlock(r io.Reader) (*Block, error) {
 	}
 
 	var bs [1]byte
-	if _, err := r.Read(bs[:]); err != nil {
+	switch _, err := io.ReadFull(r, bs[:]); err {
+	case nil:
+	case io.EOF:
+		return nil, io.ErrUnexpectedEOF
+	default:
 		return nil, err
 	}
 	if bs[0]&blockFlagMaskKeyframe != 0 {
