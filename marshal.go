@@ -82,7 +82,7 @@ func pealElem(v reflect.Value, binary, omitEmpty bool) ([]reflect.Value, bool) {
 			var lst []reflect.Value
 			l := v.Len()
 			for i := 0; i < l; i++ {
-				vv, ok := pealElem(v.Index(i), false, omitempty)
+				vv, ok := pealElem(v.Index(i), false, omitEmpty)
 				if !ok {
 					continue
 				}
