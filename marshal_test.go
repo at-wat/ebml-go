@@ -37,6 +37,17 @@ func TestMarshal(t *testing.T) {
 		Duration1      float64 `ebml:"Duration,size=4"`
 		SeekID         []byte  `ebml:"SeekID,size=2"`
 	}
+	type TestPtr struct {
+		DocType        *string `ebml:"EBMLDocType"`
+		DocTypeVersion *uint64 `ebml:"EBMLDocTypeVersion"`
+	}
+	type TestInterface struct {
+		DocType        interface{} `ebml:"EBMLDocType"`
+		DocTypeVersion interface{} `ebml:"EBMLDocTypeVersion"`
+	}
+
+	var str string
+	var uinteger uint64
 
 	testCases := map[string]struct {
 		input    interface{}
@@ -71,6 +82,18 @@ func TestMarshal(t *testing.T) {
 				0x44, 0x89, 0x84, 0x00, 0x00, 0x00, 0x00,
 				0x53, 0xAB, 0x83, 0x01, 0x02, 0x03,
 			},
+		},
+		"Ptr": {
+			&struct{ EBML TestPtr }{TestPtr{&str, &uinteger}},
+			[]byte{0x1A, 0x45, 0xDF, 0xA3, 0x88, 0x42, 0x82, 0x81, 0x00, 0x42, 0x87, 0x81, 0x00},
+		},
+		"Interface": {
+			&struct{ EBML TestInterface }{TestInterface{str, uinteger}},
+			[]byte{0x1A, 0x45, 0xDF, 0xA3, 0x88, 0x42, 0x82, 0x81, 0x00, 0x42, 0x87, 0x81, 0x00},
+		},
+		"InterfacePtr": {
+			&struct{ EBML TestInterface }{TestInterface{&str, &uinteger}},
+			[]byte{0x1A, 0x45, 0xDF, 0xA3, 0x88, 0x42, 0x82, 0x81, 0x00, 0x42, 0x87, 0x81, 0x00},
 		},
 	}
 

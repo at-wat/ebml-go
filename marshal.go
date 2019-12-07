@@ -64,8 +64,50 @@ func Marshal(val interface{}, w io.Writer, opts ...MarshalOption) error {
 	return marshalImpl(vo, w, options)
 }
 
+func pealElem(v reflect.Value, binary, omitEmpty bool) ([]reflect.Value, bool) {
+	for {
+		switch v.Kind() {
+		case reflect.Interface, reflect.Ptr:
+			if v.IsNil() {
+				return nil, false
+			}
+			v = v.Elem()
+		case reflect.Slice:
+			if binary {
+				if omitEmpty && v.Len() == 0 {
+					return nil, false
+				}
+				return []reflect.Value{v}, true
+			}
+			var lst []reflect.Value
+			l := v.Len()
+			for i := 0; i < l; i++ {
+				vv, ok := pealElem(v.Index(i), false, false)
+				if !ok {
+					continue
+				}
+				lst = append(lst, vv...)
+			}
+			if omitEmpty && len(lst) == 0 {
+				return nil, false
+			}
+			return lst, true
+		default:
+			if omitEmpty && deepIsZero(v) {
+				return nil, false
+			}
+			return []reflect.Value{v}, true
+		}
+	}
+}
+
+func deepIsZero(v reflect.Value) bool {
+	return reflect.DeepEqual(reflect.Zero(v.Type()).Interface(), v.Interface())
+}
+
 func marshalImpl(vo reflect.Value, w io.Writer, options *MarshalOptions) error {
-	for i := 0; i < vo.NumField(); i++ {
+	l := vo.NumField()
+	for i := 0; i < l; i++ {
 		vn := vo.Field(i)
 		tn := vo.Type().Field(i)
 
@@ -87,23 +129,9 @@ func marshalImpl(vo reflect.Value, w io.Writer, options *MarshalOptions) error {
 
 			unknown := tag.size == sizeUnknown
 
-			var lst []reflect.Value
-			switch {
-			case vn.Kind() == reflect.Ptr:
-				if vn.IsNil() {
-					continue
-				}
-				lst = []reflect.Value{vn.Elem()}
-			case vn.Kind() == reflect.Slice && e.t != TypeBinary:
-				l := vn.Len()
-				for i := 0; i < l; i++ {
-					lst = append(lst, vn.Index(i))
-				}
-			default:
-				if tag.omitEmpty && reflect.DeepEqual(reflect.Zero(vn.Type()).Interface(), vn.Interface()) {
-					continue
-				}
-				lst = []reflect.Value{vn}
+			lst, ok := pealElem(vn, e.t == TypeBinary, tag.omitEmpty)
+			if !ok {
+				continue
 			}
 
 			for _, vn := range lst {
