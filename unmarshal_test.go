@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"testing"
 )
 
@@ -132,6 +133,38 @@ func TestUnmarshal_Tag(t *testing.T) {
 	if tagged.DocCustomNamedType != untagged.EBMLDocType {
 		t.Errorf("Unmarshal result to tagged and and untagged struct must be same, tagged: %v, untagged: %v", tagged, untagged)
 	}
+}
+
+func TestUnmarshal_Error(t *testing.T) {
+	type TestEBML struct {
+		Header struct {
+		} `ebml:"EBML"`
+	}
+	t.Run("NilValue", func(t *testing.T) {
+		if err := Unmarshal(bytes.NewBuffer([]byte{}), nil); err != errIndefiniteType {
+			t.Errorf("Unexpected error, %v, got %v\n", errIndefiniteType, err)
+		}
+	})
+	t.Run("Short", func(t *testing.T) {
+		TestBinaries := map[string][]byte{
+			"ElementID": []byte{0x1a, 0x45, 0xdf},
+			"DataSize":  []byte{0x42, 0x86, 0x40},
+			"UInt(0)":   []byte{0x42, 0x86, 0x84},
+			"UInt":      []byte{0x42, 0x86, 0x84, 0x00},
+			"Float(0)":  []byte{0x44, 0x89, 0x84},
+			"Float":     []byte{0x44, 0x89, 0x84, 0x00},
+			"String(0)": []byte{0x42, 0x82, 0x84},
+			"String":    []byte{0x42, 0x82, 0x84, 0x00},
+		}
+		for name, b := range TestBinaries {
+			t.Run(name, func(t *testing.T) {
+				var val TestEBML
+				if err := Unmarshal(bytes.NewBuffer(b), &val); err != io.ErrUnexpectedEOF {
+					t.Errorf("Unexpected error, expected: %v, got: %v\n", io.ErrUnexpectedEOF, err)
+				}
+			})
+		}
+	})
 }
 
 func BenchmarkUnmarshal(b *testing.B) {

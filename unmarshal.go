@@ -85,6 +85,9 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 		e, nb, err := readVInt(r)
 		headerSize += uint64(nb)
 		if err != nil {
+			if nb == 0 && err == io.ErrUnexpectedEOF {
+				return nil, io.EOF
+			}
 			return nil, err
 		}
 		v, ok := revTable[uint32(e)]

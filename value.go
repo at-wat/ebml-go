@@ -47,8 +47,12 @@ var perTypeReader = map[Type]func(io.Reader, uint64) (interface{}, error){
 
 func readVInt(r io.Reader) (uint64, int, error) {
 	var bs [1]byte
-	bytesRead, err := r.Read(bs[:])
-	if err != nil {
+	bytesRead, err := io.ReadFull(r, bs[:])
+	switch err {
+	case nil:
+	case io.EOF:
+		return 0, bytesRead, io.ErrUnexpectedEOF
+	default:
 		return 0, bytesRead, err
 	}
 
@@ -89,8 +93,12 @@ func readVInt(r io.Reader) (uint64, int, error) {
 		}
 
 		var bs [1]byte
-		n, err := r.Read(bs[:])
-		if err != nil {
+		n, err := io.ReadFull(r, bs[:])
+		switch err {
+		case nil:
+		case io.EOF:
+			return 0, bytesRead, io.ErrUnexpectedEOF
+		default:
 			return 0, bytesRead, err
 		}
 		bytesRead += n
@@ -100,11 +108,15 @@ func readVInt(r io.Reader) (uint64, int, error) {
 }
 func readBinary(r io.Reader, n uint64) (interface{}, error) {
 	bs := make([]byte, n)
-	_, err := r.Read(bs)
-	if err != nil {
+
+	switch _, err := io.ReadFull(r, bs); err {
+	case nil:
+		return bs, nil
+	case io.EOF:
+		return bs, io.ErrUnexpectedEOF
+	default:
 		return []byte{}, err
 	}
-	return bs, nil
 }
 func readString(r io.Reader, n uint64) (interface{}, error) {
 	bs, err := readBinary(r, n)
@@ -117,23 +129,23 @@ func readString(r io.Reader, n uint64) (interface{}, error) {
 	return ss[0], nil
 }
 func readInt(r io.Reader, n uint64) (interface{}, error) {
-	bs := make([]byte, n)
-	_, err := r.Read(bs)
+	v, err := readUInt(r, n)
 	if err != nil {
 		return 0, err
 	}
-	var v int64
-	for _, b := range bs {
-		v = v<<8 | int64(b)
-	}
-	return v, nil
+	return int64(v.(uint64)), nil
 }
 func readUInt(r io.Reader, n uint64) (interface{}, error) {
 	bs := make([]byte, n)
-	_, err := r.Read(bs)
-	if err != nil {
+
+	switch _, err := io.ReadFull(r, bs); err {
+	case nil:
+	case io.EOF:
+		return 0, io.ErrUnexpectedEOF
+	default:
 		return 0, err
 	}
+
 	var v uint64
 	for _, b := range bs {
 		v = v<<8 | uint64(b)
@@ -152,10 +164,15 @@ func readFloat(r io.Reader, n uint64) (interface{}, error) {
 		return 0.0, errInvalidFloatSize
 	}
 	bs := make([]byte, n)
-	_, err := r.Read(bs)
-	if err != nil {
-		return 0, err
+
+	switch _, err := io.ReadFull(r, bs); err {
+	case nil:
+	case io.EOF:
+		return bs, io.ErrUnexpectedEOF
+	default:
+		return []byte{}, err
 	}
+
 	switch n {
 	case 4:
 		return float64(math.Float32frombits(binary.BigEndian.Uint32(bs))), nil
