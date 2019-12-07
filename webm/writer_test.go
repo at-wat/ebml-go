@@ -71,13 +71,6 @@ func TestSimpleWriter(t *testing.T) {
 		t.Errorf("Unexpected return value of FrameWriter.Write, expected: 3, got: %d", n)
 	}
 
-	// Ignored due to old timestamp
-	if n, err := ws[0].Write(true, -32769, []byte{0x0A}); err != nil {
-		t.Fatalf("Failed to Write: %v", err)
-	} else if n != 1 {
-		t.Errorf("Unexpected return value of FrameWriter.Write, expected: 1, got: %d", n)
-	}
-
 	if n, err := ws[0].Write(true, 130, []byte{0x06}); err != nil {
 		t.Fatalf("Failed to Write: %v", err)
 	} else if n != 1 {
