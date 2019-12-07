@@ -114,7 +114,6 @@ func readBinary(r io.Reader, n uint64) (interface{}, error) {
 		return bs, nil
 	case io.EOF:
 		return bs, io.ErrUnexpectedEOF
-		fallthrough
 	default:
 		return []byte{}, err
 	}
