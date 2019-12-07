@@ -112,7 +112,7 @@ func readString(r io.Reader, n uint64) (interface{}, error) {
 		return "", err
 	}
 	s := string(bs.([]byte))
-	// remove trailing null characters
+	// Remove trailing null characters
 	ss := strings.Split(s, "\x00")
 	return ss[0], nil
 }

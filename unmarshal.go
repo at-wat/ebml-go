@@ -27,7 +27,7 @@ var (
 	errIndefiniteType = errors.New("unmarshal to indefinite type")
 )
 
-// Unmarshal EBML stream
+// Unmarshal EBML stream.
 func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 	options := &UnmarshalOptions{}
 	for _, o := range opts {
@@ -158,15 +158,15 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 	}
 }
 
-// UnmarshalOption configures a UnmarshalOptions struct
+// UnmarshalOption configures a UnmarshalOptions struct.
 type UnmarshalOption func(*UnmarshalOptions) error
 
-// UnmarshalOptions stores options for unmarshalling
+// UnmarshalOptions stores options for unmarshalling.
 type UnmarshalOptions struct {
 	hooks []func(elem *Element)
 }
 
-// Element represents an EBML element
+// Element represents an EBML element.
 type Element struct {
 	Value    interface{}
 	Name     string
@@ -175,7 +175,7 @@ type Element struct {
 	Parent   *Element
 }
 
-// WithElementReadHooks returns an UnmarshalOption which registers element hooks
+// WithElementReadHooks returns an UnmarshalOption which registers element hooks.
 func WithElementReadHooks(hooks ...func(*Element)) UnmarshalOption {
 	return func(opts *UnmarshalOptions) error {
 		opts.hooks = hooks

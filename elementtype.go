@@ -18,14 +18,14 @@ import (
 	"errors"
 )
 
-// ElementType represents EBML Element type
+// ElementType represents EBML Element type.
 type ElementType int
 
 var (
 	errUnknownElementType = errors.New("unknown element type")
 )
 
-// EBML Element types
+// EBML Element types.
 const (
 	ElementInvalid ElementType = iota
 
@@ -304,12 +304,12 @@ func (i ElementType) String() string {
 	}
 }
 
-// Bytes returns []byte representation of the element ID
+// Bytes returns []byte representation of the element ID.
 func (i ElementType) Bytes() []byte {
 	return table[i].b
 }
 
-// ElementTypeFromString converts string to ElementType
+// ElementTypeFromString converts string to ElementType.
 func ElementTypeFromString(s string) (ElementType, error) {
 	switch s {
 	case "EBML":

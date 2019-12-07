@@ -24,10 +24,10 @@ var (
 	errLaceUnimplemented = errors.New("lacing in unimplementd")
 )
 
-// LacingMode is type of laced data
+// LacingMode is type of laced data.
 type LacingMode uint8
 
-// Type of laced data
+// Type of laced data.
 const (
 	LacingNo    LacingMode = 0
 	LacingFixed LacingMode = 1
@@ -42,7 +42,7 @@ const (
 	blockFlagMaskDiscardable = 0x01
 )
 
-// Block represents EBML Block/SimpleBlock element
+// Block represents EBML Block/SimpleBlock element.
 type Block struct {
 	TrackNumber uint64
 	Timecode    int16
@@ -69,13 +69,13 @@ func (b *Block) packFlags() byte {
 	return f
 }
 
-// Lace represents Lace header of EBML Block/SimpleBlock element
+// Lace represents Lace header of EBML Block/SimpleBlock element.
 type Lace struct {
 	NumFrames uint8
 	Len       []uint8
 }
 
-// UnmarshalBlock unmarshals EBML Block structure
+// UnmarshalBlock unmarshals EBML Block structure.
 func UnmarshalBlock(r io.Reader) (*Block, error) {
 	var b Block
 	var err error
@@ -115,7 +115,7 @@ func UnmarshalBlock(r io.Reader) (*Block, error) {
 	return &b, nil
 }
 
-// MarshalBlock marshals EBML Block structure
+// MarshalBlock marshals EBML Block structure.
 func MarshalBlock(b *Block, w io.Writer) error {
 	n, err := encodeElementID(b.TrackNumber)
 	if err != nil {
