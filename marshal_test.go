@@ -88,6 +88,16 @@ func TestMarshal(t *testing.T) {
 				0x1a, 0x45, 0xDF, 0xA3, 0x80,
 			},
 		},
+		"SliceOmitemptyNested": {
+			&struct {
+				EBML []TestSliceOmitempty `ebml:"EBML,omitempty"`
+			}{make([]TestSliceOmitempty, 3)},
+			[]byte{
+				0x1a, 0x45, 0xDF, 0xA3, 0x80,
+				0x1a, 0x45, 0xDF, 0xA3, 0x80,
+				0x1a, 0x45, 0xDF, 0xA3, 0x80,
+			},
+		},
 		"SliceNoOmitempty": {
 			&struct {
 				EBML TestSliceNoOmitempty
