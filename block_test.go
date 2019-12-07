@@ -16,6 +16,7 @@ package ebml
 
 import (
 	"bytes"
+	"io"
 	"reflect"
 	"testing"
 )
@@ -51,6 +52,21 @@ func TestUnmarshalBlock(t *testing.T) {
 	}
 }
 
+func TestUnmarshalBlock_Error(t *testing.T) {
+	input := []byte{0x21, 0x23, 0x45, 0x00, 0x02, 0x00}
+
+	t.Run("EOF",
+		func(t *testing.T) {
+			for l := 0; l < len(input); l++ {
+				_, err := UnmarshalBlock(bytes.NewBuffer(input[:l]))
+				if err != io.EOF {
+					t.Errorf("UnmarshalBlock should return io.EOF against short data, but got %v", err)
+				}
+			}
+		},
+	)
+}
+
 func TestMarshalBlock(t *testing.T) {
 	testCases := map[string]struct {
 		input    Block
@@ -81,4 +97,32 @@ func TestMarshalBlock(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMarshalBlock_Error(t *testing.T) {
+	input := &Block{0x012345, 0x0002, false, false, LacingNo, false, nil, [][]byte{{0x00}}} // 7 bytes
+
+	t.Run("EOF",
+		func(t *testing.T) {
+			for l := 0; l < 7; l++ {
+				err := MarshalBlock(input, &limitedWriter{limit: l})
+				if err != bytes.ErrTooLarge {
+					t.Errorf("UnmarshalBlock should return bytes.ErrTooLarge against too large data, but got %v", err)
+				}
+			}
+		},
+	)
+}
+
+type limitedWriter struct {
+	n     int
+	limit int
+}
+
+func (s *limitedWriter) Write(b []byte) (int, error) {
+	s.n += len(b)
+	if s.n > s.limit {
+		return len(b) - (s.n - s.limit), bytes.ErrTooLarge
+	}
+	return len(b), nil
 }

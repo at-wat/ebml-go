@@ -162,7 +162,7 @@ func TestMarshal(t *testing.T) {
 		t.Run(n, func(t *testing.T) {
 			var b bytes.Buffer
 			if err := Marshal(c.input, &b); err != nil {
-				t.Fatalf("error: %+v\n", err)
+				t.Fatalf("Unexpected error: %+v", err)
 			}
 			if !bytes.Equal(c.expected, b.Bytes()) {
 				t.Errorf("Marshaled binary doesn't match:\n expected: %v,\n      got: %v", c.expected, b.Bytes())
@@ -253,10 +253,10 @@ func TestMarshal_Tag(t *testing.T) {
 
 	var bTagged, bUntagged bytes.Buffer
 	if err := Marshal(&tagged, &bTagged); err != nil {
-		t.Fatalf("error: %+v\n", err)
+		t.Fatalf("Unexpected error: %+v", err)
 	}
 	if err := Marshal(&untagged, &bUntagged); err != nil {
-		t.Fatalf("error: %+v\n", err)
+		t.Fatalf("Unexpected error: %+v", err)
 	}
 
 	if !bytes.Equal(bTagged.Bytes(), bUntagged.Bytes()) {
@@ -285,7 +285,7 @@ func BenchmarkMarshal(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var buf bytes.Buffer
 		if err := Marshal(&s, &buf); err != nil {
-			b.Fatalf("error: %+v\n", err)
+			b.Fatalf("Unexpected error: %+v", err)
 		}
 	}
 }
