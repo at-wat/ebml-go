@@ -100,11 +100,11 @@ func TestMarshalBlock(t *testing.T) {
 }
 
 func TestMarshalBlock_Error(t *testing.T) {
-	input := &Block{0x012345, 0x0002, false, false, LacingNo, false, nil, [][]byte{{}}}
+	input := &Block{0x012345, 0x0002, false, false, LacingNo, false, nil, [][]byte{{0x00}}} // 7 bytes
 
 	t.Run("EOF",
 		func(t *testing.T) {
-			for l := 0; l < 5; l++ {
+			for l := 0; l < 7; l++ {
 				err := MarshalBlock(input, &limitedWriter{limit: l})
 				if err != bytes.ErrTooLarge {
 					t.Errorf("UnmarshalBlock should return bytes.ErrTooLarge against too large data, but got %v", err)
