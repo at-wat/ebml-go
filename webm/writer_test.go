@@ -16,6 +16,7 @@ package webm
 
 import (
 	"bytes"
+	"errors"
 	"reflect"
 	"testing"
 
@@ -88,9 +89,9 @@ func TestSimpleWriter(t *testing.T) {
 		Header  EBMLHeader `ebml:"EBML"`
 		Segment Segment    `ebml:"Segment,size=unknown"`
 	}{
-		Header: defaultEBMLHeader,
+		Header: *DefaultEBMLHeader,
 		Segment: Segment{
-			Info: defaultSegmentInfo,
+			Info: *DefaultSegmentInfo,
 			Tracks: Tracks{
 				TrackEntry: tracks,
 			},
@@ -125,16 +126,93 @@ func TestSimpleWriter(t *testing.T) {
 			},
 		},
 	}
-	defer func() {
-		var result struct {
-			Header  EBMLHeader `ebml:"EBML"`
-			Segment Segment    `ebml:"Segment,size=unknown"`
-		}
-		if err := ebml.Unmarshal(bytes.NewReader(buf.Bytes()), &result); err != nil {
-			t.Fatalf("Failed to Unmarshal resultant binary: %v", err)
-		}
-		if !reflect.DeepEqual(expected, result) {
-			t.Errorf("Unexpected WebM data,\nexpected: %+v\n     got: %+v", expected, result)
-		}
-	}()
+	var result struct {
+		Header  EBMLHeader `ebml:"EBML"`
+		Segment Segment    `ebml:"Segment,size=unknown"`
+	}
+	if err := ebml.Unmarshal(bytes.NewReader(buf.Bytes()), &result); err != nil {
+		t.Fatalf("Failed to Unmarshal resultant binary: %v", err)
+	}
+	if !reflect.DeepEqual(expected, result) {
+		t.Errorf("Unexpected WebM data,\nexpected: %+v\n     got: %+v", expected, result)
+	}
+}
+
+func TestSimpleWriter_Options(t *testing.T) {
+	buf := &bufferCloser{closed: make(chan struct{})}
+
+	tracks := []TrackEntry{
+		{
+			TrackNumber: 1,
+			TrackUID:    2,
+			CodecID:     "",
+			TrackType:   1,
+		},
+	}
+
+	ws, err := NewSimpleWriter(
+		buf, tracks,
+		WithEBMLHeader(nil),
+		WithSegmentInfo(nil),
+		WithSeekHead(nil),
+		WithMarshalOptions(ebml.WithDataSizeLen(2)),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create SimpleWriter: %v", err)
+	}
+
+	if len(ws) != 1 {
+		t.Fatalf("Number of the returned writer must be 1, but got %d", len(ws))
+	}
+	ws[0].Close()
+
+	expectedBytes := []byte{
+		0x18, 0x53, 0x80, 0x67, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0x16, 0x54, 0xAE, 0x6B, 0x40, 0x14,
+		0xAE, 0x40, 0x11,
+		0xD7, 0x40, 0x01, 0x01,
+		0x73, 0xC5, 0x40, 0x01, 0x02,
+		0x86, 0x40, 0x01, 0x00,
+		0x83, 0x40, 0x01, 0x01,
+		0x1F, 0x43, 0xB6, 0x75, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0xE7, 0x40, 0x01, 0x00,
+	}
+	if !bytes.Equal(buf.Bytes(), expectedBytes) {
+		t.Errorf("Unexpected WebM binary,\nexpected: %+v\n     got: %+v", expectedBytes, buf.Bytes())
+	}
+}
+
+func TestSimpleWriter_FailingOptions(t *testing.T) {
+	errDummy0 := errors.New("an error 0")
+	errDummy1 := errors.New("an error 1")
+
+	cases := map[string]struct {
+		opts []SimpleWriterOption
+		err  error
+	}{
+		"WriterOptionError": {
+			opts: []SimpleWriterOption{
+				func(*SimpleWriterOptions) error { return errDummy0 },
+			},
+			err: errDummy0,
+		},
+		"MarshalOptionError": {
+			opts: []SimpleWriterOption{
+				WithMarshalOptions(
+					func(*ebml.MarshalOptions) error { return errDummy1 },
+				),
+			},
+			err: errDummy1,
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			buf := &bufferCloser{closed: make(chan struct{})}
+			_, err := NewSimpleWriter(buf, []TrackEntry{}, c.opts...)
+			if err != c.err {
+				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
+			}
+		})
+	}
 }
