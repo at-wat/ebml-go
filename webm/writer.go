@@ -22,7 +22,8 @@ import (
 )
 
 var (
-	defaultEBMLHeader = EBMLHeader{
+	// DefaultEBMLHeader is the default EBML header and is used by NewSimpleWriter.
+	DefaultEBMLHeader = &EBMLHeader{
 		EBMLVersion:        1,
 		EBMLReadVersion:    1,
 		EBMLMaxIDLength:    4,
@@ -31,7 +32,8 @@ var (
 		DocTypeVersion:     2,
 		DocTypeReadVersion: 2,
 	}
-	defaultSegmentInfo = Info{
+	// DefaultSegmentInfo is the default Segment.Info and is used by NewSimpleWriter.
+	DefaultSegmentInfo = &Info{
 		TimecodeScale: 1000000, // 1ms
 		MuxingApp:     "ebml-go.webm.SimpleWriter",
 		WritingApp:    "ebml-go.webm.SimpleWriter",
@@ -41,22 +43,40 @@ var (
 // NewSimpleWriter creates FrameWriter for each track specified as tracks argument.
 // Resultant WebM is written to given io.WriteCloser.
 // io.WriteCloser will be closed automatically; don't close it by yourself.
-func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry) ([]*FrameWriter, error) {
+func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...SimpleWriterOption) ([]*FrameWriter, error) {
+	options := &SimpleWriterOptions{
+		ebmlHeader:  DefaultEBMLHeader,
+		segmentInfo: DefaultSegmentInfo,
+	}
+	for _, o := range opts {
+		if err := o(options); err != nil {
+			return nil, err
+		}
+	}
+
 	w := &writerWithSizeCount{w: w0}
 
+	type FlexSegment struct {
+		SeekHead interface{} `ebml:"SeekHead,omitempty"`
+		Info     interface{} `ebml:"Info"`
+		Tracks   Tracks      `ebml:"Tracks"`
+		Cluster  []Cluster   `ebml:"Cluster"`
+	}
+
 	header := struct {
-		Header  EBMLHeader `ebml:"EBML"`
-		Segment Segment    `ebml:"Segment,size=unknown"`
+		Header  interface{} `ebml:"EBML"`
+		Segment FlexSegment `ebml:"Segment,size=unknown"`
 	}{
-		Header: defaultEBMLHeader,
-		Segment: Segment{
-			Info: defaultSegmentInfo,
+		Header: options.ebmlHeader,
+		Segment: FlexSegment{
+			SeekHead: options.seekHead,
+			Info:     options.segmentInfo,
 			Tracks: Tracks{
 				TrackEntry: tracks,
 			},
 		},
 	}
-	if err := ebml.Marshal(&header, w); err != nil {
+	if err := ebml.Marshal(&header, w, options.marshalOpts...); err != nil {
 		return nil, err
 	}
 
@@ -91,6 +111,10 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry) ([]*FrameWriter, er
 
 		defer func() {
 			// Finalize WebM
+			if tc0 == invalidTimestamp {
+				// No data written
+				tc0 = 0
+			}
 			cluster := struct {
 				Cluster Cluster `ebml:"Cluster,size=unknown"`
 			}{
@@ -99,7 +123,7 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry) ([]*FrameWriter, er
 					PrevSize: uint64(w.Size()),
 				},
 			}
-			if err := ebml.Marshal(&cluster, w); err != nil {
+			if err := ebml.Marshal(&cluster, w, options.marshalOpts...); err != nil {
 				// TODO: output error
 				panic(err)
 			}
@@ -132,7 +156,7 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry) ([]*FrameWriter, er
 						},
 					}
 					w.Clear()
-					if err := ebml.Marshal(&cluster, w); err != nil {
+					if err := ebml.Marshal(&cluster, w, options.marshalOpts...); err != nil {
 						// TODO: output error
 						panic(err)
 					}
@@ -154,7 +178,7 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry) ([]*FrameWriter, er
 					},
 				}
 				// Write SimpleBlock to the file
-				if err := ebml.Marshal(&b, w); err != nil {
+				if err := ebml.Marshal(&b, w, options.marshalOpts...); err != nil {
 					// TODO: output error
 					panic(err)
 				}
