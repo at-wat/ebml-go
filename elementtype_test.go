@@ -1,6 +1,7 @@
 package ebml
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -12,5 +13,13 @@ func TestElementType_Roundtrip(t *testing.T) {
 		} else if e != el {
 			t.Errorf("Failed to roundtrip ElementType %d and string", e)
 		}
+	}
+}
+
+func TestElementType_Bytes(t *testing.T) {
+	expected := []byte{0x18, 0x53, 0x80, 0x67}
+
+	if !bytes.Equal(ElementSegment.Bytes(), expected) {
+		t.Errorf("Unexpected bytes, expected: %v, got: %v", expected, ElementSegment.Bytes())
 	}
 }
