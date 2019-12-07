@@ -304,6 +304,10 @@ func (i ElementType) String() string {
 	}
 }
 
+func (i ElementType) Bytes() []byte {
+	return table[i].b
+}
+
 // ElementTypeFromString converts string to ElementType
 func ElementTypeFromString(s string) (ElementType, error) {
 	switch s {
