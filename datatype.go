@@ -14,10 +14,10 @@
 
 package ebml
 
-// Type represents EBML Element data type
+// Type represents EBML Element data type.
 type Type int
 
-// EBML Element data types
+// EBML Element data types.
 const (
 	TypeMaster Type = iota
 	TypeInt

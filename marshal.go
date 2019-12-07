@@ -25,7 +25,7 @@ var (
 	errUnsupportedElement = errors.New("unsupported element")
 )
 
-// Marshal struct to EBML bytes
+// Marshal struct to EBML bytes.
 //
 // Examples of struct field tags:
 //
@@ -181,15 +181,15 @@ func marshalImpl(vo reflect.Value, w io.Writer, options *MarshalOptions) error {
 	return nil
 }
 
-// MarshalOption configures a MarshalOptions struct
+// MarshalOption configures a MarshalOptions struct.
 type MarshalOption func(*MarshalOptions) error
 
-// MarshalOptions stores options for marshalling
+// MarshalOptions stores options for marshalling.
 type MarshalOptions struct {
 	dataSizeLen uint64
 }
 
-// WithDataSizeLen returns an MarshalOption which sets number of reserved bytes of element data size
+// WithDataSizeLen returns an MarshalOption which sets number of reserved bytes of element data size.
 func WithDataSizeLen(l int) MarshalOption {
 	return func(opts *MarshalOptions) error {
 		opts.dataSizeLen = uint64(l)

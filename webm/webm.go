@@ -20,7 +20,7 @@ import (
 	"github.com/at-wat/ebml-go"
 )
 
-// EBMLHeader represents EBML header struct
+// EBMLHeader represents EBML header struct.
 type EBMLHeader struct {
 	EBMLVersion        uint64 `ebml:"EBMLVersion"`
 	EBMLReadVersion    uint64 `ebml:"EBMLReadVersion"`
@@ -31,18 +31,18 @@ type EBMLHeader struct {
 	DocTypeReadVersion uint64 `ebml:"EBMLDocTypeReadVersion"`
 }
 
-// Seek represents Seek element struct
+// Seek represents Seek element struct.
 type Seek struct {
 	SeekID       []byte `ebml:"SeekID"`
 	SeekPosition uint64 `ebml:"SeekPosition"`
 }
 
-// SeekHead represents SeekHead element struct
+// SeekHead represents SeekHead element struct.
 type SeekHead struct {
 	Seek []Seek `ebml:"Seek"`
 }
 
-// Info represents Info element struct
+// Info represents Info element struct.
 type Info struct {
 	TimecodeScale uint64    `ebml:"TimecodeScale"`
 	MuxingApp     string    `ebml:"MuxingApp,omitempty"`
@@ -51,7 +51,7 @@ type Info struct {
 	DateUTC       time.Time `ebml:"DateUTC,omitempty"`
 }
 
-// TrackEntry represents TrackEntry element struct
+// TrackEntry represents TrackEntry element struct.
 type TrackEntry struct {
 	Name            string `ebml:"Name,omitempty"`
 	TrackNumber     uint64 `ebml:"TrackNumber"`
@@ -66,24 +66,24 @@ type TrackEntry struct {
 	Video           *Video `ebml:"Video"`
 }
 
-// Audio represents Audio element struct
+// Audio represents Audio element struct.
 type Audio struct {
 	SamplingFrequency float64 `ebml:"SamplingFrequency"`
 	Channels          uint64  `ebml:"Channels"`
 }
 
-// Video represents Video element struct
+// Video represents Video element struct.
 type Video struct {
 	PixelWidth  uint64 `ebml:"PixelWidth"`
 	PixelHeight uint64 `ebml:"PixelHeight"`
 }
 
-// Tracks represents Tracks element struct
+// Tracks represents Tracks element struct.
 type Tracks struct {
 	TrackEntry []TrackEntry `ebml:"TrackEntry"`
 }
 
-// Cluster represents Cluster element struct
+// Cluster represents Cluster element struct.
 type Cluster struct {
 	Timecode   uint64 `ebml:"Timecode"`
 	PrevSize   uint64 `ebml:"PrevSize,omitempty"`
@@ -94,25 +94,25 @@ type Cluster struct {
 	SimpleBlock []ebml.Block `ebml:"SimpleBlock"`
 }
 
-// Cues represents Cues element struct
+// Cues represents Cues element struct.
 type Cues struct {
 	CuePoint []CuePoint `ebml:"CuePoint"`
 }
 
-// CuePoint represents CuePoint element struct
+// CuePoint represents CuePoint element struct.
 type CuePoint struct {
 	CueTime           uint64             `ebml:"CueTime"`
 	CueTrackPositions []CueTrackPosition `ebml:"CueTrackPositions"`
 }
 
-// CueTrackPosition represents CueTrackPosition element struct
+// CueTrackPosition represents CueTrackPosition element struct.
 type CueTrackPosition struct {
 	CueTrack           uint64 `ebml:"CueTrack"`
 	CueClusterPosition uint64 `ebml:"CueClusterPosition"`
 	CueBlockNumber     uint64 `ebml:"CueBlockNumber,omitempty"`
 }
 
-// Segment represents Segment element struct
+// Segment represents Segment element struct.
 type Segment struct {
 	SeekHead *SeekHead `ebml:"SeekHead"`
 	Info     Info      `ebml:"Info"`
@@ -121,7 +121,7 @@ type Segment struct {
 	Cues     *Cues     `ebml:"Cues"`
 }
 
-// SegmentStream represents Segment element struct for streaming
+// SegmentStream represents Segment element struct for streaming.
 type SegmentStream struct {
 	SeekHead *SeekHead `ebml:"SeekHead"`
 	Info     Info      `ebml:"Info"`
