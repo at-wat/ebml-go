@@ -21,6 +21,12 @@ type Writer interface {
 	Write(keyframe bool, timestamp int64, b []byte) (int, error)
 }
 
+// Reader is a stream frame reader interface.
+type Reader interface {
+	// Read a frame from the connected WebM reader.
+	Read(b []byte) (nBytes int64, keyframe bool, timestamp int64, err error)
+}
+
 // Closer is a stream frame closer interface.
 type Closer interface {
 	// Close the stream frame writer.
@@ -31,5 +37,11 @@ type Closer interface {
 // WriteCloser groups Writer and Closer.
 type WriteCloser interface {
 	Writer
+	Closer
+}
+
+// ReadCloser groups Reader and Closer.
+type ReadCloser interface {
+	Reader
 	Closer
 }
