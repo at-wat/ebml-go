@@ -183,6 +183,27 @@ func TestMarshal_OptionError(t *testing.T) {
 	}
 }
 
+func TestMarshal_WriterError(t *testing.T) {
+	type EBMLHeader struct {
+		DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"`
+	}
+	type TestEBML struct {
+		Header EBMLHeader `ebml:"EBML"`
+	}
+	s := TestEBML{
+		Header: EBMLHeader{ // 4 + 1 bytes
+			DocTypeVersion: 1, // 2 + 1 byte
+		},
+	}
+
+	for l := 0; l < 9; l++ {
+		err := Marshal(&s, &limitedDummyWriter{limit: l})
+		if err != bytes.ErrTooLarge {
+			t.Errorf("UnmarshalBlock should fail with bytes.ErrTooLarge against too large data (Writer size limit: %d), but got %v", l, err)
+		}
+	}
+}
+
 func ExampleMarshal() {
 	type EBMLHeader struct {
 		DocType            string `ebml:"EBMLDocType"`

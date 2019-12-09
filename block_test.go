@@ -105,24 +105,11 @@ func TestMarshalBlock_Error(t *testing.T) {
 	t.Run("EOF",
 		func(t *testing.T) {
 			for l := 0; l < 7; l++ {
-				err := MarshalBlock(input, &limitedWriter{limit: l})
+				err := MarshalBlock(input, &limitedDummyWriter{limit: l})
 				if err != bytes.ErrTooLarge {
-					t.Errorf("UnmarshalBlock should return bytes.ErrTooLarge against too large data, but got %v", err)
+					t.Errorf("UnmarshalBlock should bytes.ErrTooLarge against too large data (Writer size limit: %d), but got %v", l, err)
 				}
 			}
 		},
 	)
-}
-
-type limitedWriter struct {
-	n     int
-	limit int
-}
-
-func (s *limitedWriter) Write(b []byte) (int, error) {
-	s.n += len(b)
-	if s.n > s.limit {
-		return len(b) - (s.n - s.limit), bytes.ErrTooLarge
-	}
-	return len(b), nil
 }
