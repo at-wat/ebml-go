@@ -183,6 +183,23 @@ func TestMarshal_OptionError(t *testing.T) {
 	}
 }
 
+func TestMarshal_WriterError(t *testing.T) {
+	type EBMLHeader struct {
+		DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"` // 2 + 1 + 1 bytes
+	}
+	s := struct {
+		Header  EBMLHeader `ebml:"EBML"`              // 4 + 1 + 4 bytes
+		Header2 EBMLHeader `ebml:"EBML,size=unknown"` // 4 + 8 + 4 bytes
+	}{}
+
+	for l := 0; l < 25; l++ {
+		err := Marshal(&s, &limitedDummyWriter{limit: l})
+		if err != bytes.ErrTooLarge {
+			t.Errorf("UnmarshalBlock should fail with bytes.ErrTooLarge against too large data (Writer size limit: %d), but got %v", l, err)
+		}
+	}
+}
+
 func ExampleMarshal() {
 	type EBMLHeader struct {
 		DocType            string `ebml:"EBMLDocType"`
@@ -261,6 +278,19 @@ func TestMarshal_Tag(t *testing.T) {
 
 	if !bytes.Equal(bTagged.Bytes(), bUntagged.Bytes()) {
 		t.Errorf("Tagged struct and untagged struct must be marshal-ed to same binary, tagged: %v, untagged: %v", bTagged.Bytes(), bUntagged.Bytes())
+	}
+}
+
+func TestMarshal_InvalidTag(t *testing.T) {
+	input := struct {
+		DocCustomNamedType string `ebml:"EBMLDocType,invalidtag"`
+	}{
+		DocCustomNamedType: "hoge",
+	}
+
+	var buf bytes.Buffer
+	if err := Marshal(&input, &buf); err != errInvalidTag {
+		t.Errorf("Unexpected error against invalid tag, expected: %v, got: %v", errInvalidTag, err)
 	}
 }
 
