@@ -135,7 +135,6 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...SimpleWrite
 				if options.onFatal != nil {
 					options.onFatal(err)
 				}
-				return
 			}
 			w.Close()
 			<-fin // read one data to release blocked Close()
