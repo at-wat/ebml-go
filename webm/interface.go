@@ -16,14 +16,14 @@ package webm
 
 // Writer is a stream frame writer interface.
 type Writer interface {
-	// Write writes a stream frame to the connected WebM writer.
+	// Write a frame to the connected WebM writer.
 	// timestamp is in millisecond.
 	Write(keyframe bool, timestamp int64, b []byte) (int, error)
 }
 
 // Closer is a stream frame closer interface.
 type Closer interface {
-	// Close closes a stream frame writer.
+	// Close the stream frame writer.
 	// Output WebM will be closed after closing all FrameWriter.
 	Close() error
 }
