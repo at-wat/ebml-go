@@ -223,3 +223,46 @@ func TestFrameWriter_FailingOptions(t *testing.T) {
 		})
 	}
 }
+
+func TestFrameWriter_NewSimpleWriter(t *testing.T) {
+	buf := &bufferCloser{closed: make(chan struct{})}
+
+	tracks := []TrackEntry{
+		{
+			TrackNumber: 1,
+			TrackUID:    2,
+			CodecID:     "",
+			TrackType:   1,
+		},
+	}
+
+	ws, err := NewSimpleWriter(
+		buf, tracks,
+		WithEBMLHeader(nil),
+		WithSegmentInfo(nil),
+		WithSeekHead(nil),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create FrameWriter: %v", err)
+	}
+
+	if len(ws) != 1 {
+		t.Fatalf("Number of the returned writer must be 1, but got %d", len(ws))
+	}
+	ws[0].Close()
+
+	expectedBytes := []byte{
+		0x18, 0x53, 0x80, 0x67, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0x16, 0x54, 0xAE, 0x6B, 0x8F,
+		0xAE, 0x8D,
+		0xD7, 0x81, 0x01,
+		0x73, 0xC5, 0x81, 0x02,
+		0x86, 0x81, 0x00,
+		0x83, 0x81, 0x01,
+		0x1F, 0x43, 0xB6, 0x75, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0xE7, 0x81, 0x00,
+	}
+	if !bytes.Equal(buf.Bytes(), expectedBytes) {
+		t.Errorf("Unexpected WebM binary,\nexpected: %+v\n     got: %+v", expectedBytes, buf.Bytes())
+	}
+}
