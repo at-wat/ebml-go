@@ -23,7 +23,7 @@ import (
 	"github.com/at-wat/ebml-go"
 )
 
-func TestSimpleWriter(t *testing.T) {
+func TestFrameWriter(t *testing.T) {
 	buf := &bufferCloser{closed: make(chan struct{})}
 
 	tracks := []TrackEntry{
@@ -50,9 +50,9 @@ func TestSimpleWriter(t *testing.T) {
 			},
 		},
 	}
-	ws, err := NewSimpleWriter(buf, tracks)
+	ws, err := NewFrameWriter(buf, tracks)
 	if err != nil {
-		t.Fatalf("Failed to create SimpleWriter: %v", err)
+		t.Fatalf("Failed to create FrameWriter: %v", err)
 	}
 
 	if len(ws) != len(tracks) {
@@ -89,7 +89,7 @@ func TestSimpleWriter(t *testing.T) {
 	select {
 	case <-buf.closed:
 	default:
-		t.Errorf("Base io.WriteCloser is not closed by SimpleWriter")
+		t.Errorf("Base io.WriteCloser is not closed by FrameWriter")
 	}
 
 	expected := struct {
@@ -145,7 +145,7 @@ func TestSimpleWriter(t *testing.T) {
 	}
 }
 
-func TestSimpleWriter_Options(t *testing.T) {
+func TestFrameWriter_Options(t *testing.T) {
 	buf := &bufferCloser{closed: make(chan struct{})}
 
 	tracks := []TrackEntry{
@@ -157,7 +157,7 @@ func TestSimpleWriter_Options(t *testing.T) {
 		},
 	}
 
-	ws, err := NewSimpleWriter(
+	ws, err := NewFrameWriter(
 		buf, tracks,
 		WithEBMLHeader(nil),
 		WithSegmentInfo(nil),
@@ -165,7 +165,7 @@ func TestSimpleWriter_Options(t *testing.T) {
 		WithMarshalOptions(ebml.WithDataSizeLen(2)),
 	)
 	if err != nil {
-		t.Fatalf("Failed to create SimpleWriter: %v", err)
+		t.Fatalf("Failed to create FrameWriter: %v", err)
 	}
 
 	if len(ws) != 1 {
@@ -189,22 +189,22 @@ func TestSimpleWriter_Options(t *testing.T) {
 	}
 }
 
-func TestSimpleWriter_FailingOptions(t *testing.T) {
+func TestFrameWriter_FailingOptions(t *testing.T) {
 	errDummy0 := errors.New("an error 0")
 	errDummy1 := errors.New("an error 1")
 
 	cases := map[string]struct {
-		opts []SimpleWriterOption
+		opts []FrameWriterOption
 		err  error
 	}{
 		"WriterOptionError": {
-			opts: []SimpleWriterOption{
-				func(*SimpleWriterOptions) error { return errDummy0 },
+			opts: []FrameWriterOption{
+				func(*FrameWriterOptions) error { return errDummy0 },
 			},
 			err: errDummy0,
 		},
 		"MarshalOptionError": {
-			opts: []SimpleWriterOption{
+			opts: []FrameWriterOption{
 				WithMarshalOptions(
 					func(*ebml.MarshalOptions) error { return errDummy1 },
 				),
@@ -216,7 +216,7 @@ func TestSimpleWriter_FailingOptions(t *testing.T) {
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			buf := &bufferCloser{closed: make(chan struct{})}
-			_, err := NewSimpleWriter(buf, []TrackEntry{}, c.opts...)
+			_, err := NewFrameWriter(buf, []TrackEntry{}, c.opts...)
 			if err != c.err {
 				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
 			}

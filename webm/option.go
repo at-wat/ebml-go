@@ -4,11 +4,11 @@ import (
 	"github.com/at-wat/ebml-go"
 )
 
-// SimpleWriterOption configures a SimpleWriterOptions.
-type SimpleWriterOption func(*SimpleWriterOptions) error
+// FrameWriterOption configures a FrameWriterOptions.
+type FrameWriterOption func(*FrameWriterOptions) error
 
-// SimpleWriterOptions stores options for NewSimpleWriter.
-type SimpleWriterOptions struct {
+// FrameWriterOptions stores options for NewFrameWriter.
+type FrameWriterOptions struct {
 	ebmlHeader  interface{}
 	segmentInfo interface{}
 	seekHead    interface{}
@@ -16,32 +16,32 @@ type SimpleWriterOptions struct {
 }
 
 // WithEBMLHeader sets EBML header of WebM.
-func WithEBMLHeader(h interface{}) SimpleWriterOption {
-	return func(o *SimpleWriterOptions) error {
+func WithEBMLHeader(h interface{}) FrameWriterOption {
+	return func(o *FrameWriterOptions) error {
 		o.ebmlHeader = h
 		return nil
 	}
 }
 
 // WithSegmentInfo sets Segment.Info of WebM.
-func WithSegmentInfo(i interface{}) SimpleWriterOption {
-	return func(o *SimpleWriterOptions) error {
+func WithSegmentInfo(i interface{}) FrameWriterOption {
+	return func(o *FrameWriterOptions) error {
 		o.segmentInfo = i
 		return nil
 	}
 }
 
 // WithSeekHead sets Segment.SeekHead of WebM.
-func WithSeekHead(s interface{}) SimpleWriterOption {
-	return func(o *SimpleWriterOptions) error {
+func WithSeekHead(s interface{}) FrameWriterOption {
+	return func(o *FrameWriterOptions) error {
 		o.seekHead = s
 		return nil
 	}
 }
 
 // WithMarshalOptions passes ebml.MarshalOption to ebml.Marshal.
-func WithMarshalOptions(opts ...ebml.MarshalOption) SimpleWriterOption {
-	return func(o *SimpleWriterOptions) error {
+func WithMarshalOptions(opts ...ebml.MarshalOption) FrameWriterOption {
+	return func(o *FrameWriterOptions) error {
 		o.marshalOpts = opts
 		return nil
 	}
