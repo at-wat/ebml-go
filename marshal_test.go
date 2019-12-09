@@ -285,6 +285,19 @@ func TestMarshal_Tag(t *testing.T) {
 	}
 }
 
+func TestMarshal_InvalidTag(t *testing.T) {
+	input := struct {
+		DocCustomNamedType string `ebml:"EBMLDocType,invalidtag"`
+	}{
+		DocCustomNamedType: "hoge",
+	}
+
+	var buf bytes.Buffer
+	if err := Marshal(&input, &buf); err != errInvalidTag {
+		t.Errorf("Unexpected error against invalid tag, expected: %v, got: %v", errInvalidTag, err)
+	}
+}
+
 func BenchmarkMarshal(b *testing.B) {
 	type EBMLHeader struct {
 		DocType            string `ebml:"EBMLDocType"`
