@@ -227,8 +227,9 @@ func TestSimpleWriter_FailingOptions(t *testing.T) {
 }
 
 type errorWriter struct {
-	err error
-	mu  sync.Mutex
+	wrote chan struct{}
+	err   error
+	mu    sync.Mutex
 }
 
 func (w *errorWriter) setError(err error) {
@@ -238,12 +239,25 @@ func (w *errorWriter) setError(err error) {
 }
 
 func (w *errorWriter) Write(b []byte) (int, error) {
+	select {
+	case w.wrote <- struct{}{}:
+	default:
+	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if w.err != nil {
 		return 0, w.err
 	}
 	return len(b), nil
+}
+
+func (w *errorWriter) WaitWrite() bool {
+	select {
+	case <-w.wrote:
+	case <-time.After(time.Second):
+		return false
+	}
+	return true
 }
 
 func (w *errorWriter) Close() error {
@@ -275,12 +289,23 @@ func TestSimpleWriter_ErrorHandling(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			chFatal := make(chan error, 1)
 			chError := make(chan error, 1)
+			clearErr := func() {
+				for {
+					select {
+					case <-chFatal:
+					case <-chError:
+					default:
+						return
+					}
+				}
+			}
 
-			w := &errorWriter{}
+			w := &errorWriter{wrote: make(chan struct{}, 1)}
 
 			if errAt == atBeginning {
 				w.setError(bytes.ErrTooLarge)
 			}
+			clearErr()
 			ws, err := NewSimpleWriter(
 				w, tracks,
 				WithOnErrorHandler(func(err error) { chError <- err }),
@@ -303,6 +328,7 @@ func TestSimpleWriter_ErrorHandling(t *testing.T) {
 			if errAt == atClusterWriting {
 				w.setError(bytes.ErrTooLarge)
 			}
+			clearErr()
 			if _, err := ws[0].Write(false, 100, []byte{0x01, 0x02}); err != nil {
 				t.Fatalf("Failed to Write: %v", err)
 			}
@@ -313,14 +339,22 @@ func TestSimpleWriter_ErrorHandling(t *testing.T) {
 						t.Fatalf("Unexpected error, expected: %v, got: %v", bytes.ErrTooLarge, err)
 					}
 					return
+				case err := <-chError:
+					t.Fatalf("Unexpected error: %v", err)
 				case <-time.After(time.Second):
 					t.Fatal("Error is not emitted on write error")
 				}
 			}
+			if !w.WaitWrite() {
+				t.Fatal("Cluster is not written")
+			}
+
+			time.Sleep(50 * time.Millisecond)
 
 			if errAt == atFrameWriting {
 				w.setError(bytes.ErrTooLarge)
 			}
+			clearErr()
 			if _, err := ws[0].Write(false, 110, []byte{0x01, 0x02}); err != nil {
 				t.Fatalf("Failed to Write: %v", err)
 			}
@@ -331,12 +365,18 @@ func TestSimpleWriter_ErrorHandling(t *testing.T) {
 						t.Fatalf("Unexpected error, expected: %v, got: %v", bytes.ErrTooLarge, err)
 					}
 					return
+				case err := <-chError:
+					t.Fatalf("Unexpected error: %v", err)
 				case <-time.After(time.Second):
 					t.Fatal("Error is not emitted on write error")
 				}
 			}
+			if !w.WaitWrite() {
+				t.Fatal("Second frame is not written")
+			}
 
 			// Very old frame
+			clearErr()
 			if _, err := ws[0].Write(true, -32769, []byte{0x0A}); err != nil {
 				t.Fatalf("Failed to Write: %v", err)
 			}
@@ -345,6 +385,8 @@ func TestSimpleWriter_ErrorHandling(t *testing.T) {
 				if err != errIgnoreOldFrame {
 					t.Errorf("Unexpected error, expected: %v, got: %v", errIgnoreOldFrame, err)
 				}
+			case err := <-chFatal:
+				t.Fatalf("Unexpected fatal: %v", err)
 			case <-time.After(time.Second):
 				t.Fatal("Error is not emitted for old frame")
 			}
@@ -352,6 +394,7 @@ func TestSimpleWriter_ErrorHandling(t *testing.T) {
 			if errAt == atClosing {
 				w.setError(bytes.ErrTooLarge)
 			}
+			clearErr()
 			ws[0].Close()
 			if errAt == atClosing {
 				select {
@@ -360,6 +403,8 @@ func TestSimpleWriter_ErrorHandling(t *testing.T) {
 						t.Fatalf("Unexpected error, expected: %v, got: %v", bytes.ErrTooLarge, err)
 					}
 					return
+				case err := <-chError:
+					t.Fatalf("Unexpected error: %v", err)
 				case <-time.After(time.Second):
 					t.Fatal("Error is not emitted on write error")
 				}
