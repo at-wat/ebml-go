@@ -27,11 +27,15 @@ var (
 	errIgnoreOldFrame = errors.New("too old frame")
 )
 
-// FrameWriter is an implementation of WriteCloser.
+// FrameWriter is an implementation of BlockWriteCloser.
 //
 // Deprecated: This is exposed to keep compatibility with the old version.
-// Use WriteCloser interface instead.
+// Use BlockWriteCloser interface instead.
 type FrameWriter struct {
+	BlockWriteCloser
+}
+
+type blockWriter struct {
 	trackNumber uint64
 	f           chan *frame
 	wg          *sync.WaitGroup
@@ -45,9 +49,7 @@ type frame struct {
 	b           []byte
 }
 
-// Write writes a stream frame to the connected WebM writer.
-// timestamp is in millisecond.
-func (w *FrameWriter) Write(keyframe bool, timestamp int64, b []byte) (int, error) {
+func (w *blockWriter) Write(keyframe bool, timestamp int64, b []byte) (int, error) {
 	w.f <- &frame{
 		trackNumber: w.trackNumber,
 		keyframe:    keyframe,
@@ -57,9 +59,7 @@ func (w *FrameWriter) Write(keyframe bool, timestamp int64, b []byte) (int, erro
 	return len(b), nil
 }
 
-// Close closes a stream frame writer.
-// Output WebM will be closed after closing all FrameWriter.
-func (w *FrameWriter) Close() error {
+func (w *blockWriter) Close() error {
 	w.wg.Done()
 
 	// If it is the last writer, block until closing output writer.
@@ -68,11 +68,11 @@ func (w *FrameWriter) Close() error {
 	return nil
 }
 
-// NewFrameWriter creates WriteCloser for each track specified as tracks argument.
+// NewBlockWriter creates BlockWriteCloser for each track specified as tracks argument.
 // Resultant WebM is written to given io.WriteCloser.
 // io.WriteCloser will be closed automatically; don't close it by yourself.
-func NewFrameWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...FrameWriterOption) ([]WriteCloser, error) {
-	options := &FrameWriterOptions{
+func NewBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockWriterOption) ([]BlockWriteCloser, error) {
+	options := &BlockWriterOptions{
 		ebmlHeader:  DefaultEBMLHeader,
 		segmentInfo: DefaultSegmentInfo,
 		onFatal: func(err error) {
@@ -116,11 +116,11 @@ func NewFrameWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...FrameWriterO
 	ch := make(chan *frame)
 	fin := make(chan struct{}, len(tracks)-1)
 	wg := sync.WaitGroup{}
-	var ws []WriteCloser
+	var ws []BlockWriteCloser
 
 	for _, t := range tracks {
 		wg.Add(1)
-		ws = append(ws, &FrameWriter{
+		ws = append(ws, &blockWriter{
 			trackNumber: t.TrackNumber,
 			f:           ch,
 			wg:          &wg,
@@ -232,17 +232,17 @@ func NewFrameWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...FrameWriterO
 // io.WriteCloser will be closed automatically; don't close it by yourself.
 //
 // Deprecated: This is exposed to keep compatibility with the old version.
-// Use NewFrameWriter instead.
-func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...FrameWriterOption) ([]*FrameWriter, error) {
+// Use NewblockWriter instead.
+func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockWriterOption) ([]*FrameWriter, error) {
 	os.Stderr.WriteString(
-		"Deprecated: You are using deprecated webm.NewSimpleWriter and *webm.FrameWriter.\n" +
-			"            Use webm.NewFrameWriter and webm.WriteCloser instead.\n" +
+		"Deprecated: You are using deprecated webm.NewSimpleWriter and *webm.blockWriter.\n" +
+			"            Use webm.NewBlockWriter and webm.BlockWriteCloser interface instead.\n" +
 			"            See https://godoc.org/github.com/at-wat/ebml-go to find out the latest API.\n",
 	)
-	ws, err := NewFrameWriter(w0, tracks, opts...)
+	ws, err := NewBlockWriter(w0, tracks, opts...)
 	var ws2 []*FrameWriter
 	for _, w := range ws {
-		ws2 = append(ws2, w.(*FrameWriter))
+		ws2 = append(ws2, &FrameWriter{w})
 	}
 	return ws2, err
 }

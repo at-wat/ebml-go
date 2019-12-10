@@ -4,11 +4,11 @@ import (
 	"github.com/at-wat/ebml-go"
 )
 
-// FrameWriterOption configures a FrameWriterOptions.
-type FrameWriterOption func(*FrameWriterOptions) error
+// BlockWriterOption configures a BlockWriterOptions.
+type BlockWriterOption func(*BlockWriterOptions) error
 
-// FrameWriterOptions stores options for NewFrameWriter.
-type FrameWriterOptions struct {
+// BlockWriterOptions stores options for NewBlockWriter.
+type BlockWriterOptions struct {
 	ebmlHeader  interface{}
 	segmentInfo interface{}
 	seekHead    interface{}
@@ -18,48 +18,48 @@ type FrameWriterOptions struct {
 }
 
 // WithEBMLHeader sets EBML header of WebM.
-func WithEBMLHeader(h interface{}) FrameWriterOption {
-	return func(o *FrameWriterOptions) error {
+func WithEBMLHeader(h interface{}) BlockWriterOption {
+	return func(o *BlockWriterOptions) error {
 		o.ebmlHeader = h
 		return nil
 	}
 }
 
 // WithSegmentInfo sets Segment.Info of WebM.
-func WithSegmentInfo(i interface{}) FrameWriterOption {
-	return func(o *FrameWriterOptions) error {
+func WithSegmentInfo(i interface{}) BlockWriterOption {
+	return func(o *BlockWriterOptions) error {
 		o.segmentInfo = i
 		return nil
 	}
 }
 
 // WithSeekHead sets Segment.SeekHead of WebM.
-func WithSeekHead(s interface{}) FrameWriterOption {
-	return func(o *FrameWriterOptions) error {
+func WithSeekHead(s interface{}) BlockWriterOption {
+	return func(o *BlockWriterOptions) error {
 		o.seekHead = s
 		return nil
 	}
 }
 
 // WithMarshalOptions passes ebml.MarshalOption to ebml.Marshal.
-func WithMarshalOptions(opts ...ebml.MarshalOption) FrameWriterOption {
-	return func(o *FrameWriterOptions) error {
+func WithMarshalOptions(opts ...ebml.MarshalOption) BlockWriterOption {
+	return func(o *BlockWriterOptions) error {
 		o.marshalOpts = opts
 		return nil
 	}
 }
 
 // WithOnErrorHandler registers marshal error handler
-func WithOnErrorHandler(handler func(error)) FrameWriterOption {
-	return func(o *FrameWriterOptions) error {
+func WithOnErrorHandler(handler func(error)) BlockWriterOption {
+	return func(o *BlockWriterOptions) error {
 		o.onError = handler
 		return nil
 	}
 }
 
 // WithOnFatalHandler registers marshal error handler
-func WithOnFatalHandler(handler func(error)) FrameWriterOption {
-	return func(o *FrameWriterOptions) error {
+func WithOnFatalHandler(handler func(error)) BlockWriterOption {
+	return func(o *BlockWriterOptions) error {
 		o.onFatal = handler
 		return nil
 	}

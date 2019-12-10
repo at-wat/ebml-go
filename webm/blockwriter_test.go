@@ -25,7 +25,7 @@ import (
 	"github.com/at-wat/ebml-go"
 )
 
-func TestFrameWriter(t *testing.T) {
+func TestBlockWriter(t *testing.T) {
 	buf := &bufferCloser{closed: make(chan struct{})}
 
 	tracks := []TrackEntry{
@@ -52,9 +52,9 @@ func TestFrameWriter(t *testing.T) {
 			},
 		},
 	}
-	ws, err := NewFrameWriter(buf, tracks)
+	ws, err := NewBlockWriter(buf, tracks)
 	if err != nil {
-		t.Fatalf("Failed to create FrameWriter: %v", err)
+		t.Fatalf("Failed to create BlockWriter: %v", err)
 	}
 
 	if len(ws) != len(tracks) {
@@ -64,26 +64,26 @@ func TestFrameWriter(t *testing.T) {
 	if n, err := ws[0].Write(false, 100, []byte{0x01, 0x02}); err != nil {
 		t.Fatalf("Failed to Write: %v", err)
 	} else if n != 2 {
-		t.Errorf("Unexpected return value of FrameWriter.Write, expected: 2, got: %d", n)
+		t.Errorf("Unexpected return value of BlockWriter.Write, expected: 2, got: %d", n)
 	}
 
 	if n, err := ws[1].Write(true, 110, []byte{0x03, 0x04, 0x05}); err != nil {
 		t.Fatalf("Failed to Write: %v", err)
 	} else if n != 3 {
-		t.Errorf("Unexpected return value of FrameWriter.Write, expected: 3, got: %d", n)
+		t.Errorf("Unexpected return value of BlockWriter.Write, expected: 3, got: %d", n)
 	}
 
 	// Ignored due to old timestamp
 	if n, err := ws[0].Write(true, -32769, []byte{0x0A}); err != nil {
 		t.Fatalf("Failed to Write: %v", err)
 	} else if n != 1 {
-		t.Errorf("Unexpected return value of FrameWriter.Write, expected: 1, got: %d", n)
+		t.Errorf("Unexpected return value of BlockWriter.Write, expected: 1, got: %d", n)
 	}
 
 	if n, err := ws[0].Write(true, 130, []byte{0x06}); err != nil {
 		t.Fatalf("Failed to Write: %v", err)
 	} else if n != 1 {
-		t.Errorf("Unexpected return value of FrameWriter.Write, expected: 1, got: %d", n)
+		t.Errorf("Unexpected return value of BlockWriter.Write, expected: 1, got: %d", n)
 	}
 
 	ws[0].Close()
@@ -91,7 +91,7 @@ func TestFrameWriter(t *testing.T) {
 	select {
 	case <-buf.closed:
 	default:
-		t.Errorf("Base io.WriteCloser is not closed by FrameWriter")
+		t.Errorf("Base io.WriteCloser is not closed by BlockWriter")
 	}
 
 	expected := struct {
@@ -147,7 +147,7 @@ func TestFrameWriter(t *testing.T) {
 	}
 }
 
-func TestFrameWriter_Options(t *testing.T) {
+func TestBlockWriter_Options(t *testing.T) {
 	buf := &bufferCloser{closed: make(chan struct{})}
 
 	tracks := []TrackEntry{
@@ -159,7 +159,7 @@ func TestFrameWriter_Options(t *testing.T) {
 		},
 	}
 
-	ws, err := NewFrameWriter(
+	ws, err := NewBlockWriter(
 		buf, tracks,
 		WithEBMLHeader(nil),
 		WithSegmentInfo(nil),
@@ -167,7 +167,7 @@ func TestFrameWriter_Options(t *testing.T) {
 		WithMarshalOptions(ebml.WithDataSizeLen(2)),
 	)
 	if err != nil {
-		t.Fatalf("Failed to create FrameWriter: %v", err)
+		t.Fatalf("Failed to create BlockWriter: %v", err)
 	}
 
 	if len(ws) != 1 {
@@ -191,22 +191,22 @@ func TestFrameWriter_Options(t *testing.T) {
 	}
 }
 
-func TestFrameWriter_FailingOptions(t *testing.T) {
+func TestBlockWriter_FailingOptions(t *testing.T) {
 	errDummy0 := errors.New("an error 0")
 	errDummy1 := errors.New("an error 1")
 
 	cases := map[string]struct {
-		opts []FrameWriterOption
+		opts []BlockWriterOption
 		err  error
 	}{
 		"WriterOptionError": {
-			opts: []FrameWriterOption{
-				func(*FrameWriterOptions) error { return errDummy0 },
+			opts: []BlockWriterOption{
+				func(*BlockWriterOptions) error { return errDummy0 },
 			},
 			err: errDummy0,
 		},
 		"MarshalOptionError": {
-			opts: []FrameWriterOption{
+			opts: []BlockWriterOption{
 				WithMarshalOptions(
 					func(*ebml.MarshalOptions) error { return errDummy1 },
 				),
@@ -218,7 +218,7 @@ func TestFrameWriter_FailingOptions(t *testing.T) {
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			buf := &bufferCloser{closed: make(chan struct{})}
-			_, err := NewFrameWriter(buf, []TrackEntry{}, c.opts...)
+			_, err := NewBlockWriter(buf, []TrackEntry{}, c.opts...)
 			if err != c.err {
 				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
 			}
@@ -264,7 +264,7 @@ func (w *errorWriter) Close() error {
 	return nil
 }
 
-func TestFrameWriter_ErrorHandling(t *testing.T) {
+func TestBlockWriter_ErrorHandling(t *testing.T) {
 
 	tracks := []TrackEntry{
 		{
@@ -308,7 +308,7 @@ func TestFrameWriter_ErrorHandling(t *testing.T) {
 				w.setError(bytes.ErrTooLarge)
 			}
 			clearErr()
-			ws, err := NewSimpleWriter(
+			ws, err := NewBlockWriter(
 				w, tracks,
 				WithOnErrorHandler(func(err error) { chError <- err }),
 				WithOnFatalHandler(func(err error) { chFatal <- err }),
@@ -415,7 +415,7 @@ func TestFrameWriter_ErrorHandling(t *testing.T) {
 	}
 }
 
-func TestFrameWriter_NewSimpleWriter(t *testing.T) {
+func TestBlockWriter_NewSimpleWriter(t *testing.T) {
 	buf := &bufferCloser{closed: make(chan struct{})}
 
 	tracks := []TrackEntry{
@@ -427,14 +427,18 @@ func TestFrameWriter_NewSimpleWriter(t *testing.T) {
 		},
 	}
 
-	ws, err := NewSimpleWriter(
+	// Check old API
+	var ws []*FrameWriter
+	var err error
+
+	ws, err = NewSimpleWriter(
 		buf, tracks,
 		WithEBMLHeader(nil),
 		WithSegmentInfo(nil),
 		WithSeekHead(nil),
 	)
 	if err != nil {
-		t.Fatalf("Failed to create FrameWriter: %v", err)
+		t.Fatalf("Failed to create BlockWriter: %v", err)
 	}
 
 	if len(ws) != 1 {

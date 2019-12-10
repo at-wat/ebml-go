@@ -14,34 +14,34 @@
 
 package webm
 
-// Writer is a stream frame writer interface.
-type Writer interface {
-	// Write a frame to the connected WebM writer.
+// BlockWriter is a WebM block writer interface.
+type BlockWriter interface {
+	// Write a block to the connected WebM writer.
 	// timestamp is in millisecond.
 	Write(keyframe bool, timestamp int64, b []byte) (int, error)
 }
 
-// Reader is a stream frame reader interface.
-type Reader interface {
-	// Read a frame from the connected WebM reader.
+// BlockReader is a WebM block reader interface.
+type BlockReader interface {
+	// Read a block from the connected WebM reader.
 	Read(b []byte) (nBytes int64, keyframe bool, timestamp int64, err error)
 }
 
-// Closer is a stream frame closer interface.
-type Closer interface {
+// BlockCloser is a WebM closer interface.
+type BlockCloser interface {
 	// Close the stream frame writer.
 	// Output WebM will be closed after closing all FrameWriter.
 	Close() error
 }
 
-// WriteCloser groups Writer and Closer.
-type WriteCloser interface {
-	Writer
-	Closer
+// BlockWriteCloser groups Writer and Closer.
+type BlockWriteCloser interface {
+	BlockWriter
+	BlockCloser
 }
 
-// ReadCloser groups Reader and Closer.
-type ReadCloser interface {
-	Reader
-	Closer
+// BlockReadCloser groups Reader and Closer.
+type BlockReadCloser interface {
+	BlockReader
+	BlockCloser
 }
