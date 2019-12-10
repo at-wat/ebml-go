@@ -17,7 +17,6 @@ package webm
 import (
 	"errors"
 	"io"
-	"os"
 	"sync"
 
 	"github.com/at-wat/ebml-go"
@@ -234,11 +233,11 @@ func NewBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockWriterO
 // Deprecated: This is exposed to keep compatibility with the old version.
 // Use NewblockWriter instead.
 func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockWriterOption) ([]*FrameWriter, error) {
-	os.Stderr.WriteString(
-		"Deprecated: You are using deprecated webm.NewSimpleWriter and *webm.blockWriter.\n" +
-			"            Use webm.NewBlockWriter and webm.BlockWriteCloser interface instead.\n" +
-			"            See https://godoc.org/github.com/at-wat/ebml-go to find out the latest API.\n",
-	)
+	// os.Stderr.WriteString(
+	// 	"Deprecated: You are using deprecated webm.NewSimpleWriter and *webm.blockWriter.\n" +
+	// 		"            Use webm.NewBlockWriter and webm.BlockWriteCloser interface instead.\n" +
+	// 		"            See https://godoc.org/github.com/at-wat/ebml-go to find out the latest API.\n",
+	// )
 	ws, err := NewBlockWriter(w0, tracks, opts...)
 	var ws2 []*FrameWriter
 	for _, w := range ws {
