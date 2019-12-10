@@ -13,6 +13,8 @@ type SimpleWriterOptions struct {
 	segmentInfo interface{}
 	seekHead    interface{}
 	marshalOpts []ebml.MarshalOption
+	onError     func(error)
+	onFatal     func(error)
 }
 
 // WithEBMLHeader sets EBML header of WebM.
@@ -43,6 +45,22 @@ func WithSeekHead(s interface{}) SimpleWriterOption {
 func WithMarshalOptions(opts ...ebml.MarshalOption) SimpleWriterOption {
 	return func(o *SimpleWriterOptions) error {
 		o.marshalOpts = opts
+		return nil
+	}
+}
+
+// WithOnErrorHandler registers marshal error handler
+func WithOnErrorHandler(handler func(error)) SimpleWriterOption {
+	return func(o *SimpleWriterOptions) error {
+		o.onError = handler
+		return nil
+	}
+}
+
+// WithOnFatalHandler registers marshal error handler
+func WithOnFatalHandler(handler func(error)) SimpleWriterOption {
+	return func(o *SimpleWriterOptions) error {
+		o.onFatal = handler
 		return nil
 	}
 }

@@ -18,7 +18,9 @@ import (
 	"bytes"
 	"errors"
 	"reflect"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/at-wat/ebml-go"
 )
@@ -219,6 +221,193 @@ func TestSimpleWriter_FailingOptions(t *testing.T) {
 			_, err := NewSimpleWriter(buf, []TrackEntry{}, c.opts...)
 			if err != c.err {
 				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
+			}
+		})
+	}
+}
+
+type errorWriter struct {
+	wrote chan struct{}
+	err   error
+	mu    sync.Mutex
+}
+
+func (w *errorWriter) setError(err error) {
+	w.mu.Lock()
+	w.err = err
+	w.mu.Unlock()
+}
+
+func (w *errorWriter) Write(b []byte) (int, error) {
+	select {
+	case w.wrote <- struct{}{}:
+	default:
+	}
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.err != nil {
+		return 0, w.err
+	}
+	return len(b), nil
+}
+
+func (w *errorWriter) WaitWrite() bool {
+	select {
+	case <-w.wrote:
+	case <-time.After(time.Second):
+		return false
+	}
+	return true
+}
+
+func (w *errorWriter) Close() error {
+	return nil
+}
+
+func TestSimpleWriter_ErrorHandling(t *testing.T) {
+	tracks := []TrackEntry{
+		{
+			TrackNumber: 1,
+			TrackUID:    2,
+			CodecID:     "",
+			TrackType:   1,
+		},
+	}
+	const (
+		atBeginning int = iota
+		atClusterWriting
+		atFrameWriting
+		atClosing
+	)
+
+	for name, errAt := range map[string]int{
+		"ErrorAtBeginning":      atBeginning,
+		"ErrorAtClusterWriting": atClusterWriting,
+		"ErrorAtFrameWriting":   atFrameWriting,
+		"ErrorAtClosing":        atClosing,
+	} {
+		t.Run(name, func(t *testing.T) {
+			chFatal := make(chan error, 1)
+			chError := make(chan error, 1)
+			clearErr := func() {
+				for {
+					select {
+					case <-chFatal:
+					case <-chError:
+					default:
+						return
+					}
+				}
+			}
+
+			w := &errorWriter{wrote: make(chan struct{}, 1)}
+
+			if errAt == atBeginning {
+				w.setError(bytes.ErrTooLarge)
+			}
+			clearErr()
+			ws, err := NewSimpleWriter(
+				w, tracks,
+				WithOnErrorHandler(func(err error) { chError <- err }),
+				WithOnFatalHandler(func(err error) { chFatal <- err }),
+			)
+			if err != nil {
+				if errAt == atBeginning {
+					if err != bytes.ErrTooLarge {
+						t.Fatalf("Unexpected error, expected: %v, got: %v", bytes.ErrTooLarge, err)
+					}
+					return
+				}
+				t.Fatalf("Failed to create SimpleWriter: %v", err)
+			}
+
+			if len(ws) != 1 {
+				t.Fatalf("Number of the returned writer must be 1, but got %d", len(ws))
+			}
+
+			if errAt == atClusterWriting {
+				w.setError(bytes.ErrTooLarge)
+			}
+			clearErr()
+			if _, err := ws[0].Write(false, 100, []byte{0x01, 0x02}); err != nil {
+				t.Fatalf("Failed to Write: %v", err)
+			}
+			if errAt == atClusterWriting {
+				select {
+				case err := <-chFatal:
+					if err != bytes.ErrTooLarge {
+						t.Fatalf("Unexpected error, expected: %v, got: %v", bytes.ErrTooLarge, err)
+					}
+					return
+				case err := <-chError:
+					t.Fatalf("Unexpected error: %v", err)
+				case <-time.After(time.Second):
+					t.Fatal("Error is not emitted on write error")
+				}
+			}
+			if !w.WaitWrite() {
+				t.Fatal("Cluster is not written")
+			}
+
+			time.Sleep(50 * time.Millisecond)
+
+			if errAt == atFrameWriting {
+				w.setError(bytes.ErrTooLarge)
+			}
+			clearErr()
+			if _, err := ws[0].Write(false, 110, []byte{0x01, 0x02}); err != nil {
+				t.Fatalf("Failed to Write: %v", err)
+			}
+			if errAt == atFrameWriting {
+				select {
+				case err := <-chFatal:
+					if err != bytes.ErrTooLarge {
+						t.Fatalf("Unexpected error, expected: %v, got: %v", bytes.ErrTooLarge, err)
+					}
+					return
+				case err := <-chError:
+					t.Fatalf("Unexpected error: %v", err)
+				case <-time.After(time.Second):
+					t.Fatal("Error is not emitted on write error")
+				}
+			}
+			if !w.WaitWrite() {
+				t.Fatal("Second frame is not written")
+			}
+
+			// Very old frame
+			clearErr()
+			if _, err := ws[0].Write(true, -32769, []byte{0x0A}); err != nil {
+				t.Fatalf("Failed to Write: %v", err)
+			}
+			select {
+			case err := <-chError:
+				if err != errIgnoreOldFrame {
+					t.Errorf("Unexpected error, expected: %v, got: %v", errIgnoreOldFrame, err)
+				}
+			case err := <-chFatal:
+				t.Fatalf("Unexpected fatal: %v", err)
+			case <-time.After(time.Second):
+				t.Fatal("Error is not emitted for old frame")
+			}
+
+			if errAt == atClosing {
+				w.setError(bytes.ErrTooLarge)
+			}
+			clearErr()
+			ws[0].Close()
+			if errAt == atClosing {
+				select {
+				case err := <-chFatal:
+					if err != bytes.ErrTooLarge {
+						t.Fatalf("Unexpected error, expected: %v, got: %v", bytes.ErrTooLarge, err)
+					}
+					return
+				case err := <-chError:
+					t.Fatalf("Unexpected error: %v", err)
+				case <-time.After(time.Second):
+					t.Fatal("Error is not emitted on write error")
+				}
 			}
 		})
 	}
