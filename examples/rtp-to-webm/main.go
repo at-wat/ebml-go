@@ -30,7 +30,7 @@ func main() {
 		panic(err)
 	}
 
-	ws, err := webm.NewSimpleWriter(w,
+	ws, err := webm.NewSimpleBlockWriter(w,
 		[]webm.TrackEntry{
 			{
 				Name:            "Video",

@@ -23,33 +23,56 @@ import (
 )
 
 var (
-	// DefaultEBMLHeader is the default EBML header and is used by NewSimpleWriter.
-	DefaultEBMLHeader = &EBMLHeader{
-		EBMLVersion:        1,
-		EBMLReadVersion:    1,
-		EBMLMaxIDLength:    4,
-		EBMLMaxSizeLength:  8,
-		DocType:            "webm",
-		DocTypeVersion:     2,
-		DocTypeReadVersion: 2,
-	}
-	// DefaultSegmentInfo is the default Segment.Info and is used by NewSimpleWriter.
-	DefaultSegmentInfo = &Info{
-		TimecodeScale: 1000000, // 1ms
-		MuxingApp:     "ebml-go.webm.SimpleWriter",
-		WritingApp:    "ebml-go.webm.SimpleWriter",
-	}
-)
-
-var (
 	errIgnoreOldFrame = errors.New("too old frame")
 )
 
-// NewSimpleWriter creates FrameWriter for each track specified as tracks argument.
+// FrameWriter is a backward compatibility wrapper of BlockWriteCloser.
+//
+// Deprecated: This is exposed to keep compatibility with the old version.
+// Use BlockWriteCloser interface instead.
+type FrameWriter struct {
+	BlockWriteCloser
+}
+
+type blockWriter struct {
+	trackNumber uint64
+	f           chan *frame
+	wg          *sync.WaitGroup
+	fin         chan struct{}
+}
+
+type frame struct {
+	trackNumber uint64
+	keyframe    bool
+	timestamp   int64
+	b           []byte
+}
+
+func (w *blockWriter) Write(keyframe bool, timestamp int64, b []byte) (int, error) {
+	w.f <- &frame{
+		trackNumber: w.trackNumber,
+		keyframe:    keyframe,
+		timestamp:   timestamp,
+		b:           b,
+	}
+	return len(b), nil
+}
+
+func (w *blockWriter) Close() error {
+	w.wg.Done()
+
+	// If it is the last writer, block until closing output writer.
+	w.fin <- struct{}{}
+
+	return nil
+}
+
+// NewSimpleBlockWriter creates BlockWriteCloser for each track specified as tracks argument.
+// Blocks will be written to WebM as EBML SimpleBlocks.
 // Resultant WebM is written to given io.WriteCloser.
 // io.WriteCloser will be closed automatically; don't close it by yourself.
-func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...SimpleWriterOption) ([]*FrameWriter, error) {
-	options := &SimpleWriterOptions{
+func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockWriterOption) ([]BlockWriteCloser, error) {
+	options := &BlockWriterOptions{
 		ebmlHeader:  DefaultEBMLHeader,
 		segmentInfo: DefaultSegmentInfo,
 		onFatal: func(err error) {
@@ -93,11 +116,11 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...SimpleWrite
 	ch := make(chan *frame)
 	fin := make(chan struct{}, len(tracks)-1)
 	wg := sync.WaitGroup{}
-	var ws []*FrameWriter
+	var ws []BlockWriteCloser
 
 	for _, t := range tracks {
 		wg.Add(1)
-		ws = append(ws, &FrameWriter{
+		ws = append(ws, &blockWriter{
 			trackNumber: t.TrackNumber,
 			f:           ch,
 			wg:          &wg,
@@ -202,4 +225,25 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...SimpleWrite
 	}()
 
 	return ws, nil
+}
+
+// NewSimpleWriter creates BlockWriteCloser for each track specified as tracks argument.
+// Blocks will be written to WebM as EBML SimpleBlocks.
+// Resultant WebM is written to given io.WriteCloser.
+// io.WriteCloser will be closed automatically; don't close it by yourself.
+//
+// Deprecated: This is exposed to keep compatibility with the old version.
+// Use NewblockWriter instead.
+func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockWriterOption) ([]*FrameWriter, error) {
+	// os.Stderr.WriteString(
+	// 	"Deprecated: You are using deprecated webm.NewSimpleWriter and *webm.blockWriter.\n" +
+	// 		"            Use webm.NewSimpleBlockWriter and webm.BlockWriteCloser interface instead.\n" +
+	// 		"            See https://godoc.org/github.com/at-wat/ebml-go to find out the latest API.\n",
+	// )
+	ws, err := NewSimpleBlockWriter(w0, tracks, opts...)
+	var ws2 []*FrameWriter
+	for _, w := range ws {
+		ws2 = append(ws2, &FrameWriter{w})
+	}
+	return ws2, err
 }
