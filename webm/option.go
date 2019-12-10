@@ -7,7 +7,7 @@ import (
 // BlockWriterOption configures a BlockWriterOptions.
 type BlockWriterOption func(*BlockWriterOptions) error
 
-// BlockWriterOptions stores options for NewBlockWriter.
+// BlockWriterOptions stores options for BlockWriter.
 type BlockWriterOptions struct {
 	ebmlHeader  interface{}
 	segmentInfo interface{}

@@ -26,7 +26,7 @@ var (
 	errIgnoreOldFrame = errors.New("too old frame")
 )
 
-// FrameWriter is an implementation of BlockWriteCloser.
+// FrameWriter is a backward compatibility wrapper of BlockWriteCloser.
 //
 // Deprecated: This is exposed to keep compatibility with the old version.
 // Use BlockWriteCloser interface instead.
@@ -67,10 +67,11 @@ func (w *blockWriter) Close() error {
 	return nil
 }
 
-// NewBlockWriter creates BlockWriteCloser for each track specified as tracks argument.
+// NewSimpleBlockWriter creates BlockWriteCloser for each track specified as tracks argument.
+// Blocks will be written to WebM as EBML SimpleBlocks.
 // Resultant WebM is written to given io.WriteCloser.
 // io.WriteCloser will be closed automatically; don't close it by yourself.
-func NewBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockWriterOption) ([]BlockWriteCloser, error) {
+func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockWriterOption) ([]BlockWriteCloser, error) {
 	options := &BlockWriterOptions{
 		ebmlHeader:  DefaultEBMLHeader,
 		segmentInfo: DefaultSegmentInfo,
@@ -226,7 +227,8 @@ func NewBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockWriterO
 	return ws, nil
 }
 
-// NewSimpleWriter creates WriteCloser for each track specified as tracks argument.
+// NewSimpleWriter creates BlockWriteCloser for each track specified as tracks argument.
+// Blocks will be written to WebM as EBML SimpleBlocks.
 // Resultant WebM is written to given io.WriteCloser.
 // io.WriteCloser will be closed automatically; don't close it by yourself.
 //
@@ -235,10 +237,10 @@ func NewBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockWriterO
 func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockWriterOption) ([]*FrameWriter, error) {
 	// os.Stderr.WriteString(
 	// 	"Deprecated: You are using deprecated webm.NewSimpleWriter and *webm.blockWriter.\n" +
-	// 		"            Use webm.NewBlockWriter and webm.BlockWriteCloser interface instead.\n" +
+	// 		"            Use webm.NewSimpleBlockWriter and webm.BlockWriteCloser interface instead.\n" +
 	// 		"            See https://godoc.org/github.com/at-wat/ebml-go to find out the latest API.\n",
 	// )
-	ws, err := NewBlockWriter(w0, tracks, opts...)
+	ws, err := NewSimpleBlockWriter(w0, tracks, opts...)
 	var ws2 []*FrameWriter
 	for _, w := range ws {
 		ws2 = append(ws2, &FrameWriter{w})

@@ -52,7 +52,7 @@ func TestBlockWriter(t *testing.T) {
 			},
 		},
 	}
-	ws, err := NewBlockWriter(buf, tracks)
+	ws, err := NewSimpleBlockWriter(buf, tracks)
 	if err != nil {
 		t.Fatalf("Failed to create BlockWriter: %v", err)
 	}
@@ -159,7 +159,7 @@ func TestBlockWriter_Options(t *testing.T) {
 		},
 	}
 
-	ws, err := NewBlockWriter(
+	ws, err := NewSimpleBlockWriter(
 		buf, tracks,
 		WithEBMLHeader(nil),
 		WithSegmentInfo(nil),
@@ -218,7 +218,7 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			buf := &bufferCloser{closed: make(chan struct{})}
-			_, err := NewBlockWriter(buf, []TrackEntry{}, c.opts...)
+			_, err := NewSimpleBlockWriter(buf, []TrackEntry{}, c.opts...)
 			if err != c.err {
 				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
 			}
@@ -308,7 +308,7 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 				w.setError(bytes.ErrTooLarge)
 			}
 			clearErr()
-			ws, err := NewBlockWriter(
+			ws, err := NewSimpleBlockWriter(
 				w, tracks,
 				WithOnErrorHandler(func(err error) { chError <- err }),
 				WithOnFatalHandler(func(err error) { chFatal <- err }),
