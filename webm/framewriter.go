@@ -15,11 +15,16 @@
 package webm
 
 import (
+	"errors"
 	"io"
 	"os"
 	"sync"
 
 	"github.com/at-wat/ebml-go"
+)
+
+var (
+	errIgnoreOldFrame = errors.New("too old frame")
 )
 
 // FrameWriter is an implementation of WriteCloser.
@@ -70,6 +75,9 @@ func NewFrameWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...FrameWriterO
 	options := &FrameWriterOptions{
 		ebmlHeader:  DefaultEBMLHeader,
 		segmentInfo: DefaultSegmentInfo,
+		onFatal: func(err error) {
+			panic(err)
+		},
 	}
 	for _, o := range opts {
 		if err := o(options); err != nil {
@@ -147,8 +155,9 @@ func NewFrameWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...FrameWriterO
 				},
 			}
 			if err := ebml.Marshal(&cluster, w, options.marshalOpts...); err != nil {
-				// TODO: output error
-				panic(err)
+				if options.onFatal != nil {
+					options.onFatal(err)
+				}
 			}
 			w.Close()
 			<-fin // read one data to release blocked Close()
@@ -180,13 +189,17 @@ func NewFrameWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...FrameWriterO
 					}
 					w.Clear()
 					if err := ebml.Marshal(&cluster, w, options.marshalOpts...); err != nil {
-						// TODO: output error
-						panic(err)
+						if options.onFatal != nil {
+							options.onFatal(err)
+						}
+						return
 					}
 				}
 				if tc <= -0x7FFF {
 					// Ignore too old frame
-					// TODO: output error
+					if options.onError != nil {
+						options.onError(errIgnoreOldFrame)
+					}
 					continue
 				}
 
@@ -202,8 +215,10 @@ func NewFrameWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...FrameWriterO
 				}
 				// Write SimpleBlock to the file
 				if err := ebml.Marshal(&b, w, options.marshalOpts...); err != nil {
-					// TODO: output error
-					panic(err)
+					if options.onFatal != nil {
+						options.onFatal(err)
+					}
+					return
 				}
 			}
 		}

@@ -13,6 +13,8 @@ type FrameWriterOptions struct {
 	segmentInfo interface{}
 	seekHead    interface{}
 	marshalOpts []ebml.MarshalOption
+	onError     func(error)
+	onFatal     func(error)
 }
 
 // WithEBMLHeader sets EBML header of WebM.
@@ -43,6 +45,22 @@ func WithSeekHead(s interface{}) FrameWriterOption {
 func WithMarshalOptions(opts ...ebml.MarshalOption) FrameWriterOption {
 	return func(o *FrameWriterOptions) error {
 		o.marshalOpts = opts
+		return nil
+	}
+}
+
+// WithOnErrorHandler registers marshal error handler
+func WithOnErrorHandler(handler func(error)) FrameWriterOption {
+	return func(o *FrameWriterOptions) error {
+		o.onError = handler
+		return nil
+	}
+}
+
+// WithOnFatalHandler registers marshal error handler
+func WithOnFatalHandler(handler func(error)) FrameWriterOption {
+	return func(o *FrameWriterOptions) error {
+		o.onFatal = handler
 		return nil
 	}
 }
