@@ -192,7 +192,9 @@ func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...SimpleWrite
 				}
 				// Write SimpleBlock to the file
 				if err := ebml.Marshal(&b, w, options.marshalOpts...); err != nil {
-					options.onError(err)
+					if options.onFatal != nil {
+						options.onFatal(err)
+					}
 					return
 				}
 			}
