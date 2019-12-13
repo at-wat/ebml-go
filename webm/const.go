@@ -15,7 +15,7 @@
 package webm
 
 var (
-	// DefaultEBMLHeader is the default EBML header and is used by writer.
+	// DefaultEBMLHeader is the default EBML header used by BlockWriter.
 	DefaultEBMLHeader = &EBMLHeader{
 		EBMLVersion:        1,
 		EBMLReadVersion:    1,
@@ -25,7 +25,7 @@ var (
 		DocTypeVersion:     2,
 		DocTypeReadVersion: 2,
 	}
-	// DefaultSegmentInfo is the default Segment.Info and is used by writer.
+	// DefaultSegmentInfo is the default Segment.Info used by BlockWriter.
 	DefaultSegmentInfo = &Info{
 		TimecodeScale: 1000000, // 1ms
 		MuxingApp:     "ebml-go.webm.FrameWriter",

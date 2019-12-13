@@ -4,6 +4,11 @@ import (
 	"github.com/at-wat/ebml-go"
 )
 
+var (
+	// DefaultMuxer is the default BlockMuxer used by BlockWriter.
+	DefaultMuxer = NewMultiTrackBlockSorter(10)
+)
+
 // BlockWriterOption configures a BlockWriterOptions.
 type BlockWriterOption func(*BlockWriterOptions) error
 
@@ -15,6 +20,7 @@ type BlockWriterOptions struct {
 	marshalOpts []ebml.MarshalOption
 	onError     func(error)
 	onFatal     func(error)
+	muxer       BlockMuxer
 }
 
 // WithEBMLHeader sets EBML header of WebM.
@@ -61,6 +67,14 @@ func WithOnErrorHandler(handler func(error)) BlockWriterOption {
 func WithOnFatalHandler(handler func(error)) BlockWriterOption {
 	return func(o *BlockWriterOptions) error {
 		o.onFatal = handler
+		return nil
+	}
+}
+
+// WithBlockMuxer registers BlockMuxer
+func WithBlockMuxer(muxer BlockMuxer) BlockWriterOption {
+	return func(o *BlockWriterOptions) error {
+		o.muxer = muxer
 		return nil
 	}
 }

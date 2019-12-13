@@ -78,6 +78,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 		onFatal: func(err error) {
 			panic(err)
 		},
+		muxer: DefaultMuxer,
 	}
 	for _, o := range opts {
 		if err := o(options); err != nil {
