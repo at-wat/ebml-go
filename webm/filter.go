@@ -22,7 +22,7 @@ import (
 // BlockMuxer is a interface of WebM block stream muxer.
 type BlockMuxer interface {
 	// Filter reads blocks of each track, filters, and writes.
-	Filter(r []BlockReader, w []BlockWriter) error
+	Filter(r []BlockReader, w []BlockWriter)
 }
 
 type filterWriter struct {
@@ -63,7 +63,7 @@ type multiTrackBlockSorter struct {
 	maxDelay int
 }
 
-func (s *multiTrackBlockSorter) Filter(r []BlockReader, w []BlockWriter) error {
+func (s *multiTrackBlockSorter) Filter(r []BlockReader, w []BlockWriter) {
 	var wg sync.WaitGroup
 	wg.Add(len(r))
 
@@ -141,7 +141,7 @@ func (s *multiTrackBlockSorter) Filter(r []BlockReader, w []BlockWriter) error {
 			}
 		case <-closed:
 			flush(true)
-			return nil
+			return
 		}
 	}
 }

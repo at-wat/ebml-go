@@ -65,9 +65,7 @@ func TestMultiTrackBlockSorter(t *testing.T) {
 		close(ch[1])
 	}()
 
-	if err := f.Filter(r, w); err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	f.Filter(r, w)
 
 	close(chOut)
 	wg.Wait()
@@ -119,8 +117,7 @@ func BenchmarkMultiTrackBlockSorter(b *testing.B) {
 	}()
 
 	b.ResetTimer()
-	if err := f.Filter(r, w); err != nil {
-		b.Fatalf("Unexpected error: %v", err)
-	}
+	f.Filter(r, w)
+
 	close(chOut)
 }

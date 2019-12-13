@@ -59,6 +59,7 @@ func (w *blockWriter) Write(keyframe bool, timestamp int64, b []byte) (int, erro
 }
 
 func (w *blockWriter) Close() error {
+	close(w.f)
 	w.wg.Done()
 
 	// If it is the last writer, block until closing output writer.
@@ -118,15 +119,32 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 	fin := make(chan struct{}, len(tracks)-1)
 	wg := sync.WaitGroup{}
 	var ws []BlockWriteCloser
+	var fw []BlockWriter
+	var fr []BlockReader
 
 	for _, t := range tracks {
 		wg.Add(1)
+		var chSrc chan *frame
+		if options.muxer == nil {
+			chSrc = ch
+		} else {
+			chSrc = make(chan *frame)
+			fr = append(fr, &filterReader{chSrc})
+			fw = append(fw, &filterWriter{t.TrackNumber, ch})
+		}
 		ws = append(ws, &blockWriter{
 			trackNumber: t.TrackNumber,
-			f:           ch,
+			f:           chSrc,
 			wg:          &wg,
 			fin:         fin,
 		})
+	}
+	if options.muxer != nil {
+		wg.Add(1)
+		go func() {
+			options.muxer.Filter(fr, fw)
+			wg.Done()
+		}()
 	}
 
 	closed := make(chan struct{})
