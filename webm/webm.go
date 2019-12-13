@@ -83,14 +83,18 @@ type Tracks struct {
 	TrackEntry []TrackEntry `ebml:"TrackEntry"`
 }
 
+// BlockGroup represents BlockGroup element struct.
+type BlockGroup struct {
+	BlockDuration  uint64     `ebml:"BlockDuration,omitempty"`
+	ReferenceBlock int64      `ebml:"ReferenceBlock,omitempty"`
+	Block          ebml.Block `ebml:"Block"`
+}
+
 // Cluster represents Cluster element struct.
 type Cluster struct {
-	Timecode   uint64 `ebml:"Timecode"`
-	PrevSize   uint64 `ebml:"PrevSize,omitempty"`
-	BlockGroup []struct {
-		BlockDuration uint64       `ebml:"BlockDuration"`
-		Block         []ebml.Block `ebml:"Block"`
-	} `ebml:"BlockGroup"`
+	Timecode    uint64       `ebml:"Timecode"`
+	PrevSize    uint64       `ebml:"PrevSize,omitempty"`
+	BlockGroup  []BlockGroup `ebml:"BlockGroup"`
 	SimpleBlock []ebml.Block `ebml:"SimpleBlock"`
 }
 

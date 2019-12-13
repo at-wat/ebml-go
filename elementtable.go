@@ -77,6 +77,7 @@ var table = elementTable{
 	ElementVoid:                   elementDef{[]byte{0xEC}, TypeMaster, false},
 	ElementCueClusterPosition:     elementDef{[]byte{0xF1}, TypeUInt, false},
 	ElementCueTrack:               elementDef{[]byte{0xF7}, TypeUInt, false},
+	ElementReferenceBlock:         elementDef{[]byte{0xFB}, TypeInt, false},
 }
 
 type elementRevTable map[uint32]element
