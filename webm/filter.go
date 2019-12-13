@@ -65,15 +65,14 @@ type multiTrackBlockSorter struct {
 
 func (s *multiTrackBlockSorter) Filter(r []BlockReader, w []BlockWriter) error {
 	var wg sync.WaitGroup
+	wg.Add(len(r))
 
 	ch := make(chan *frame)
 	for i, r := range r {
-		wg.Add(1)
 		go func(i int, r BlockReader) {
 			for {
-				// Read one
-				f := &frame{trackNumber: uint64(i)}
 				var err error
+				f := &frame{trackNumber: uint64(i)}
 				if f.b, f.keyframe, f.timestamp, err = r.Read(); err != nil {
 					wg.Done()
 					return

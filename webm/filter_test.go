@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestMultiTrackBlockSorter(t *testing.T) {
@@ -51,10 +52,13 @@ func TestMultiTrackBlockSorter(t *testing.T) {
 	go func() {
 		ch[0] <- &frame{0, false, 10, []byte{1}}
 		ch[0] <- &frame{0, false, 11, []byte{2}}
+		time.Sleep(time.Millisecond)
 		ch[1] <- &frame{1, false, 9, []byte{3}}
+		time.Sleep(time.Millisecond)
 		ch[0] <- &frame{0, false, 16, []byte{4}}
 		ch[0] <- &frame{0, false, 17, []byte{5}}
 		ch[0] <- &frame{0, false, 18, []byte{6}}
+		time.Sleep(time.Millisecond)
 		ch[1] <- &frame{1, false, 15, []byte{7}} // drop due to maxDelay=2
 		ch[1] <- &frame{1, false, 18, []byte{8}}
 		close(ch[0])
