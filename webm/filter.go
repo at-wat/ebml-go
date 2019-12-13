@@ -66,23 +66,19 @@ type multiTrackBlockSorter struct {
 func (s *multiTrackBlockSorter) Filter(r []BlockReader, w []BlockWriter) error {
 	var wg sync.WaitGroup
 
-	type frameWithTrackID struct {
-		frame *frame
-		i     int
-	}
-	ch := make(chan frameWithTrackID)
+	ch := make(chan *frame)
 	for i, r := range r {
 		wg.Add(1)
 		go func(i int, r BlockReader) {
 			for {
 				// Read one
-				f := &frame{}
+				f := &frame{trackNumber: uint64(i)}
 				var err error
 				if f.b, f.keyframe, f.timestamp, err = r.Read(); err != nil {
 					wg.Done()
 					return
 				}
-				ch <- frameWithTrackID{f, i}
+				ch <- f
 			}
 		}(i, r)
 	}
@@ -94,7 +90,7 @@ func (s *multiTrackBlockSorter) Filter(r []BlockReader, w []BlockWriter) error {
 	}()
 
 	var tDone int64
-	buf := make([][]frameWithTrackID, len(r))
+	buf := make([][]*frame, len(r))
 
 	flush := func(all bool) {
 		var nChReq int
@@ -104,30 +100,33 @@ func (s *multiTrackBlockSorter) Filter(r []BlockReader, w []BlockWriter) error {
 		for {
 			var tOldest int64
 			var nCh int
-			iOldest := -1
+			var nMax int
+			var fOldest *frame
 			for _, b := range buf {
-				if len(b) > 0 {
+				n := len(b)
+				if n > 0 {
 					nCh++
-					if b[0].frame.timestamp < tOldest || iOldest < 0 {
-						tOldest = b[0].frame.timestamp
-						iOldest = b[0].i
+					if b[0].timestamp < tOldest || fOldest == nil {
+						tOldest = b[0].timestamp
+						fOldest = b[0]
+					}
+					if n > nMax {
+						nMax = n
 					}
 				}
 			}
-			if iOldest < 0 {
+			if fOldest == nil {
 				break
 			}
-			nOldest := len(buf[iOldest])
-			if nCh >= nChReq || nOldest > s.maxDelay {
-				d := buf[iOldest][0]
-				buf[iOldest][0].frame = nil // for quick GC
-				if nOldest == 1 {
+			iOldest := fOldest.trackNumber
+			if nCh >= nChReq || nMax > s.maxDelay {
+				if len(buf[iOldest]) == 1 {
 					buf[iOldest] = nil
 				} else {
 					buf[iOldest] = buf[iOldest][1:]
 				}
-				w[iOldest].Write(d.frame.keyframe, d.frame.timestamp, d.frame.b)
-				tDone = d.frame.timestamp
+				w[iOldest].Write(fOldest.keyframe, fOldest.timestamp, fOldest.b)
+				tDone = fOldest.timestamp
 			} else {
 				break
 			}
@@ -137,8 +136,8 @@ func (s *multiTrackBlockSorter) Filter(r []BlockReader, w []BlockWriter) error {
 	for {
 		select {
 		case d := <-ch:
-			if d.frame.timestamp >= tDone {
-				buf[d.i] = append(buf[d.i], d)
+			if d.timestamp >= tDone {
+				buf[d.trackNumber] = append(buf[d.trackNumber], d)
 				flush(false)
 			}
 		case <-closed:
