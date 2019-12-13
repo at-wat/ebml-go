@@ -69,8 +69,8 @@ func (w *blockWriter) Close() error {
 
 // NewSimpleBlockWriter creates BlockWriteCloser for each track specified as tracks argument.
 // Blocks will be written to WebM as EBML SimpleBlocks.
-// Resultant WebM is written to given io.WriteCloser.
-// io.WriteCloser will be closed automatically; don't close it by yourself.
+// Resultant WebM is written to given io.WriteCloser and will be closed automatically; don't close it by yourself.
+// Frames written to each track must be sorted by their timestamp.
 func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockWriterOption) ([]BlockWriteCloser, error) {
 	options := &BlockWriterOptions{
 		ebmlHeader:  DefaultEBMLHeader,
