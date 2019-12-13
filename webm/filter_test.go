@@ -81,3 +81,42 @@ func TestMultiTrackBlockSorter(t *testing.T) {
 		t.Errorf("Unexpected sort result, \nexpected: %v, \n     got: %v", framesExpected, frames)
 	}
 }
+
+func BenchmarkMultiTrackBlockSorter(b *testing.B) {
+	f := NewMultiTrackBlockSorter(2)
+
+	chOut := make(chan *frame)
+	ch := []chan *frame{
+		make(chan *frame),
+		make(chan *frame),
+	}
+
+	w := []BlockWriter{
+		&filterWriter{0, chOut},
+		&filterWriter{1, chOut},
+	}
+	r := []BlockReader{
+		&filterReader{ch[0]},
+		&filterReader{ch[1]},
+	}
+
+	go func() {
+		for range chOut {
+		}
+	}()
+
+	go func() {
+		for i := 0; i < b.N; i++ {
+			ch[0] <- &frame{0, false, int64(i), []byte{1, 2, 3, 4}}
+			ch[1] <- &frame{1, false, int64(i) + 5, []byte{2, 3, 4, 5}}
+		}
+		close(ch[0])
+		close(ch[1])
+	}()
+
+	b.ResetTimer()
+	if err := f.Filter(r, w); err != nil {
+		b.Fatalf("Unexpected error: %v", err)
+	}
+	close(chOut)
+}
