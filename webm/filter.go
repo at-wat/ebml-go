@@ -54,7 +54,13 @@ func (r *filterReader) Read() ([]byte, bool, int64, error) {
 	}
 }
 
-// NewMultiTrackBlockSorter create BlockMuxer which sorts blocks on multiple tracks by timestamp.
+func (r *filterReader) close() {
+	close(r.ch)
+}
+
+// NewMultiTrackBlockSorter creates BlockMuxer, which sorts blocks on multiple tracks by timestamp.
+// The index of TrackEntry sorts blocks with the same timestamp.
+// Place the audio track before the video track to meet WebM Muxer Guidelines.
 func NewMultiTrackBlockSorter(maxDelay int) BlockMuxer {
 	return &multiTrackBlockSorter{maxDelay: maxDelay}
 }

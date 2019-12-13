@@ -59,7 +59,6 @@ func (w *blockWriter) Write(keyframe bool, timestamp int64, b []byte) (int, erro
 }
 
 func (w *blockWriter) Close() error {
-	close(w.f)
 	w.wg.Done()
 
 	// If it is the last writer, block until closing output writer.
@@ -139,17 +138,24 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 			fin:         fin,
 		})
 	}
+
+	filterFlushed := make(chan struct{})
 	if options.muxer != nil {
-		wg.Add(1)
 		go func() {
 			options.muxer.Filter(fr, fw)
-			wg.Done()
+			close(filterFlushed)
 		}()
+	} else {
+		close(filterFlushed)
 	}
 
 	closed := make(chan struct{})
 	go func() {
 		wg.Wait()
+		for _, c := range fr {
+			c.(*filterReader).close()
+		}
+		<-filterFlushed
 		close(closed)
 	}()
 
