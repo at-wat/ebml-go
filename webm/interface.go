@@ -24,7 +24,7 @@ type BlockWriter interface {
 // BlockReader is a WebM block reader interface.
 type BlockReader interface {
 	// Read a block from the connected WebM reader.
-	Read(b []byte) (nBytes int64, keyframe bool, timestamp int64, err error)
+	Read() (b []byte, keyframe bool, timestamp int64, err error)
 }
 
 // BlockCloser is a WebM closer interface.
