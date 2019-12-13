@@ -260,3 +260,27 @@ func TestEncodeValue_WrongSize(t *testing.T) {
 		})
 	}
 }
+
+func TestReadValue_WrongSize(t *testing.T) {
+	testCases := map[string]struct {
+		t   Type
+		b   []byte
+		n   uint64
+		err error
+	}{
+		"Float32(3B)": {
+			TypeFloat,
+			[]byte{0, 0, 0},
+			3,
+			errInvalidFloatSize,
+		},
+	}
+	for n, c := range testCases {
+		t.Run("Read "+n, func(t *testing.T) {
+			_, err := perTypeReader[c.t](bytes.NewReader(c.b), c.n)
+			if err != c.err {
+				t.Fatalf("read%s returned unexpected error to wrong data size: %v", n, err)
+			}
+		})
+	}
+}
