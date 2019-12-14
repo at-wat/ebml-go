@@ -42,7 +42,7 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 	}
 	voe := vo.Elem()
 	for {
-		if _, err := readElement(r, sizeUnknown, voe, 0, nil, options); err != nil {
+		if _, err := readElement(r, sizeUnknown, voe, 0, 0, nil, options); err != nil {
 			if err == io.EOF {
 				return nil
 			}
@@ -51,7 +51,7 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 	}
 }
 
-func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *Element, options *UnmarshalOptions) (io.Reader, error) {
+func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64, parent *Element, options *UnmarshalOptions) (io.Reader, error) {
 	var r io.Reader
 	if n != sizeUnknown {
 		r = io.LimitReader(r0, n)
@@ -106,9 +106,8 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 		}
 
 		var elem *Element
-		if len(options.hooks) > 0 {
+		if len(options.hooks) > 0 && vnext.IsValid() {
 			elem = &Element{
-				Value:    vnext.Interface(),
 				Name:     v.e.String(),
 				Position: pos,
 				Size:     size,
@@ -118,7 +117,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 
 		switch v.t {
 		case TypeMaster:
-			if v.top && !vnext.IsValid() {
+			if v.top && depth > 1 {
 				b := bytes.Join([][]byte{table[v.e].b, encodeDataSize(size, uint64(nb))}, []byte{})
 				return bytes.NewBuffer(b), io.EOF
 			}
@@ -135,8 +134,10 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 					vn = vnext
 				}
 			}
-			r0, err := readElement(r, int64(size), vn, pos+headerSize, elem, options)
-
+			if elem != nil {
+				elem.Value = vn.Interface()
+			}
+			r0, err := readElement(r, int64(size), vn, depth+1, pos+headerSize, elem, options)
 			if err != nil && err != io.EOF {
 				return r0, err
 			}
@@ -156,9 +157,14 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 					vnext.Set(reflect.Append(vnext, reflect.ValueOf(val)))
 				}
 			}
+			if elem != nil {
+				elem.Value = vr
+			}
 		}
-		for _, hook := range options.hooks {
-			hook(elem)
+		if elem != nil {
+			for _, hook := range options.hooks {
+				hook(elem)
+			}
 		}
 
 		pos += headerSize + size

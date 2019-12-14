@@ -63,7 +63,8 @@ func TestUnmarshal_OptionError(t *testing.T) {
 
 func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 	TestBinary := []byte{
-		0x18, 0x53, 0x80, 0x67, 0xa1, // Segment
+		0x18, 0x53, 0x80, 0x67, 0xa6, // Segment
+		0x1c, 0x53, 0xbb, 0x6b, 0x80, // Cues (empty)
 		0x16, 0x54, 0xae, 0x6b, 0x9c, // Tracks
 		0xae, 0x8c, // TrackEntry[0]
 		0x53, 0x6e, 0x86, 0x56, 0x69, 0x64, 0x65, 0x6f, 0x00, // Name=Video
@@ -96,10 +97,10 @@ func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 	// Verify positions of elements
 	expected := map[string][]uint64{
 		"Segment":                               {0},
-		"Segment.Tracks":                        {5},
-		"Segment.Tracks.TrackEntry":             {10, 24},
-		"Segment.Tracks.TrackEntry.Name":        {12, 26},
-		"Segment.Tracks.TrackEntry.TrackNumber": {21, 35},
+		"Segment.Tracks":                        {10},
+		"Segment.Tracks.TrackEntry":             {15, 29},
+		"Segment.Tracks.TrackEntry.Name":        {17, 31},
+		"Segment.Tracks.TrackEntry.TrackNumber": {26, 40},
 	}
 	posMap := elementPositionMap(m)
 	if !reflect.DeepEqual(expected, posMap) {
