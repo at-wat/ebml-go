@@ -200,6 +200,41 @@ func TestMarshal_WriterError(t *testing.T) {
 	}
 }
 
+func TestMarshal_WithWriteHooks(t *testing.T) {
+	type EBMLHeader struct {
+		DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"` // 2 + 1 + 1 bytes
+	}
+	s := struct {
+		Header  EBMLHeader `ebml:"EBML"`              // 4 + 1 + 4 bytes
+		Header2 EBMLHeader `ebml:"EBML,size=unknown"` // 4 + 8 + 4 bytes
+	}{}
+
+	m := make(map[string][]*Element)
+	hook := withElementMap(m)
+	err := Marshal(&s, &limitedDummyWriter{limit: 25}, WithElementWriteHooks(hook))
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	expected := map[string][]uint64{
+		"EBML": {0, 9},
+	}
+	for key, positions := range expected {
+		elem, ok := m[key]
+		if !ok {
+			t.Errorf("Key '%s' doesn't exist", key)
+		}
+		if len(elem) != len(positions) {
+			t.Errorf("Unexpected element size of '%s', expected: %d, got: %d", key, len(positions), len(elem))
+		}
+		for i, pos := range positions {
+			if elem[i].Position != pos {
+				t.Errorf("Unexpected element position of '%s[%d]', expected: %d, got: %d", key, i, pos, elem[i].Position)
+			}
+		}
+	}
+}
+
 func ExampleMarshal() {
 	type EBMLHeader struct {
 		DocType            string `ebml:"EBMLDocType"`

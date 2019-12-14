@@ -61,7 +61,8 @@ func Marshal(val interface{}, w io.Writer, opts ...MarshalOption) error {
 	}
 	vo := reflect.ValueOf(val).Elem()
 
-	return marshalImpl(vo, w, options)
+	_, err := marshalImpl(vo, w, 0, nil, options)
+	return err
 }
 
 func pealElem(v reflect.Value, binary, omitEmpty bool) ([]reflect.Value, bool) {
@@ -102,7 +103,7 @@ func deepIsZero(v reflect.Value) bool {
 	return reflect.DeepEqual(reflect.Zero(v.Type()).Interface(), v.Interface())
 }
 
-func marshalImpl(vo reflect.Value, w io.Writer, options *MarshalOptions) error {
+func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, options *MarshalOptions) (uint64, error) {
 	l := vo.NumField()
 	for i := 0; i < l; i++ {
 		vn := vo.Field(i)
@@ -112,7 +113,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, options *MarshalOptions) error {
 		if n, ok := tn.Tag.Lookup("ebml"); ok {
 			var err error
 			if tag, err = parseTag(n); err != nil {
-				return err
+				return pos, err
 			}
 		}
 		if tag.name == "" {
@@ -121,7 +122,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, options *MarshalOptions) error {
 		if t, err := ElementTypeFromString(tag.name); err == nil {
 			e, ok := table[t]
 			if !ok {
-				return errUnsupportedElement
+				return pos, errUnsupportedElement
 			}
 
 			unknown := tag.size == sizeUnknown
@@ -133,49 +134,74 @@ func marshalImpl(vo reflect.Value, w io.Writer, options *MarshalOptions) error {
 
 			for _, vn := range lst {
 				// Write element ID
-				if _, err := w.Write(e.b); err != nil {
-					return err
+				var headerSize uint64
+				if n, err := w.Write(e.b); err != nil {
+					return pos, err
+				} else {
+					headerSize += uint64(n)
 				}
 				var bw io.Writer
 				if unknown {
 					// Directly write length unspecified element
 					bsz := encodeDataSize(uint64(sizeUnknown), 0)
-					if _, err := w.Write(bsz); err != nil {
-						return err
+					if n, err := w.Write(bsz); err != nil {
+						return pos, err
+					} else {
+						headerSize += uint64(n)
 					}
 					bw = w
 				} else {
 					bw = &bytes.Buffer{}
 				}
 
+				elem := &Element{
+					Value:    vn.Interface(),
+					Name:     tag.name,
+					Position: pos,
+					Size:     sizeUnknown,
+					Parent:   parent,
+				}
+
+				var size uint64
 				if e.t == TypeMaster {
-					if err := marshalImpl(vn, bw, options); err != nil {
-						return err
+					if p, err := marshalImpl(vn, bw, pos+headerSize, elem, options); err != nil {
+						return pos, err
+					} else {
+						size = p - pos - headerSize
 					}
 				} else {
 					bc, err := perTypeEncoder[e.t](vn.Interface(), tag.size)
 					if err != nil {
-						return err
+						return pos, err
 					}
-					if _, err := bw.Write(bc); err != nil {
-						return err
+					if n, err := bw.Write(bc); err != nil {
+						return pos, err
+					} else {
+						size = uint64(n)
 					}
 				}
 
 				// Write element with length
 				if !unknown {
-					bsz := encodeDataSize(uint64(bw.(*bytes.Buffer).Len()), options.dataSizeLen)
-					if _, err := w.Write(bsz); err != nil {
-						return err
+					elem.Size = size
+					bsz := encodeDataSize(elem.Size, options.dataSizeLen)
+					if n, err := w.Write(bsz); err != nil {
+						return pos, err
+					} else {
+						headerSize += uint64(n)
 					}
 					if _, err := w.Write(bw.(*bytes.Buffer).Bytes()); err != nil {
-						return err
+						return pos, err
 					}
 				}
+				for _, cb := range options.hooks {
+					cb(elem)
+				}
+				pos += headerSize + size
 			}
 		}
 	}
-	return nil
+	return pos, nil
 }
 
 // MarshalOption configures a MarshalOptions struct.
@@ -184,12 +210,21 @@ type MarshalOption func(*MarshalOptions) error
 // MarshalOptions stores options for marshalling.
 type MarshalOptions struct {
 	dataSizeLen uint64
+	hooks       []func(elem *Element)
 }
 
 // WithDataSizeLen returns an MarshalOption which sets number of reserved bytes of element data size.
 func WithDataSizeLen(l int) MarshalOption {
 	return func(opts *MarshalOptions) error {
 		opts.dataSizeLen = uint64(l)
+		return nil
+	}
+}
+
+// WithElementWriteHooks returns an MarshalOption which registers element hooks.
+func WithElementWriteHooks(hooks ...func(*Element)) MarshalOption {
+	return func(opts *MarshalOptions) error {
+		opts.hooks = hooks
 		return nil
 	}
 }
