@@ -64,7 +64,9 @@ func setSeekHead(header *flexHeader, opts ...ebml.MarshalOption) error {
 	var segmentPos uint64
 	hook := func(e *ebml.Element) {
 		switch e.Name {
-		case "Segment":
+		case "SeekHead":
+			// SeekHead position is the top of the Segment contents.
+			// Origin of the segment position is here.
 			segmentPos = e.Position
 		case "Info":
 			*infoPos = e.Position - segmentPos
@@ -80,7 +82,7 @@ func setSeekHead(header *flexHeader, opts ...ebml.MarshalOption) error {
 	if err := ebml.Marshal(header, buf, optsWithHook...); err != nil {
 		return err
 	}
-	*clusterPos = uint64(buf.Len())
+	*clusterPos = uint64(buf.Len()) - segmentPos
 
 	return nil
 }
