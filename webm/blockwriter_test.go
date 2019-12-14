@@ -163,7 +163,6 @@ func TestBlockWriter_Options(t *testing.T) {
 		buf, tracks,
 		WithEBMLHeader(nil),
 		WithSegmentInfo(nil),
-		WithSeekHead(nil),
 		WithMarshalOptions(ebml.WithDataSizeLen(2)),
 	)
 	if err != nil {
@@ -210,6 +209,17 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 				WithMarshalOptions(
 					func(*ebml.MarshalOptions) error { return errDummy1 },
 				),
+			},
+			err: errDummy1,
+		},
+		"MarshalOptionErrorWithSeekHead": {
+			opts: []BlockWriterOption{
+				WithMarshalOptions(
+					func(*ebml.MarshalOptions) error {
+						return errDummy1
+					},
+				),
+				WithSeekHead(),
 			},
 			err: errDummy1,
 		},
@@ -441,7 +451,6 @@ func TestBlockWriter_NewSimpleWriter(t *testing.T) {
 		buf, tracks,
 		WithEBMLHeader(nil),
 		WithSegmentInfo(nil),
-		WithSeekHead(nil),
 	)
 	if err != nil {
 		t.Fatalf("Failed to create BlockWriter: %v", err)
@@ -484,7 +493,6 @@ func TestBlockWriter_WithMaxKeyframeInterval(t *testing.T) {
 		buf, tracks,
 		WithEBMLHeader(nil),
 		WithSegmentInfo(nil),
-		WithSeekHead(nil),
 		WithMaxKeyframeInterval(1, 900*0x6FFF),
 	)
 	if err != nil {
@@ -536,6 +544,67 @@ func TestBlockWriter_WithMaxKeyframeInterval(t *testing.T) {
 		0x1F, 0x43, 0xB6, 0x75, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 		0xE7, 0x82, 0x10, 0x01,
 		0xAB, 0x81, 0x1A,
+	}
+	if !bytes.Equal(buf.Bytes(), expectedBytes) {
+		t.Errorf("Unexpected WebM binary,\nexpected: %+v\n     got: %+v", expectedBytes, buf.Bytes())
+	}
+}
+
+func TestBlockWriter_WithSeekHead(t *testing.T) {
+	buf := &bufferCloser{closed: make(chan struct{})}
+
+	tracks := []TrackEntry{
+		{
+			TrackNumber: 1,
+			TrackUID:    2,
+			CodecID:     "",
+			TrackType:   1,
+		},
+	}
+
+	ws, err := NewSimpleBlockWriter(
+		buf, tracks,
+		WithEBMLHeader(nil),
+		WithSegmentInfo(&Info{TimecodeScale: 1000000}),
+		WithSeekHead(),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create BlockWriter: %v", err)
+	}
+	if len(ws) != 1 {
+		t.Fatalf("Number of the returned writer must be 1, but got %d", len(ws))
+	}
+
+	ws[0].Close()
+
+	expectedBytes := []byte{
+		// 1     2     3     4     5     6     7     8     9    10    11    12
+		// Segment
+		0x18, 0x53, 0x80, 0x67, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		// SeekHead
+		0x11, 0x4D, 0x9B, 0x74, 0xBF,
+		0x4D, 0xBB, 0x92,
+		0x53, 0xAB, 0x84, 0x15, 0x49, 0xA9, 0x66, // Info
+		0x53, 0xAC, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x50,
+		0x4D, 0xBB, 0x92,
+		0x53, 0xAB, 0x84, 0x16, 0x54, 0xAE, 0x6B, // Tracks
+		0x53, 0xAC, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x5C,
+		0x4D, 0xBB, 0x92,
+		0x53, 0xAB, 0x84, 0x1F, 0x43, 0xB6, 0x75, // Cluster
+		0x53, 0xAC, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x70,
+		// Info, pos: 80
+		0x15, 0x49, 0xA9, 0x66, 0x87,
+		0x2A, 0xD7, 0xB1, 0x83, 0x0F, 0x42, 0x40,
+		// Tracks, pos: 92
+		0x16, 0x54, 0xAE, 0x6B, 0x8F,
+		0xAE, 0x8D,
+		0xD7, 0x81, 0x01,
+		0x73, 0xC5, 0x81, 0x02,
+		0x86, 0x81, 0x00,
+		0x83, 0x81, 0x01,
+		// Cluster, pos: 112
+		0x1F, 0x43, 0xB6, 0x75, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0xE7, 0x81, 0x00,
 	}
 	if !bytes.Equal(buf.Bytes(), expectedBytes) {
 		t.Errorf("Unexpected WebM binary,\nexpected: %+v\n     got: %+v", expectedBytes, buf.Bytes())

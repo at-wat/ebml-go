@@ -22,7 +22,7 @@ type BlockWriterOption func(*BlockWriterOptions) error
 type BlockWriterOptions struct {
 	ebmlHeader          interface{}
 	segmentInfo         interface{}
-	seekHead            interface{}
+	seekHead            bool
 	marshalOpts         []ebml.MarshalOption
 	onError             func(error)
 	onFatal             func(error)
@@ -47,10 +47,10 @@ func WithSegmentInfo(i interface{}) BlockWriterOption {
 	}
 }
 
-// WithSeekHead sets Segment.SeekHead of WebM.
-func WithSeekHead(s interface{}) BlockWriterOption {
+// WithSeekHead enables SeekHead calculation
+func WithSeekHead() BlockWriterOption {
 	return func(o *BlockWriterOptions) error {
-		o.seekHead = s
+		o.seekHead = true
 		return nil
 	}
 }

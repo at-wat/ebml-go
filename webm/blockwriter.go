@@ -88,25 +88,19 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 
 	w := &writerWithSizeCount{w: w0}
 
-	type FlexSegment struct {
-		SeekHead interface{} `ebml:"SeekHead,omitempty"`
-		Info     interface{} `ebml:"Info"`
-		Tracks   Tracks      `ebml:"Tracks"`
-		Cluster  []Cluster   `ebml:"Cluster"`
-	}
-
-	header := struct {
-		Header  interface{} `ebml:"EBML"`
-		Segment FlexSegment `ebml:"Segment,size=unknown"`
-	}{
+	header := flexHeader{
 		Header: options.ebmlHeader,
-		Segment: FlexSegment{
-			SeekHead: options.seekHead,
-			Info:     options.segmentInfo,
+		Segment: flexSegment{
+			Info: options.segmentInfo,
 			Tracks: Tracks{
 				TrackEntry: tracks,
 			},
 		},
+	}
+	if options.seekHead {
+		if err := setSeekHead(&header, options.marshalOpts...); err != nil {
+			return nil, err
+		}
 	}
 	if err := ebml.Marshal(&header, w, options.marshalOpts...); err != nil {
 		return nil, err
