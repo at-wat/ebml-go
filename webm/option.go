@@ -5,8 +5,8 @@ import (
 )
 
 var (
-	// DefaultMuxer is the default BlockMuxer used by BlockWriter.
-	DefaultMuxer = NewMultiTrackBlockSorter(10)
+	// DefaultBlockInterceptor is the default BlockInterceptor used by BlockWriter.
+	DefaultBlockInterceptor = NewMultiTrackBlockSorter(10)
 )
 
 // BlockWriterOption configures a BlockWriterOptions.
@@ -20,7 +20,7 @@ type BlockWriterOptions struct {
 	marshalOpts []ebml.MarshalOption
 	onError     func(error)
 	onFatal     func(error)
-	muxer       BlockMuxer
+	interceptor BlockInterceptor
 }
 
 // WithEBMLHeader sets EBML header of WebM.
@@ -71,10 +71,10 @@ func WithOnFatalHandler(handler func(error)) BlockWriterOption {
 	}
 }
 
-// WithBlockMuxer registers BlockMuxer
-func WithBlockMuxer(muxer BlockMuxer) BlockWriterOption {
+// WithBlockInterceptor registers BlockInterceptor
+func WithBlockInterceptor(interceptor BlockInterceptor) BlockWriterOption {
 	return func(o *BlockWriterOptions) error {
-		o.muxer = muxer
+		o.interceptor = interceptor
 		return nil
 	}
 }

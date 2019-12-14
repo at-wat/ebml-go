@@ -78,7 +78,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 		onFatal: func(err error) {
 			panic(err)
 		},
-		muxer: DefaultMuxer,
+		interceptor: DefaultBlockInterceptor,
 	}
 	for _, o := range opts {
 		if err := o(options); err != nil {
@@ -124,7 +124,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 	for _, t := range tracks {
 		wg.Add(1)
 		var chSrc chan *frame
-		if options.muxer == nil {
+		if options.interceptor == nil {
 			chSrc = ch
 		} else {
 			chSrc = make(chan *frame)
@@ -140,9 +140,9 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 	}
 
 	filterFlushed := make(chan struct{})
-	if options.muxer != nil {
+	if options.interceptor != nil {
 		go func() {
-			options.muxer.Filter(fr, fw)
+			options.interceptor.Intercept(fr, fw)
 			close(filterFlushed)
 		}()
 	} else {

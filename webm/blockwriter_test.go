@@ -311,7 +311,7 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 				w, tracks,
 				WithOnErrorHandler(func(err error) { chError <- err }),
 				WithOnFatalHandler(func(err error) { chFatal <- err }),
-				WithBlockMuxer(nil), // write without sorter
+				WithBlockInterceptor(nil), // write without sorter
 			)
 			if err != nil {
 				if errAt == atBeginning {

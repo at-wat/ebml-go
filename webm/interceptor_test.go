@@ -65,7 +65,7 @@ func TestMultiTrackBlockSorter(t *testing.T) {
 		close(ch[1])
 	}()
 
-	f.Filter(r, w)
+	f.Intercept(r, w)
 
 	close(chOut)
 	wg.Wait()
@@ -117,7 +117,7 @@ func BenchmarkMultiTrackBlockSorter(b *testing.B) {
 	}()
 
 	b.ResetTimer()
-	f.Filter(r, w)
+	f.Intercept(r, w)
 
 	close(chOut)
 }

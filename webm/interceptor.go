@@ -19,10 +19,10 @@ import (
 	"sync"
 )
 
-// BlockMuxer is a interface of WebM block stream muxer.
-type BlockMuxer interface {
-	// Filter reads blocks of each track, filters, and writes.
-	Filter(r []BlockReader, w []BlockWriter)
+// BlockInterceptor is a interface of WebM block stream muxer.
+type BlockInterceptor interface {
+	// Intercept reads blocks of each track, filters, and writes.
+	Intercept(r []BlockReader, w []BlockWriter)
 }
 
 type filterWriter struct {
@@ -58,10 +58,10 @@ func (r *filterReader) close() {
 	close(r.ch)
 }
 
-// NewMultiTrackBlockSorter creates BlockMuxer, which sorts blocks on multiple tracks by timestamp.
+// NewMultiTrackBlockSorter creates BlockInterceptor, which sorts blocks on multiple tracks by timestamp.
 // The index of TrackEntry sorts blocks with the same timestamp.
-// Place the audio track before the video track to meet WebM Muxer Guidelines.
-func NewMultiTrackBlockSorter(maxDelay int) BlockMuxer {
+// Place the audio track before the video track to meet WebM Interceptor Guidelines.
+func NewMultiTrackBlockSorter(maxDelay int) BlockInterceptor {
 	return &multiTrackBlockSorter{maxDelay: maxDelay}
 }
 
@@ -69,7 +69,7 @@ type multiTrackBlockSorter struct {
 	maxDelay int
 }
 
-func (s *multiTrackBlockSorter) Filter(r []BlockReader, w []BlockWriter) {
+func (s *multiTrackBlockSorter) Intercept(r []BlockReader, w []BlockWriter) {
 	var wg sync.WaitGroup
 	wg.Add(len(r))
 
