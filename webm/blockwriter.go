@@ -255,7 +255,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 // io.WriteCloser will be closed automatically; don't close it by yourself.
 //
 // Deprecated: This is exposed to keep compatibility with the old version.
-// Use NewblockWriter instead.
+// Use NewSimpleBlockWriter instead.
 func NewSimpleWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockWriterOption) ([]*FrameWriter, error) {
 	// os.Stderr.WriteString(
 	// 	"Deprecated: You are using deprecated webm.NewSimpleWriter and *webm.blockWriter.\n" +
