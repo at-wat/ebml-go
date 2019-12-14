@@ -32,7 +32,7 @@ func main() {
 
 	var ret struct {
 		Header  webm.EBMLHeader    `ebml:"EBML"`
-		Segment webm.SegmentStream `ebml:"Segment,inf"`
+		Segment webm.SegmentStream `ebml:"Segment,size=unknown"`
 	}
 	if err := ebml.Unmarshal(r, &ret); err != nil {
 		fmt.Printf("error: %v\n", err)
