@@ -2,6 +2,7 @@ package ebml
 
 import (
 	"bytes"
+	"io"
 	"reflect"
 	"testing"
 	"time"
@@ -178,53 +179,53 @@ func TestValue(t *testing.T) {
 }
 
 func TestEncodeValue_WrongInputType(t *testing.T) {
-	testCases := map[string]struct {
+	testCases := []struct {
 		t   Type
 		v   []interface{}
 		err error
 	}{
-		"Binary": {
+		{
 			TypeBinary,
 			[]interface{}{"aaa", int64(1), uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
 			errInvalidType,
 		},
-		"String": {
+		{
 			TypeString,
 			[]interface{}{[]byte{0x01}, int64(1), uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
 			errInvalidType,
 		},
-		"Int": {
+		{
 			TypeInt,
 			[]interface{}{"aaa", []byte{0x01}, uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
 			errInvalidType,
 		},
-		"UInt": {
+		{
 			TypeUInt,
 			[]interface{}{"aaa", []byte{0x01}, int64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
 			errInvalidType,
 		},
-		"Date": {
+		{
 			TypeDate,
 			[]interface{}{"aaa", []byte{0x01}, int64(1), uint64(1), float32(1.0), float64(1.0), Block{}},
 			errInvalidType,
 		},
-		"Float": {
+		{
 			TypeFloat,
 			[]interface{}{"aaa", []byte{0x01}, int64(1), uint64(1), time.Unix(1, 0), Block{}},
 			errInvalidType,
 		},
-		"Block": {
+		{
 			TypeBlock,
 			[]interface{}{"aaa", []byte{0x01}, int64(1), uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0)},
 			errInvalidType,
 		},
 	}
-	for n, c := range testCases {
-		t.Run("Encode "+n, func(t *testing.T) {
+	for _, c := range testCases {
+		t.Run("Encode "+c.t.String(), func(t *testing.T) {
 			for _, v := range c.v {
 				_, err := perTypeEncoder[c.t](v, 0)
 				if err != c.err {
-					t.Fatalf("encode%s returned unexpected error to wrong input type: %v", n, err)
+					t.Fatalf("encode%s returned unexpected error to wrong input type: %v", c.t.String(), err)
 				}
 			}
 		})
@@ -256,6 +257,56 @@ func TestEncodeValue_WrongSize(t *testing.T) {
 			_, err := perTypeEncoder[c.t](c.v, c.n)
 			if err != c.err {
 				t.Fatalf("encode%s returned unexpected error to wrong input type: %v", n, err)
+			}
+		})
+	}
+}
+
+func TestReadValue_WrongSize(t *testing.T) {
+	testCases := map[string]struct {
+		t   Type
+		b   []byte
+		n   uint64
+		err error
+	}{
+		"Float32(3B)": {
+			TypeFloat,
+			[]byte{0, 0, 0},
+			3,
+			errInvalidFloatSize,
+		},
+	}
+	for n, c := range testCases {
+		t.Run("Read "+n, func(t *testing.T) {
+			_, err := perTypeReader[c.t](bytes.NewReader(c.b), c.n)
+			if err != c.err {
+				t.Fatalf("read%s returned unexpected error to wrong data size: %v", n, err)
+			}
+		})
+	}
+}
+
+func TestReadValue_ReadUnexpectedEOF(t *testing.T) {
+	testCases := []struct {
+		t Type
+		b []byte
+	}{
+		{TypeBinary, []byte{0x00, 0x00}},
+		{TypeString, []byte{0x00, 0x00}},
+		{TypeInt, []byte{0x00, 0x00}},
+		{TypeUInt, []byte{0x00, 0x00}},
+		{TypeDate, []byte{0x00, 0x00}},
+		{TypeFloat, []byte{0x00, 0x00, 0x00, 0x00}},
+	}
+	for _, c := range testCases {
+		t.Run("Read "+c.t.String(), func(t *testing.T) {
+			for l := 0; l < len(c.b)-1; l++ {
+				r := bytes.NewReader(c.b[:l])
+				_, err := perTypeReader[c.t](r, uint64(len(c.b)))
+				if err != io.ErrUnexpectedEOF {
+					t.Errorf("read%s returned unexpected error for %d byte(s) data, expected %v, got %v",
+						c.t.String(), l, io.ErrUnexpectedEOF, err)
+				}
 			}
 		})
 	}
