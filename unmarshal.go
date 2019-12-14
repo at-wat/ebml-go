@@ -169,15 +169,6 @@ type UnmarshalOptions struct {
 	hooks []func(elem *Element)
 }
 
-// Element represents an EBML element.
-type Element struct {
-	Value    interface{}
-	Name     string
-	Position uint64
-	Size     uint64
-	Parent   *Element
-}
-
 // WithElementReadHooks returns an UnmarshalOption which registers element hooks.
 func WithElementReadHooks(hooks ...func(*Element)) UnmarshalOption {
 	return func(opts *UnmarshalOptions) error {

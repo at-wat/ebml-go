@@ -101,9 +101,11 @@ func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 		elem, ok := m[key]
 		if !ok {
 			t.Errorf("Key '%s' doesn't exist", key)
+			continue
 		}
 		if len(elem) != len(positions) {
 			t.Errorf("Unexpected element size of '%s', expected: %d, got: %d", key, len(positions), len(elem))
+			continue
 		}
 		for i, pos := range positions {
 			if elem[i].Position != pos {
@@ -189,25 +191,5 @@ func BenchmarkUnmarshal(b *testing.B) {
 		if err := Unmarshal(bytes.NewReader(TestBinary), &ret); err != nil {
 			b.Fatalf("Unexpected error: %+v", err)
 		}
-	}
-}
-
-func withElementMap(m map[string][]*Element) func(*Element) {
-	return func(elem *Element) {
-		key := elem.Name
-		e := elem
-		for {
-			if e.Parent == nil {
-				break
-			}
-			e = e.Parent
-			key = fmt.Sprintf("%s.%s", e.Name, key)
-		}
-		elements, ok := m[key]
-		if !ok {
-			elements = make([]*Element, 0)
-		}
-		elements = append(elements, elem)
-		m[key] = elements
 	}
 }

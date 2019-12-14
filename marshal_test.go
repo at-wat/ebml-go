@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -197,6 +198,40 @@ func TestMarshal_WriterError(t *testing.T) {
 		if err != bytes.ErrTooLarge {
 			t.Errorf("UnmarshalBlock should fail with bytes.ErrTooLarge against too large data (Writer size limit: %d), but got %v", l, err)
 		}
+	}
+}
+
+func TestMarshal_WithWriteHooks(t *testing.T) {
+	type DummyCluster struct {
+		Timecode uint64 `ebml:"Timecode"` // 2 + 1 + 1 bytes
+	}
+	s := struct {
+		Header struct {
+			DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"` // 2 + 1 + 1 bytes
+		} `ebml:"EBML"` // 4 + 1 + 4 bytes
+		Segment struct {
+			Cluster []DummyCluster `ebml:"Cluster,size=unknown"` // 4 + 8 + 4 bytes
+		} `ebml:"Segment,size=unknown"` // 4 + 8 + (16 * n) bytes
+	}{}
+	s.Segment.Cluster = make([]DummyCluster, 2)
+
+	m := make(map[string][]*Element)
+	hook := withElementMap(m)
+	err := Marshal(&s, &bytes.Buffer{}, WithElementWriteHooks(hook))
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	expected := map[string][]uint64{
+		"EBML":                     {0},
+		"EBML.EBMLDocTypeVersion":  {4},
+		"Segment":                  {9},
+		"Segment.Cluster":          {21, 36},
+		"Segment.Cluster.Timecode": {33, 48},
+	}
+	posMap := elementPositionMap(m)
+	if !reflect.DeepEqual(expected, posMap) {
+		t.Errorf("Unexpected write hook positions, \nexpected: %v, \n     got: %v", expected, posMap)
 	}
 }
 
