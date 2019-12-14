@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"testing"
 )
 
@@ -94,24 +95,15 @@ func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 
 	// Verify positions of elements
 	expected := map[string][]uint64{
-		"Segment.Tracks":            {5},
-		"Segment.Tracks.TrackEntry": {10, 24},
+		"Segment":                               {0},
+		"Segment.Tracks":                        {5},
+		"Segment.Tracks.TrackEntry":             {10, 24},
+		"Segment.Tracks.TrackEntry.Name":        {12, 26},
+		"Segment.Tracks.TrackEntry.TrackNumber": {21, 35},
 	}
-	for key, positions := range expected {
-		elem, ok := m[key]
-		if !ok {
-			t.Errorf("Key '%s' doesn't exist", key)
-			continue
-		}
-		if len(elem) != len(positions) {
-			t.Errorf("Unexpected element size of '%s', expected: %d, got: %d", key, len(positions), len(elem))
-			continue
-		}
-		for i, pos := range positions {
-			if elem[i].Position != pos {
-				t.Errorf("Unexpected element position of '%s[%d]', expected: %d, got: %d", key, i, pos, elem[i].Position)
-			}
-		}
+	posMap := elementPositionMap(m)
+	if !reflect.DeepEqual(expected, posMap) {
+		t.Errorf("Unexpected read hook positions, \nexpected: %v, \n     got: %v", expected, posMap)
 	}
 }
 

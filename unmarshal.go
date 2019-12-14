@@ -105,6 +105,17 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 			vnext = fm.v
 		}
 
+		var elem *Element
+		if len(options.hooks) > 0 {
+			elem = &Element{
+				Value:    vnext.Interface(),
+				Name:     v.e.String(),
+				Position: pos,
+				Size:     size,
+				Parent:   parent,
+			}
+		}
+
 		switch v.t {
 		case TypeMaster:
 			if v.top && !vnext.IsValid() {
@@ -124,18 +135,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 					vn = vnext
 				}
 			}
-
-			elem := &Element{
-				Value:    vn.Interface(),
-				Name:     v.e.String(),
-				Position: pos,
-				Size:     size,
-				Parent:   parent,
-			}
 			r0, err := readElement(r, int64(size), vn, pos+headerSize, elem, options)
-			for _, hook := range options.hooks {
-				hook(elem)
-			}
 
 			if err != nil && err != io.EOF {
 				return r0, err
@@ -157,6 +157,10 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, pos uint64, parent *El
 				}
 			}
 		}
+		for _, hook := range options.hooks {
+			hook(elem)
+		}
+
 		pos += headerSize + size
 	}
 }
