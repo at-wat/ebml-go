@@ -96,12 +96,12 @@ func (s *multiTrackBlockSorter) Filter(r []BlockReader, w []BlockWriter) {
 
 	var tDone int64
 	buf := make([]*frameBuffer, len(r))
-	for i, _ := range buf {
+	for i := range buf {
 		buf[i] = &frameBuffer{}
 	}
 
 	flush := func(all bool) {
-		var nChReq int = 1
+		nChReq := 1
 		if !all {
 			nChReq = len(r)
 		}
