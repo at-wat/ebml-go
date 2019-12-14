@@ -4,6 +4,11 @@ import (
 	"github.com/at-wat/ebml-go"
 )
 
+var (
+	// DefaultBlockInterceptor is the default BlockInterceptor used by BlockWriter.
+	DefaultBlockInterceptor = NewMultiTrackBlockSorter(16, BlockSorterDropOutdated)
+)
+
 // BlockWriterOption configures a BlockWriterOptions.
 type BlockWriterOption func(*BlockWriterOptions) error
 
@@ -15,6 +20,7 @@ type BlockWriterOptions struct {
 	marshalOpts []ebml.MarshalOption
 	onError     func(error)
 	onFatal     func(error)
+	interceptor BlockInterceptor
 }
 
 // WithEBMLHeader sets EBML header of WebM.
@@ -61,6 +67,14 @@ func WithOnErrorHandler(handler func(error)) BlockWriterOption {
 func WithOnFatalHandler(handler func(error)) BlockWriterOption {
 	return func(o *BlockWriterOptions) error {
 		o.onFatal = handler
+		return nil
+	}
+}
+
+// WithBlockInterceptor registers BlockInterceptor
+func WithBlockInterceptor(interceptor BlockInterceptor) BlockWriterOption {
+	return func(o *BlockWriterOptions) error {
+		o.interceptor = interceptor
 		return nil
 	}
 }

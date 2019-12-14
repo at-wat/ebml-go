@@ -69,8 +69,8 @@ func (w *blockWriter) Close() error {
 
 // NewSimpleBlockWriter creates BlockWriteCloser for each track specified as tracks argument.
 // Blocks will be written to WebM as EBML SimpleBlocks.
-// Resultant WebM is written to given io.WriteCloser.
-// io.WriteCloser will be closed automatically; don't close it by yourself.
+// Resultant WebM is written to given io.WriteCloser and will be closed automatically; don't close it by yourself.
+// Frames written to each track must be sorted by their timestamp.
 func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockWriterOption) ([]BlockWriteCloser, error) {
 	options := &BlockWriterOptions{
 		ebmlHeader:  DefaultEBMLHeader,
@@ -78,6 +78,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 		onFatal: func(err error) {
 			panic(err)
 		},
+		interceptor: DefaultBlockInterceptor,
 	}
 	for _, o := range opts {
 		if err := o(options); err != nil {
@@ -117,20 +118,44 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 	fin := make(chan struct{}, len(tracks)-1)
 	wg := sync.WaitGroup{}
 	var ws []BlockWriteCloser
+	var fw []BlockWriter
+	var fr []BlockReader
 
 	for _, t := range tracks {
 		wg.Add(1)
+		var chSrc chan *frame
+		if options.interceptor == nil {
+			chSrc = ch
+		} else {
+			chSrc = make(chan *frame)
+			fr = append(fr, &filterReader{chSrc})
+			fw = append(fw, &filterWriter{t.TrackNumber, ch})
+		}
 		ws = append(ws, &blockWriter{
 			trackNumber: t.TrackNumber,
-			f:           ch,
+			f:           chSrc,
 			wg:          &wg,
 			fin:         fin,
 		})
 	}
 
+	filterFlushed := make(chan struct{})
+	if options.interceptor != nil {
+		go func() {
+			options.interceptor.Intercept(fr, fw)
+			close(filterFlushed)
+		}()
+	} else {
+		close(filterFlushed)
+	}
+
 	closed := make(chan struct{})
 	go func() {
 		wg.Wait()
+		for _, c := range fr {
+			c.(*filterReader).close()
+		}
+		<-filterFlushed
 		close(closed)
 	}()
 

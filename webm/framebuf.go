@@ -14,21 +14,34 @@
 
 package webm
 
-var (
-	// DefaultEBMLHeader is the default EBML header used by BlockWriter.
-	DefaultEBMLHeader = &EBMLHeader{
-		EBMLVersion:        1,
-		EBMLReadVersion:    1,
-		EBMLMaxIDLength:    4,
-		EBMLMaxSizeLength:  8,
-		DocType:            "webm",
-		DocTypeVersion:     2,
-		DocTypeReadVersion: 2,
+type frameBuffer struct {
+	buf []*frame
+}
+
+func (b *frameBuffer) Push(f *frame) {
+	b.buf = append(b.buf, f)
+}
+func (b *frameBuffer) Head() *frame {
+	if len(b.buf) == 0 {
+		return nil
 	}
-	// DefaultSegmentInfo is the default Segment.Info used by BlockWriter.
-	DefaultSegmentInfo = &Info{
-		TimecodeScale: 1000000, // 1ms
-		MuxingApp:     "ebml-go.webm.FrameWriter",
-		WritingApp:    "ebml-go.webm.FrameWriter",
+	return b.buf[0]
+}
+func (b *frameBuffer) Pop() *frame {
+	n := len(b.buf)
+	if n == 0 {
+		return nil
 	}
-)
+	head := b.buf[0]
+	b.buf[0] = nil
+
+	if n == 1 {
+		b.buf = nil
+	} else {
+		b.buf = b.buf[1:]
+	}
+	return head
+}
+func (b *frameBuffer) Size() int {
+	return len(b.buf)
+}

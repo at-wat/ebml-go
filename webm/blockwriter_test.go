@@ -265,7 +265,6 @@ func (w *errorWriter) Close() error {
 }
 
 func TestBlockWriter_ErrorHandling(t *testing.T) {
-
 	tracks := []TrackEntry{
 		{
 			TrackNumber: 1,
@@ -312,6 +311,7 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 				w, tracks,
 				WithOnErrorHandler(func(err error) { chError <- err }),
 				WithOnFatalHandler(func(err error) { chFatal <- err }),
+				WithBlockInterceptor(nil), // write without sorter
 			)
 			if err != nil {
 				if errAt == atBeginning {
