@@ -15,7 +15,6 @@
 package webm
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"sync"
@@ -89,26 +88,9 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 
 	w := &writerWithSizeCount{w: w0}
 
-	type SeekFixed struct {
-		SeekID       []byte  `ebml:"SeekID"`
-		SeekPosition *uint64 `ebml:"SeekPosition,size=8"`
-	}
-	type SeekHeadFixed struct {
-		Seek []SeekFixed `ebml:"Seek"`
-	}
-	type FlexSegment struct {
-		SeekHead *SeekHeadFixed `ebml:"SeekHead,omitempty"`
-		Info     interface{}    `ebml:"Info"`
-		Tracks   Tracks         `ebml:"Tracks"`
-		Cluster  []Cluster      `ebml:"Cluster"`
-	}
-
-	header := struct {
-		Header  interface{} `ebml:"EBML"`
-		Segment FlexSegment `ebml:"Segment,size=unknown"`
-	}{
+	header := flexHeader{
 		Header: options.ebmlHeader,
-		Segment: FlexSegment{
+		Segment: flexSegment{
 			Info: options.segmentInfo,
 			Tracks: Tracks{
 				TrackEntry: tracks,
@@ -116,45 +98,9 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 		},
 	}
 	if options.seekHead {
-		infoPos := new(uint64)
-		tracksPos := new(uint64)
-		clusterPos := new(uint64)
-		header.Segment.SeekHead = &SeekHeadFixed{}
-		if options.segmentInfo != nil {
-			header.Segment.SeekHead.Seek = append(header.Segment.SeekHead.Seek, SeekFixed{
-				SeekID:       ebml.ElementInfo.Bytes(),
-				SeekPosition: infoPos,
-			})
-		}
-		header.Segment.SeekHead.Seek = append(header.Segment.SeekHead.Seek, SeekFixed{
-			SeekID:       ebml.ElementTracks.Bytes(),
-			SeekPosition: tracksPos,
-		})
-		header.Segment.SeekHead.Seek = append(header.Segment.SeekHead.Seek, SeekFixed{
-			SeekID:       ebml.ElementCluster.Bytes(),
-			SeekPosition: clusterPos,
-		})
-
-		var segmentPos uint64
-		hook := func(e *ebml.Element) {
-			switch e.Name {
-			case "Segment":
-				segmentPos = e.Position
-			case "Info":
-				*infoPos = e.Position - segmentPos
-			case "Tracks":
-				*tracksPos = e.Position - segmentPos
-			}
-		}
-
-		opts := append([]ebml.MarshalOption{}, options.marshalOpts...)
-		opts = append(opts, ebml.WithElementWriteHooks(hook))
-
-		buf := &bytes.Buffer{}
-		if err := ebml.Marshal(&header, buf, opts...); err != nil {
+		if err := setSeekHead(&header, options.marshalOpts...); err != nil {
 			return nil, err
 		}
-		*clusterPos = uint64(buf.Len())
 	}
 	if err := ebml.Marshal(&header, w, options.marshalOpts...); err != nil {
 		return nil, err
