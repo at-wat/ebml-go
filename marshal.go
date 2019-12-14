@@ -135,20 +135,21 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 			for _, vn := range lst {
 				// Write element ID
 				var headerSize uint64
-				if n, err := w.Write(e.b); err != nil {
+				n, err := w.Write(e.b)
+				if err != nil {
 					return pos, err
-				} else {
-					headerSize += uint64(n)
 				}
+				headerSize += uint64(n)
+
 				var bw io.Writer
 				if unknown {
 					// Directly write length unspecified element
 					bsz := encodeDataSize(uint64(sizeUnknown), 0)
-					if n, err := w.Write(bsz); err != nil {
+					n, err := w.Write(bsz)
+					if err != nil {
 						return pos, err
-					} else {
-						headerSize += uint64(n)
 					}
+					headerSize += uint64(n)
 					bw = w
 				} else {
 					bw = &bytes.Buffer{}
@@ -164,32 +165,33 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 
 				var size uint64
 				if e.t == TypeMaster {
-					if p, err := marshalImpl(vn, bw, pos+headerSize, elem, options); err != nil {
+					p, err := marshalImpl(vn, bw, pos+headerSize, elem, options)
+					if err != nil {
 						return pos, err
-					} else {
-						size = p - pos - headerSize
 					}
+					size = p - pos - headerSize
 				} else {
 					bc, err := perTypeEncoder[e.t](vn.Interface(), tag.size)
 					if err != nil {
 						return pos, err
 					}
-					if n, err := bw.Write(bc); err != nil {
+					n, err := bw.Write(bc)
+					if err != nil {
 						return pos, err
-					} else {
-						size = uint64(n)
 					}
+					size = uint64(n)
 				}
 
 				// Write element with length
 				if !unknown {
 					elem.Size = size
 					bsz := encodeDataSize(elem.Size, options.dataSizeLen)
-					if n, err := w.Write(bsz); err != nil {
+					n, err := w.Write(bsz)
+					if err != nil {
 						return pos, err
-					} else {
-						headerSize += uint64(n)
 					}
+					headerSize += uint64(n)
+
 					if _, err := w.Write(bw.(*bytes.Buffer).Bytes()); err != nil {
 						return pos, err
 					}
