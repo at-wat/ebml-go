@@ -191,23 +191,3 @@ func BenchmarkUnmarshal(b *testing.B) {
 		}
 	}
 }
-
-func withElementMap(m map[string][]*Element) func(*Element) {
-	return func(elem *Element) {
-		key := elem.Name
-		e := elem
-		for {
-			if e.Parent == nil {
-				break
-			}
-			e = e.Parent
-			key = fmt.Sprintf("%s.%s", e.Name, key)
-		}
-		elements, ok := m[key]
-		if !ok {
-			elements = make([]*Element, 0)
-		}
-		elements = append(elements, elem)
-		m[key] = elements
-	}
-}
