@@ -212,6 +212,15 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 			},
 			err: errDummy1,
 		},
+		"MarshalOptionErrorWithSeekHead": {
+			opts: []BlockWriterOption{
+				WithMarshalOptions(
+					func(*ebml.MarshalOptions) error { return errDummy1 },
+				),
+				WithSeekHead(),
+			},
+			err: errDummy1,
+		},
 		"MaxKeyframeIntervalOptionError": {
 			opts: []BlockWriterOption{
 				WithMaxKeyframeInterval(0, 0),
