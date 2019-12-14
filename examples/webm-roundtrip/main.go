@@ -31,8 +31,8 @@ func main() {
 	defer r.Close()
 
 	var ret struct {
-		Header  webm.EBMLHeader    `ebml:"EBML"`
-		Segment webm.SegmentStream `ebml:"Segment,inf"`
+		Header  webm.EBMLHeader `ebml:"EBML"`
+		Segment webm.Segment    `ebml:"Segment"`
 	}
 	if err := ebml.Unmarshal(r, &ret); err != nil {
 		fmt.Printf("error: %v\n", err)
