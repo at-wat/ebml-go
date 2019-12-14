@@ -46,3 +46,13 @@ func withElementMap(m map[string][]*Element) func(*Element) {
 		m[key] = elements
 	}
 }
+
+func elementPositionMap(m map[string][]*Element) map[string][]uint64 {
+	pm := make(map[string][]uint64)
+	for key, elements := range m {
+		for _, e := range elements {
+			pm[key] = append(pm[key], e.Position)
+		}
+	}
+	return pm
+}

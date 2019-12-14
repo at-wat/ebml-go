@@ -155,12 +155,15 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 					bw = &bytes.Buffer{}
 				}
 
-				elem := &Element{
-					Value:    vn.Interface(),
-					Name:     tag.name,
-					Position: pos,
-					Size:     sizeUnknown,
-					Parent:   parent,
+				var elem *Element
+				if len(options.hooks) > 0 {
+					elem = &Element{
+						Value:    vn.Interface(),
+						Name:     tag.name,
+						Position: pos,
+						Size:     sizeUnknown,
+						Parent:   parent,
+					}
 				}
 
 				var size uint64
@@ -184,8 +187,10 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 
 				// Write element with length
 				if !unknown {
-					elem.Size = size
-					bsz := encodeDataSize(elem.Size, options.dataSizeLen)
+					if len(options.hooks) > 0 {
+						elem.Size = size
+					}
+					bsz := encodeDataSize(size, options.dataSizeLen)
 					n, err := w.Write(bsz)
 					if err != nil {
 						return pos, err

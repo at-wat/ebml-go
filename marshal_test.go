@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -202,7 +203,7 @@ func TestMarshal_WriterError(t *testing.T) {
 
 func TestMarshal_WithWriteHooks(t *testing.T) {
 	type DummyCluster struct {
-		DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"` // 2 + 1 + 1 bytes
+		Timecode uint64 `ebml:"Timecode"` // 2 + 1 + 1 bytes
 	}
 	s := struct {
 		Header struct {
@@ -222,25 +223,15 @@ func TestMarshal_WithWriteHooks(t *testing.T) {
 	}
 
 	expected := map[string][]uint64{
-		"EBML":            {0},
-		"Segment":         {9},
-		"Segment.Cluster": {21, 37},
+		"EBML":                     {0},
+		"EBML.EBMLDocTypeVersion":  {4},
+		"Segment":                  {9},
+		"Segment.Cluster":          {21, 36},
+		"Segment.Cluster.Timecode": {33, 48},
 	}
-	for key, positions := range expected {
-		elem, ok := m[key]
-		if !ok {
-			t.Errorf("Key '%s' doesn't exist", key)
-			continue
-		}
-		if len(elem) != len(positions) {
-			t.Errorf("Unexpected element size of '%s', expected: %d, got: %d", key, len(positions), len(elem))
-			continue
-		}
-		for i, pos := range positions {
-			if elem[i].Position != pos {
-				t.Errorf("Unexpected element position of '%s[%d]', expected: %d, got: %d", key, i, pos, elem[i].Position)
-			}
-		}
+	posMap := elementPositionMap(m)
+	if !reflect.DeepEqual(expected, posMap) {
+		t.Errorf("Unexpected write hook positions, \nexpected: %v, \n     got: %v", expected, posMap)
 	}
 }
 
