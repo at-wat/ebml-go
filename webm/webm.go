@@ -121,8 +121,8 @@ type Segment struct {
 	SeekHead *SeekHead `ebml:"SeekHead"`
 	Info     Info      `ebml:"Info"`
 	Tracks   Tracks    `ebml:"Tracks"`
-	Cluster  []Cluster `ebml:"Cluster"`
 	Cues     *Cues     `ebml:"Cues"`
+	Cluster  []Cluster `ebml:"Cluster"`
 }
 
 // SegmentStream represents Segment element struct for streaming.
