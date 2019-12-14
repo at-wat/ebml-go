@@ -215,7 +215,9 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 		"MarshalOptionErrorWithSeekHead": {
 			opts: []BlockWriterOption{
 				WithMarshalOptions(
-					func(*ebml.MarshalOptions) error { return errDummy1 },
+					func(*ebml.MarshalOptions) error {
+						return errDummy1
+					},
 				),
 				WithSeekHead(),
 			},

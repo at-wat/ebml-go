@@ -147,8 +147,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 			}
 		}
 
-		var opts []ebml.MarshalOption
-		copy(opts, options.marshalOpts[:])
+		opts := append([]ebml.MarshalOption{}, options.marshalOpts...)
 		opts = append(opts, ebml.WithElementWriteHooks(hook))
 
 		buf := &bytes.Buffer{}
