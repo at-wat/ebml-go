@@ -2,6 +2,7 @@ package ebml
 
 import (
 	"bytes"
+	"io"
 	"reflect"
 	"testing"
 	"time"
@@ -280,6 +281,32 @@ func TestReadValue_WrongSize(t *testing.T) {
 			_, err := perTypeReader[c.t](bytes.NewReader(c.b), c.n)
 			if err != c.err {
 				t.Fatalf("read%s returned unexpected error to wrong data size: %v", n, err)
+			}
+		})
+	}
+}
+
+func TestReadValue_ReadUnexpectedEOF(t *testing.T) {
+	testCases := []struct {
+		t Type
+		b []byte
+	}{
+		{TypeBinary, []byte{0x00, 0x00}},
+		{TypeString, []byte{0x00, 0x00}},
+		{TypeInt, []byte{0x00, 0x00}},
+		{TypeUInt, []byte{0x00, 0x00}},
+		{TypeDate, []byte{0x00, 0x00}},
+		{TypeFloat, []byte{0x00, 0x00, 0x00, 0x00}},
+	}
+	for _, c := range testCases {
+		t.Run("Read "+c.t.String(), func(t *testing.T) {
+			for l := 0; l < len(c.b)-1; l++ {
+				r := bytes.NewReader(c.b[:l])
+				_, err := perTypeReader[c.t](r, uint64(len(c.b)))
+				if err != io.ErrUnexpectedEOF {
+					t.Errorf("read%s returned unexpected error for %d byte(s) data, expected %v, got %v",
+						c.t.String(), l, io.ErrUnexpectedEOF, err)
+				}
 			}
 		})
 	}
