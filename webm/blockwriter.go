@@ -159,6 +159,8 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 		close(closed)
 	}()
 
+	tNextCluster := 0x7FFF - options.maxKeyframeInterval
+
 	go func() {
 		const invalidTimestamp = int64(0x7FFFFFFFFFFFFFFF)
 		tc0 := invalidTimestamp
@@ -199,7 +201,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 				}
 				lastTc = f.timestamp
 				tc := f.timestamp - tc1
-				if tc >= 0x7FFF || tc1 == invalidTimestamp {
+				if tc1 == invalidTimestamp || tc >= 0x7FFF || (f.trackNumber == options.mainTrackNumber && tc >= tNextCluster && f.keyframe) {
 					// Create new Cluster
 					tc1 = f.timestamp
 					tc = 0
