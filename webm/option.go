@@ -48,9 +48,9 @@ func WithSegmentInfo(i interface{}) BlockWriterOption {
 }
 
 // WithSeekHead enables SeekHead calculation
-func WithSeekHead() BlockWriterOption {
+func WithSeekHead(enable bool) BlockWriterOption {
 	return func(o *BlockWriterOptions) error {
-		o.seekHead = true
+		o.seekHead = enable
 		return nil
 	}
 }
