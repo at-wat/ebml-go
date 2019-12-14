@@ -1,6 +1,8 @@
 package webm
 
 import (
+	"errors"
+
 	"github.com/at-wat/ebml-go"
 )
 
@@ -9,18 +11,24 @@ var (
 	DefaultBlockInterceptor = NewMultiTrackBlockSorter(16, BlockSorterDropOutdated)
 )
 
+var (
+	errInvalidTrackNumber = errors.New("invalid track number")
+)
+
 // BlockWriterOption configures a BlockWriterOptions.
 type BlockWriterOption func(*BlockWriterOptions) error
 
 // BlockWriterOptions stores options for BlockWriter.
 type BlockWriterOptions struct {
-	ebmlHeader  interface{}
-	segmentInfo interface{}
-	seekHead    interface{}
-	marshalOpts []ebml.MarshalOption
-	onError     func(error)
-	onFatal     func(error)
-	interceptor BlockInterceptor
+	ebmlHeader          interface{}
+	segmentInfo         interface{}
+	seekHead            interface{}
+	marshalOpts         []ebml.MarshalOption
+	onError             func(error)
+	onFatal             func(error)
+	interceptor         BlockInterceptor
+	mainTrackNumber     uint64
+	maxKeyframeInterval int64
 }
 
 // WithEBMLHeader sets EBML header of WebM.
@@ -55,7 +63,7 @@ func WithMarshalOptions(opts ...ebml.MarshalOption) BlockWriterOption {
 	}
 }
 
-// WithOnErrorHandler registers marshal error handler
+// WithOnErrorHandler registers marshal error handler.
 func WithOnErrorHandler(handler func(error)) BlockWriterOption {
 	return func(o *BlockWriterOptions) error {
 		o.onError = handler
@@ -63,7 +71,7 @@ func WithOnErrorHandler(handler func(error)) BlockWriterOption {
 	}
 }
 
-// WithOnFatalHandler registers marshal error handler
+// WithOnFatalHandler registers marshal error handler.
 func WithOnFatalHandler(handler func(error)) BlockWriterOption {
 	return func(o *BlockWriterOptions) error {
 		o.onFatal = handler
@@ -71,10 +79,24 @@ func WithOnFatalHandler(handler func(error)) BlockWriterOption {
 	}
 }
 
-// WithBlockInterceptor registers BlockInterceptor
+// WithBlockInterceptor registers BlockInterceptor.
 func WithBlockInterceptor(interceptor BlockInterceptor) BlockWriterOption {
 	return func(o *BlockWriterOptions) error {
 		o.interceptor = interceptor
+		return nil
+	}
+}
+
+// WithMaxKeyframeInterval sets maximum keyframe interval of the main (video) track.
+// Using this option starts the cluster with a key frame if possible.
+// interval must be given in the scale of timecode.
+func WithMaxKeyframeInterval(mainTrackNumber uint64, interval int64) BlockWriterOption {
+	return func(o *BlockWriterOptions) error {
+		if mainTrackNumber <= 0 {
+			return errInvalidTrackNumber
+		}
+		o.mainTrackNumber = mainTrackNumber
+		o.maxKeyframeInterval = interval
 		return nil
 	}
 }
