@@ -201,31 +201,40 @@ func TestMarshal_WriterError(t *testing.T) {
 }
 
 func TestMarshal_WithWriteHooks(t *testing.T) {
-	type EBMLHeader struct {
+	type DummyCluster struct {
 		DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"` // 2 + 1 + 1 bytes
 	}
 	s := struct {
-		Header  EBMLHeader `ebml:"EBML"`              // 4 + 1 + 4 bytes
-		Header2 EBMLHeader `ebml:"EBML,size=unknown"` // 4 + 8 + 4 bytes
+		Header struct {
+			DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"` // 2 + 1 + 1 bytes
+		} `ebml:"EBML"` // 4 + 1 + 4 bytes
+		Segment struct {
+			Cluster []DummyCluster `ebml:"Cluster,size=unknown"` // 4 + 8 + 4 bytes
+		} `ebml:"Segment,size=unknown"` // 4 + 8 + (16 * n) bytes
 	}{}
+	s.Segment.Cluster = make([]DummyCluster, 2)
 
 	m := make(map[string][]*Element)
 	hook := withElementMap(m)
-	err := Marshal(&s, &limitedDummyWriter{limit: 25}, WithElementWriteHooks(hook))
+	err := Marshal(&s, &bytes.Buffer{}, WithElementWriteHooks(hook))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
 	expected := map[string][]uint64{
-		"EBML": {0, 9},
+		"EBML":            {0},
+		"Segment":         {9},
+		"Segment.Cluster": {21, 37},
 	}
 	for key, positions := range expected {
 		elem, ok := m[key]
 		if !ok {
 			t.Errorf("Key '%s' doesn't exist", key)
+			continue
 		}
 		if len(elem) != len(positions) {
 			t.Errorf("Unexpected element size of '%s', expected: %d, got: %d", key, len(positions), len(elem))
+			continue
 		}
 		for i, pos := range positions {
 			if elem[i].Position != pos {

@@ -101,9 +101,11 @@ func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 		elem, ok := m[key]
 		if !ok {
 			t.Errorf("Key '%s' doesn't exist", key)
+			continue
 		}
 		if len(elem) != len(positions) {
 			t.Errorf("Unexpected element size of '%s', expected: %d, got: %d", key, len(positions), len(elem))
+			continue
 		}
 		for i, pos := range positions {
 			if elem[i].Position != pos {
