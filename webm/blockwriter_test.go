@@ -213,6 +213,12 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 			},
 			err: errDummy1,
 		},
+		"MaxKeyframeIntervalOptionError": {
+			opts: []BlockWriterOption{
+				WithMaxKeyframeInterval(0, 0),
+			},
+			err: errInvalidTrackNumber,
+		},
 	}
 
 	for name, c := range cases {
