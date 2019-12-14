@@ -52,7 +52,9 @@ func TestBlockWriter(t *testing.T) {
 			},
 		},
 	}
-	ws, err := NewSimpleBlockWriter(buf, tracks)
+	ws, err := NewSimpleBlockWriter(buf, tracks,
+		WithSeekHead(false),
+	)
 	if err != nil {
 		t.Fatalf("Failed to create BlockWriter: %v", err)
 	}
@@ -164,6 +166,7 @@ func TestBlockWriter_Options(t *testing.T) {
 		WithEBMLHeader(nil),
 		WithSegmentInfo(nil),
 		WithMarshalOptions(ebml.WithDataSizeLen(2)),
+		WithSeekHead(false),
 	)
 	if err != nil {
 		t.Fatalf("Failed to create BlockWriter: %v", err)
@@ -209,6 +212,7 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 				WithMarshalOptions(
 					func(*ebml.MarshalOptions) error { return errDummy1 },
 				),
+				WithSeekHead(false),
 			},
 			err: errDummy1,
 		},
@@ -219,7 +223,6 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 						return errDummy1
 					},
 				),
-				WithSeekHead(),
 			},
 			err: errDummy1,
 		},
@@ -327,6 +330,7 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 				w, tracks,
 				WithOnErrorHandler(func(err error) { chError <- err }),
 				WithOnFatalHandler(func(err error) { chFatal <- err }),
+				WithSeekHead(false),
 				WithBlockInterceptor(nil), // write without sorter
 			)
 			if err != nil {
@@ -451,6 +455,7 @@ func TestBlockWriter_NewSimpleWriter(t *testing.T) {
 		buf, tracks,
 		WithEBMLHeader(nil),
 		WithSegmentInfo(nil),
+		WithSeekHead(false),
 	)
 	if err != nil {
 		t.Fatalf("Failed to create BlockWriter: %v", err)
@@ -494,6 +499,7 @@ func TestBlockWriter_WithMaxKeyframeInterval(t *testing.T) {
 		WithEBMLHeader(nil),
 		WithSegmentInfo(nil),
 		WithMaxKeyframeInterval(1, 900*0x6FFF),
+		WithSeekHead(false),
 	)
 	if err != nil {
 		t.Fatalf("Failed to create BlockWriter: %v", err)
@@ -566,7 +572,7 @@ func TestBlockWriter_WithSeekHead(t *testing.T) {
 		buf, tracks,
 		WithEBMLHeader(nil),
 		WithSegmentInfo(&Info{TimecodeScale: 1000000}),
-		WithSeekHead(),
+		WithSeekHead(true),
 	)
 	if err != nil {
 		t.Fatalf("Failed to create BlockWriter: %v", err)
