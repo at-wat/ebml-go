@@ -58,15 +58,25 @@ func (r *filterReader) close() {
 	close(r.ch)
 }
 
+// BlockSorterRule is a type of BlockSorter behaviour for outdated frame.
+type BlockSorterRule int
+
+// List of BlockSorterRules.
+const (
+	BlockSorterDropOutdated BlockSorterRule = iota
+	BlockSorterWriteOutdated
+)
+
 // NewMultiTrackBlockSorter creates BlockInterceptor, which sorts blocks on multiple tracks by timestamp.
 // The index of TrackEntry sorts blocks with the same timestamp.
 // Place the audio track before the video track to meet WebM Interceptor Guidelines.
-func NewMultiTrackBlockSorter(maxDelay int) BlockInterceptor {
-	return &multiTrackBlockSorter{maxDelay: maxDelay}
+func NewMultiTrackBlockSorter(maxDelay int, rule BlockSorterRule) BlockInterceptor {
+	return &multiTrackBlockSorter{maxDelay: maxDelay, rule: rule}
 }
 
 type multiTrackBlockSorter struct {
 	maxDelay int
+	rule     BlockSorterRule
 }
 
 func (s *multiTrackBlockSorter) Intercept(r []BlockReader, w []BlockWriter) {
@@ -134,7 +144,7 @@ func (s *multiTrackBlockSorter) Intercept(r []BlockReader, w []BlockWriter) {
 	for {
 		select {
 		case d := <-ch:
-			if d.timestamp >= tDone {
+			if d.timestamp >= tDone || s.rule == BlockSorterWriteOutdated {
 				buf[d.trackNumber].Push(d)
 				flush(false)
 			}

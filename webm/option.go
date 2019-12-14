@@ -6,7 +6,7 @@ import (
 
 var (
 	// DefaultBlockInterceptor is the default BlockInterceptor used by BlockWriter.
-	DefaultBlockInterceptor = NewMultiTrackBlockSorter(10)
+	DefaultBlockInterceptor = NewMultiTrackBlockSorter(16, BlockSorterDropOutdated)
 )
 
 // BlockWriterOption configures a BlockWriterOptions.

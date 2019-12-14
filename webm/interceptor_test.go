@@ -22,70 +22,94 @@ import (
 )
 
 func TestMultiTrackBlockSorter(t *testing.T) {
-	wg := sync.WaitGroup{}
-	f := NewMultiTrackBlockSorter(2)
+	for name, c := range map[string]struct {
+		rule     BlockSorterRule
+		expected []frame
+	}{
+		"DropOutdated": {
+			BlockSorterDropOutdated,
+			[]frame{
+				{1, false, 9, []byte{3}},
+				{0, false, 10, []byte{1}},
+				{0, false, 11, []byte{2}},
+				{0, false, 16, []byte{4}},
+				{0, false, 17, []byte{5}},
+				{0, false, 18, []byte{6}},
+				{1, false, 18, []byte{8}},
+			},
+		},
+		"WriteOutdated": {
+			BlockSorterWriteOutdated,
+			[]frame{
+				{1, false, 9, []byte{3}},
+				{0, false, 10, []byte{1}},
+				{0, false, 11, []byte{2}},
+				{0, false, 16, []byte{4}},
+				{1, false, 15, []byte{7}},
+				{0, false, 17, []byte{5}},
+				{0, false, 18, []byte{6}},
+				{1, false, 18, []byte{8}},
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			wg := sync.WaitGroup{}
+			f := NewMultiTrackBlockSorter(2, c.rule)
 
-	chOut := make(chan *frame)
-	ch := []chan *frame{
-		make(chan *frame),
-		make(chan *frame),
-	}
+			chOut := make(chan *frame)
+			ch := []chan *frame{
+				make(chan *frame),
+				make(chan *frame),
+			}
 
-	w := []BlockWriter{
-		&filterWriter{0, chOut},
-		&filterWriter{1, chOut},
-	}
-	r := []BlockReader{
-		&filterReader{ch[0]},
-		&filterReader{ch[1]},
-	}
+			w := []BlockWriter{
+				&filterWriter{0, chOut},
+				&filterWriter{1, chOut},
+			}
+			r := []BlockReader{
+				&filterReader{ch[0]},
+				&filterReader{ch[1]},
+			}
 
-	var frames []frame
-	wg.Add(1)
-	go func() {
-		for f := range chOut {
-			frames = append(frames, *f)
-		}
-		wg.Done()
-	}()
+			var frames []frame
+			wg.Add(1)
+			go func() {
+				for f := range chOut {
+					frames = append(frames, *f)
+				}
+				wg.Done()
+			}()
 
-	go func() {
-		ch[0] <- &frame{0, false, 10, []byte{1}}
-		ch[0] <- &frame{0, false, 11, []byte{2}}
-		time.Sleep(time.Millisecond)
-		ch[1] <- &frame{1, false, 9, []byte{3}}
-		time.Sleep(time.Millisecond)
-		ch[0] <- &frame{0, false, 16, []byte{4}}
-		ch[0] <- &frame{0, false, 17, []byte{5}}
-		ch[0] <- &frame{0, false, 18, []byte{6}}
-		time.Sleep(time.Millisecond)
-		ch[1] <- &frame{1, false, 15, []byte{7}} // drop due to maxDelay=2
-		ch[1] <- &frame{1, false, 18, []byte{8}}
-		close(ch[0])
-		close(ch[1])
-	}()
+			go func() {
+				ch[0] <- &frame{0, false, 10, []byte{1}}
+				ch[0] <- &frame{0, false, 11, []byte{2}}
+				time.Sleep(time.Millisecond)
+				ch[1] <- &frame{1, false, 9, []byte{3}}
+				time.Sleep(time.Millisecond)
+				ch[0] <- &frame{0, false, 16, []byte{4}}
+				ch[0] <- &frame{0, false, 17, []byte{5}}
+				ch[0] <- &frame{0, false, 18, []byte{6}}
+				time.Sleep(time.Millisecond)
+				ch[1] <- &frame{1, false, 15, []byte{7}} // drop due to maxDelay=2
+				ch[1] <- &frame{1, false, 18, []byte{8}}
+				close(ch[0])
+				close(ch[1])
+			}()
 
-	f.Intercept(r, w)
+			f.Intercept(r, w)
 
-	close(chOut)
-	wg.Wait()
+			close(chOut)
+			wg.Wait()
 
-	framesExpected := []frame{
-		{1, false, 9, []byte{3}},
-		{0, false, 10, []byte{1}},
-		{0, false, 11, []byte{2}},
-		{0, false, 16, []byte{4}},
-		{0, false, 17, []byte{5}},
-		{0, false, 18, []byte{6}},
-		{1, false, 18, []byte{8}},
-	}
-	if !reflect.DeepEqual(framesExpected, frames) {
-		t.Errorf("Unexpected sort result, \nexpected: %v, \n     got: %v", framesExpected, frames)
+			if !reflect.DeepEqual(c.expected, frames) {
+				t.Errorf("Unexpected sort result, \nexpected: %v, \n     got: %v", c.expected, frames)
+			}
+		})
 	}
 }
 
 func BenchmarkMultiTrackBlockSorter(b *testing.B) {
-	f := NewMultiTrackBlockSorter(2)
+	f := NewMultiTrackBlockSorter(2, BlockSorterDropOutdated)
 
 	chOut := make(chan *frame)
 	ch := []chan *frame{
