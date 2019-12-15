@@ -262,15 +262,37 @@ func encodeString(i interface{}, n uint64) ([]byte, error) {
 	return append([]byte(v), bytes.Repeat([]byte{0x00}, int(n)-len(v))...), nil
 }
 func encodeInt(i interface{}, n uint64) ([]byte, error) {
-	v, ok := i.(int64)
-	if !ok {
+	var v int64
+	switch v2 := i.(type) {
+	case int:
+		v = int64(v2)
+	case int8:
+		v = int64(v2)
+	case int16:
+		v = int64(v2)
+	case int32:
+		v = int64(v2)
+	case int64:
+		v = v2
+	default:
 		return []byte{}, errInvalidType
 	}
 	return encodeUInt(uint64(v), n)
 }
 func encodeUInt(i interface{}, n uint64) ([]byte, error) {
-	v, ok := i.(uint64)
-	if !ok {
+	var v uint64
+	switch v2 := i.(type) {
+	case uint:
+		v = uint64(v2)
+	case uint8:
+		v = uint64(v2)
+	case uint16:
+		v = uint64(v2)
+	case uint32:
+		v = uint64(v2)
+	case uint64:
+		v = v2
+	default:
 		return []byte{}, errInvalidType
 	}
 	switch {

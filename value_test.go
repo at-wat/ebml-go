@@ -149,6 +149,14 @@ func TestValue(t *testing.T) {
 		"Block": {[]byte{0x85, 0x12, 0x34, 0x80, 0x34, 0x56}, TypeBlock,
 			Block{uint64(5), int16(0x1234), true, false, LacingNo, false, nil, [][]byte{{0x34, 0x56}}}, 0, nil,
 		},
+		"ConvertInt8":   {[]byte{0x01}, TypeInt, int64(0x01), 0, int8(0x01)},
+		"ConvertInt16":  {[]byte{0x01, 0x02}, TypeInt, int64(0x0102), 0, int16(0x0102)},
+		"ConvertInt32":  {[]byte{0x01, 0x02, 0x03, 0x04}, TypeInt, int64(0x01020304), 0, int32(0x01020304)},
+		"ConvertInt":    {[]byte{0x01, 0x02, 0x03, 0x04}, TypeInt, int64(0x01020304), 0, int(0x01020304)},
+		"ConvertUInt8":  {[]byte{0x01}, TypeUInt, uint64(0x01), 0, uint8(0x01)},
+		"ConvertUInt16": {[]byte{0x01, 0x02}, TypeUInt, uint64(0x0102), 0, uint16(0x0102)},
+		"ConvertUInt32": {[]byte{0x01, 0x02, 0x03, 0x04}, TypeUInt, uint64(0x01020304), 0, uint32(0x01020304)},
+		"ConvertUInt":   {[]byte{0x01, 0x02, 0x03, 0x04}, TypeUInt, uint64(0x01020304), 0, uint(0x01020304)},
 	}
 	for n, c := range testCases {
 		t.Run("Read "+n, func(t *testing.T) {
