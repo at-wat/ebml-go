@@ -92,7 +92,7 @@ func WithBlockInterceptor(interceptor BlockInterceptor) BlockWriterOption {
 // interval must be given in the scale of timecode.
 func WithMaxKeyframeInterval(mainTrackNumber uint64, interval int64) BlockWriterOption {
 	return func(o *BlockWriterOptions) error {
-		if mainTrackNumber <= 0 {
+		if mainTrackNumber == 0 {
 			return errInvalidTrackNumber
 		}
 		o.mainTrackNumber = mainTrackNumber

@@ -45,13 +45,11 @@ func (w *filterWriter) Write(keyframe bool, timestamp int64, b []byte) (int, err
 }
 
 func (r *filterReader) Read() ([]byte, bool, int64, error) {
-	select {
-	case frame, ok := <-r.ch:
-		if !ok {
-			return nil, false, 0, io.EOF
-		}
-		return frame.b, frame.keyframe, frame.timestamp, nil
+	frame, ok := <-r.ch
+	if !ok {
+		return nil, false, 0, io.EOF
 	}
+	return frame.b, frame.keyframe, frame.timestamp, nil
 }
 
 func (r *filterReader) close() {
@@ -133,7 +131,7 @@ func (s *multiTrackBlockSorter) Intercept(r []BlockReader, w []BlockWriter) {
 			}
 			if nCh >= nChReq || nMax > s.maxDelay {
 				fOldest := bOldest.Pop()
-				w[fOldest.trackNumber].Write(fOldest.keyframe, fOldest.timestamp, fOldest.b)
+				_, _ = w[fOldest.trackNumber].Write(fOldest.keyframe, fOldest.timestamp, fOldest.b)
 				tDone = fOldest.timestamp
 			} else {
 				break
