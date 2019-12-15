@@ -133,7 +133,14 @@ func readInt(r io.Reader, n uint64) (interface{}, error) {
 	if err != nil {
 		return 0, err
 	}
-	return int64(v.(uint64)), nil
+	v64 := v.(uint64)
+	if n != 8 && (v64&(1<<(n*8-1))) != 0 {
+		// negative value
+		for i := n; i < 8; i++ {
+			v64 |= 0xFF << (i * 8)
+		}
+	}
+	return int64(v64), nil
 }
 func readUInt(r io.Reader, n uint64) (interface{}, error) {
 	bs := make([]byte, n)
