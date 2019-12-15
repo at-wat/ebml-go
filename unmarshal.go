@@ -60,10 +60,6 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 		r = r0
 	}
 
-	type field struct {
-		v reflect.Value
-		t reflect.Type
-	}
 	fieldMap := make(map[ElementType]reflect.Value)
 	if vo.IsValid() {
 		for i := 0; i < vo.NumField(); i++ {
