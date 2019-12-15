@@ -258,6 +258,15 @@ func TestUnmarshal_Error(t *testing.T) {
 			t.Errorf("Unexpected error, %v, got %v\n", errIndefiniteType, err)
 		}
 	})
+	t.Run("UnknownElement", func(t *testing.T) {
+		input := &struct {
+			Header struct {
+			} `ebml:"Unknown"`
+		}{}
+		if err := Unmarshal(bytes.NewBuffer([]byte{}), input); err != errUnknownElementType {
+			t.Errorf("Unexpected error, %v, got %v\n", errUnknownElementType, err)
+		}
+	})
 	t.Run("Short", func(t *testing.T) {
 		TestBinaries := map[string][]byte{
 			"ElementID": {0x1a, 0x45, 0xdf},

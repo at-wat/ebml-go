@@ -60,11 +60,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 		r = r0
 	}
 
-	type field struct {
-		v reflect.Value
-		t reflect.Type
-	}
-	fieldMap := make(map[string]field)
+	fieldMap := make(map[ElementType]reflect.Value)
 	if vo.IsValid() {
 		for i := 0; i < vo.NumField(); i++ {
 			var nn []string
@@ -77,7 +73,11 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			} else {
 				name = vo.Type().Field(i).Name
 			}
-			fieldMap[name] = field{vo.Field(i), vo.Type().Field(i).Type}
+			t, err := ElementTypeFromString(name)
+			if err != nil {
+				return nil, err
+			}
+			fieldMap[t] = vo.Field(i)
 		}
 	}
 
@@ -102,8 +102,8 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			return nil, err
 		}
 		var vnext reflect.Value
-		if fm, ok := fieldMap[v.e.String()]; ok {
-			vnext = fm.v
+		if vn, ok := fieldMap[v.e]; ok {
+			vnext = vn
 		}
 
 		var elem *Element

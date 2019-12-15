@@ -47,7 +47,7 @@ const (
 	ElementSeekPosition
 
 	ElementInfo
-	ElementTimecodeScale
+	ElementTimestampScale
 	ElementDuration
 	ElementDateUTC
 	ElementTitle
@@ -55,7 +55,7 @@ const (
 	ElementWritingApp
 
 	ElementCluster
-	ElementTimecode
+	ElementTimestamp
 	ElementPrevSize
 	ElementSimpleBlock
 	ElementBlockGroup
@@ -125,6 +125,12 @@ const (
 	elementMax
 )
 
+// WebM aliases
+const (
+	ElementTimecodeScale = ElementTimestampScale
+	ElementTimecode      = ElementTimestamp
+)
+
 func (i ElementType) String() string {
 	switch i {
 	case ElementEBML:
@@ -157,8 +163,8 @@ func (i ElementType) String() string {
 		return "SeekPosition"
 	case ElementInfo:
 		return "Info"
-	case ElementTimecodeScale:
-		return "TimecodeScale"
+	case ElementTimestampScale:
+		return "TimestampScale"
 	case ElementDuration:
 		return "Duration"
 	case ElementDateUTC:
@@ -171,8 +177,8 @@ func (i ElementType) String() string {
 		return "WritingApp"
 	case ElementCluster:
 		return "Cluster"
-	case ElementTimecode:
-		return "Timecode"
+	case ElementTimestamp:
+		return "Timestamp"
 	case ElementPrevSize:
 		return "PrevSize"
 	case ElementSimpleBlock:
@@ -342,8 +348,8 @@ func ElementTypeFromString(s string) (ElementType, error) {
 		return ElementSeekPosition, nil
 	case "Info":
 		return ElementInfo, nil
-	case "TimecodeScale":
-		return ElementTimecodeScale, nil
+	case "TimestampScale":
+		return ElementTimestampScale, nil
 	case "Duration":
 		return ElementDuration, nil
 	case "DateUTC":
@@ -356,8 +362,8 @@ func ElementTypeFromString(s string) (ElementType, error) {
 		return ElementWritingApp, nil
 	case "Cluster":
 		return ElementCluster, nil
-	case "Timecode":
-		return ElementTimecode, nil
+	case "Timestamp":
+		return ElementTimestamp, nil
 	case "PrevSize":
 		return ElementPrevSize, nil
 	case "SimpleBlock":
@@ -484,6 +490,13 @@ func ElementTypeFromString(s string) (ElementType, error) {
 		return ElementCueClusterPosition, nil
 	case "CueBlockNumber":
 		return ElementCueBlockNumber, nil
+
+		// WebM aliases
+	case "TimecodeScale":
+		return ElementTimecodeScale, nil
+	case "Timecode":
+		return ElementTimecode, nil
+
 	default:
 		return 0, errUnknownElementType
 	}
