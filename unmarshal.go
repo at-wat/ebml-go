@@ -23,8 +23,9 @@ import (
 )
 
 var (
-	errUnknownElement = errors.New("unknown element")
-	errIndefiniteType = errors.New("unmarshal to indefinite type")
+	errUnknownElement   = errors.New("unknown element")
+	errIndefiniteType   = errors.New("unmarshal to indefinite type")
+	errIncompatibleType = errors.New("unmarshal to incompatible type")
 )
 
 // Unmarshal EBML stream.
@@ -151,10 +152,23 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			}
 			vr := reflect.ValueOf(val)
 			if vnext.IsValid() && vnext.CanSet() {
-				if vr.Type() == vnext.Type() {
-					vnext.Set(reflect.ValueOf(val))
-				} else if vnext.Kind() == reflect.Slice && vr.Type() == vnext.Type().Elem() {
-					vnext.Set(reflect.Append(vnext, reflect.ValueOf(val)))
+				switch {
+				case vr.Type() == vnext.Type():
+					vnext.Set(vr)
+				case isConvertible(vr.Type(), vnext.Type()):
+					vnext.Set(vr.Convert(vnext.Type()))
+				case vnext.Kind() == reflect.Slice:
+					t := vnext.Type().Elem()
+					switch {
+					case vr.Type() == t:
+						vnext.Set(reflect.Append(vnext, vr))
+					case isConvertible(vr.Type(), t):
+						vnext.Set(reflect.Append(vnext, vr.Convert(t)))
+					default:
+						return nil, errIncompatibleType
+					}
+				default:
+					return nil, errIncompatibleType
 				}
 			}
 			if elem != nil {
