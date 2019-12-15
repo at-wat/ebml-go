@@ -126,6 +126,12 @@ func TestUnmarshal_Convert(t *testing.T) {
 				Duration float32 `ebml:"Duration"`
 			}{0.0},
 		},
+		"UInt64ToUInt64Slice": {
+			[]byte{0x42, 0x87, 0x81, 0x02},
+			struct {
+				DocTypeVersion []uint64 `ebml:"EBMLDocTypeVersion"`
+			}{[]uint64{2}},
+		},
 		"UInt64ToUInt32Slice": {
 			[]byte{0x42, 0x87, 0x81, 0x02},
 			struct {
