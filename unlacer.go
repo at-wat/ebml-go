@@ -15,9 +15,9 @@
 package ebml
 
 import (
-	"bytes"
 	"errors"
 	"io"
+	"io/ioutil"
 )
 
 var (
@@ -30,104 +30,114 @@ type Unlacer interface {
 }
 
 type unlacer struct {
-	b    []byte
-	p    int
+	r    io.Reader
 	i    int
 	size []int
 }
 
 func (u *unlacer) Read() ([]byte, error) {
-	if u.i >= len(u.size) {
+	if u.i >= len(u.size)+1 {
 		return nil, io.EOF
 	}
-	n := u.size[u.i]
-	ret := u.b[u.p : u.p+n]
-	u.i++
-	u.p += n
-
-	if u.i >= len(u.size) {
-		return ret, io.EOF
+	if u.i == len(u.size) {
+		u.i++
+		return ioutil.ReadAll(u.r)
 	}
-	return ret, nil
+	n := u.size[u.i]
+	u.i++
+	b := make([]byte, n)
+	_, err := io.ReadFull(u.r, b)
+	return b, err
 }
 
 // NewXiphUnlacer creates Unlacer for Xiph laced data.
-func NewXiphUnlacer(b []byte) (Unlacer, error) {
-	if len(b) < 1 {
+func NewXiphUnlacer(r io.Reader, n uint64) (Unlacer, error) {
+	var nFrame int
+	var b [1]byte
+	switch _, err := io.ReadFull(r, b[:]); err {
+	case nil:
+		nFrame = int(b[0]) + 1
+	case io.EOF:
 		return nil, io.ErrUnexpectedEOF
+	default:
+		return nil, err
 	}
-	n := int(b[0]) + 1
 
 	ul := &unlacer{
-		b:    b,
-		p:    1,
-		size: make([]int, n),
+		r:    r,
+		size: make([]int, nFrame-1),
 	}
-	ul.size[n-1] = len(b)
-	for i := 0; i < n-1; i++ {
+	for i := 0; i < nFrame-1; i++ {
 		for {
-			pos := ul.p
-			if len(b) <= pos {
+			var b [1]byte
+			switch _, err := io.ReadFull(ul.r, b[:]); err {
+			case nil:
+			case io.EOF:
 				return nil, io.ErrUnexpectedEOF
+			default:
+				return nil, err
 			}
-			ul.size[i] += int(b[pos])
-			ul.p++
-			if b[pos] != 0xFF {
-				ul.size[n-1] -= ul.size[i]
+			ul.size[i] += int(b[0])
+			if b[0] != 0xFF {
 				break
 			}
 		}
 	}
-	ul.size[n-1] -= ul.p
 
 	return ul, nil
 }
 
 // NewFixedUnlacer creates Unlacer for Fixed laced data.
-func NewFixedUnlacer(b []byte) (Unlacer, error) {
-	if len(b) < 1 {
+func NewFixedUnlacer(r io.Reader, n uint64) (Unlacer, error) {
+	var nFrame int
+	var b [1]byte
+	switch _, err := io.ReadFull(r, b[:]); err {
+	case nil:
+		nFrame = int(b[0]) + 1
+	case io.EOF:
 		return nil, io.ErrUnexpectedEOF
+	default:
+		return nil, err
 	}
-	n := int(b[0]) + 1
 
 	ul := &unlacer{
-		b:    b,
-		p:    1,
-		size: make([]int, n),
+		r:    r,
+		size: make([]int, nFrame-1),
 	}
-	ul.size[0] = (len(b) - 1) / n
-	for i := 1; i < n; i++ {
+	ul.size[0] = (int(n) - 1) / nFrame
+	for i := 1; i < nFrame-1; i++ {
 		ul.size[i] = ul.size[0]
 	}
-	if ul.size[0]*n+1 != len(b) {
+	if ul.size[0]*nFrame+1 != int(n) {
 		return nil, errFixedLaceUndivisible
 	}
 	return ul, nil
 }
 
 // NewEBMLUnlacer creates Unlacer for EBML laced data.
-func NewEBMLUnlacer(b []byte) (Unlacer, error) {
-	if len(b) < 1 {
+func NewEBMLUnlacer(r io.Reader, n uint64) (Unlacer, error) {
+	var nFrame int
+	var b [1]byte
+	switch _, err := io.ReadFull(r, b[:]); err {
+	case nil:
+		nFrame = int(b[0]) + 1
+	case io.EOF:
 		return nil, io.ErrUnexpectedEOF
+	default:
+		return nil, err
 	}
-	n := int(b[0]) + 1
 
 	ul := &unlacer{
-		b:    b,
-		size: make([]int, n),
+		r:    r,
+		size: make([]int, nFrame-1),
 	}
-	ul.size[n-1] = len(b)
-	r := bytes.NewReader(b[1:])
-	for i := 0; i < n-1; i++ {
-		n64, _, err := readVInt(r)
+	for i := 0; i < nFrame-1; i++ {
+		n64, _, err := readVInt(ul.r)
 		if err != nil {
 			return nil, err
 		}
 		ul.size[i] = int(n64)
-		ul.size[n-1] -= ul.size[i]
 	}
-	ul.p = len(b) - r.Len() + 1
-	ul.size[n-1] -= ul.p
 
 	return ul, nil
 }

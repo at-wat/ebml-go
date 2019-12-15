@@ -22,7 +22,7 @@ import (
 
 func TestUnlacer(t *testing.T) {
 	cases := map[string]struct {
-		newUnlacer func([]byte) (Unlacer, error)
+		newUnlacer func(io.Reader, uint64) (Unlacer, error)
 		header     []byte
 		frames     [][]byte
 		err        error
@@ -91,7 +91,6 @@ func TestUnlacer(t *testing.T) {
 				0x02,
 				0x41, 0x00, // 256 bytes
 				0x90, // 16 bytes
-				0x88, // 8 bytes
 			},
 			frames: [][]byte{
 				bytes.Repeat([]byte{0xAA}, 256),
@@ -123,7 +122,7 @@ func TestUnlacer(t *testing.T) {
 				b = append(b, f...)
 			}
 
-			ul, err := c.newUnlacer(b)
+			ul, err := c.newUnlacer(bytes.NewReader(b), uint64(len(b)))
 			if err != c.err {
 				t.Fatalf("Unexpected error, expected: %v, got: %v", c.err, err)
 			}
@@ -131,13 +130,10 @@ func TestUnlacer(t *testing.T) {
 				return
 			}
 
-			for i, f := range c.frames {
+			for _, f := range c.frames {
 				b, err := ul.Read()
-				if err != nil && err != io.EOF {
+				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
-				}
-				if i == len(c.frames)-1 && err != io.EOF {
-					t.Errorf("Unexpected error for last data: %v", err)
 				}
 				if !bytes.Equal(f, b) {
 					t.Errorf("Unexpected data, \nexpected: %v, \n     got: %v", f, b)
