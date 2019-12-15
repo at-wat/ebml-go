@@ -49,6 +49,124 @@ func ExampleUnmarshal() {
 	// Output: {{webm 2 2}}
 }
 
+func TestUnmarshal_Convert(t *testing.T) {
+	cases := map[string]struct {
+		b        []byte
+		expected interface{}
+	}{
+		"UInt64ToUInt64": {
+			[]byte{0x42, 0x87, 0x81, 0x02},
+			struct {
+				DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"`
+			}{2},
+		},
+		"UInt64ToUInt32": {
+			[]byte{0x42, 0x87, 0x81, 0x02},
+			struct {
+				DocTypeVersion uint32 `ebml:"EBMLDocTypeVersion"`
+			}{2},
+		},
+		"UInt64ToUInt16": {
+			[]byte{0x42, 0x87, 0x81, 0x02},
+			struct {
+				DocTypeVersion uint16 `ebml:"EBMLDocTypeVersion"`
+			}{2},
+		},
+		"UInt64ToUInt8": {
+			[]byte{0x42, 0x87, 0x81, 0x02},
+			struct {
+				DocTypeVersion uint8 `ebml:"EBMLDocTypeVersion"`
+			}{2},
+		},
+		"UInt64ToUInt": {
+			[]byte{0x42, 0x87, 0x81, 0x02},
+			struct {
+				DocTypeVersion uint `ebml:"EBMLDocTypeVersion"`
+			}{2},
+		},
+		"Int64ToInt64": {
+			[]byte{0xFB, 0x81, 0xFF},
+			struct {
+				ReferenceBlock int64 `ebml:"ReferenceBlock"`
+			}{-1},
+		},
+		"Int64ToInt32": {
+			[]byte{0xFB, 0x81, 0xFF},
+			struct {
+				ReferenceBlock int32 `ebml:"ReferenceBlock"`
+			}{-1},
+		},
+		"Int64ToInt16": {
+			[]byte{0xFB, 0x81, 0xFF},
+			struct {
+				ReferenceBlock int16 `ebml:"ReferenceBlock"`
+			}{-1},
+		},
+		"Int64ToInt8": {
+			[]byte{0xFB, 0x81, 0xFF},
+			struct {
+				ReferenceBlock int8 `ebml:"ReferenceBlock"`
+			}{-1},
+		},
+		"Int64ToInt": {
+			[]byte{0xFB, 0x81, 0xFF},
+			struct {
+				ReferenceBlock int `ebml:"ReferenceBlock"`
+			}{-1},
+		},
+		"Float64ToFloat64": {
+			[]byte{0x44, 0x89, 0x84, 0x00, 0x00, 0x00, 0x00},
+			struct {
+				Duration float64 `ebml:"Duration"`
+			}{0.0},
+		},
+		"Float64ToFloat32": {
+			[]byte{0x44, 0x89, 0x84, 0x00, 0x00, 0x00, 0x00},
+			struct {
+				Duration float32 `ebml:"Duration"`
+			}{0.0},
+		},
+		"UInt64ToUInt64Slice": {
+			[]byte{0x42, 0x87, 0x81, 0x02},
+			struct {
+				DocTypeVersion []uint64 `ebml:"EBMLDocTypeVersion"`
+			}{[]uint64{2}},
+		},
+		"UInt64ToUInt32Slice": {
+			[]byte{0x42, 0x87, 0x81, 0x02},
+			struct {
+				DocTypeVersion []uint32 `ebml:"EBMLDocTypeVersion"`
+			}{[]uint32{2}},
+		},
+		"Int64ToInt32Slice": {
+			[]byte{0xFB, 0x81, 0xFF},
+			struct {
+				ReferenceBlock []int32 `ebml:"ReferenceBlock"`
+			}{[]int32{-1}},
+		},
+		"Float64ToFloat32Slice": {
+			[]byte{0x44, 0x89, 0x84, 0x00, 0x00, 0x00, 0x00},
+			struct {
+				Duration []float32 `ebml:"Duration"`
+			}{[]float32{0.0}},
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			ret := reflect.New(reflect.ValueOf(c.expected).Type())
+			if err := Unmarshal(bytes.NewReader(c.b), ret.Interface()); err != nil {
+				t.Fatalf("Unexpected error: %v\n", err)
+			}
+
+			if !reflect.DeepEqual(c.expected, ret.Elem().Interface()) {
+				t.Errorf("Unexpected convert result, expected: %v, got %v",
+					c.expected, ret.Elem().Interface())
+			}
+		})
+	}
+}
+
 func TestUnmarshal_OptionError(t *testing.T) {
 	errExpected := errors.New("an error")
 	err := Unmarshal(&bytes.Buffer{}, &struct{}{},
@@ -160,6 +278,78 @@ func TestUnmarshal_Error(t *testing.T) {
 			})
 		}
 	})
+	t.Run("Incompatible", func(t *testing.T) {
+		cases := map[string]struct {
+			b   []byte
+			ret interface{}
+			err error
+		}{
+			"UInt64ToInt64": {
+				b: []byte{0x42, 0x87, 0x81, 0x02},
+				ret: &struct {
+					DocTypeVersion int64 `ebml:"EBMLDocTypeVersion"`
+				}{},
+				err: errIncompatibleType,
+			},
+			"Int64ToUInt64": {
+				b: []byte{0xFB, 0x81, 0xFF},
+				ret: &struct {
+					ReferenceBlock uint64 `ebml:"ReferenceBlock"`
+				}{},
+				err: errIncompatibleType,
+			},
+			"Float64ToInt64": {
+				b: []byte{0x44, 0x89, 0x84, 0x00, 0x00, 0x00, 0x00},
+				ret: &struct {
+					Duration int64 `ebml:"Duration"`
+				}{},
+				err: errIncompatibleType,
+			},
+			"StringToInt64": {
+				b: []byte{0x42, 0x82, 0x85, 0x77, 0x65, 0x62, 0x6d, 0x00},
+				ret: &struct {
+					EBMLDocType int64 `ebml:"EBMLDocType"`
+				}{},
+				err: errIncompatibleType,
+			},
+			"UInt64ToInt64Slice": {
+				b: []byte{0x42, 0x87, 0x81, 0x02},
+				ret: &struct {
+					DocTypeVersion []int64 `ebml:"EBMLDocTypeVersion"`
+				}{},
+				err: errIncompatibleType,
+			},
+			"Int64ToUInt64Slice": {
+				b: []byte{0xFB, 0x81, 0xFF},
+				ret: &struct {
+					ReferenceBlock []uint64 `ebml:"ReferenceBlock"`
+				}{},
+				err: errIncompatibleType,
+			},
+			"Float64ToInt64Slice": {
+				b: []byte{0x44, 0x89, 0x84, 0x00, 0x00, 0x00, 0x00},
+				ret: &struct {
+					Duration []int64 `ebml:"Duration"`
+				}{},
+				err: errIncompatibleType,
+			},
+			"StringToInt64Slice": {
+				b: []byte{0x42, 0x82, 0x85, 0x77, 0x65, 0x62, 0x6d, 0x00},
+				ret: &struct {
+					EBMLDocType []int64 `ebml:"EBMLDocType"`
+				}{},
+				err: errIncompatibleType,
+			},
+		}
+		for name, c := range cases {
+			t.Run(name, func(t *testing.T) {
+				if err := Unmarshal(bytes.NewBuffer(c.b), c.ret); err != c.err {
+					t.Errorf("Unexpected error, expected: %v, got: %v\n", c.err, err)
+				}
+			})
+		}
+	})
+
 }
 
 func BenchmarkUnmarshal(b *testing.B) {

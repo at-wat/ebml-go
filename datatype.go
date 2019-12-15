@@ -14,6 +14,10 @@
 
 package ebml
 
+import (
+	"reflect"
+)
+
 // Type represents EBML Element data type.
 type Type int
 
@@ -50,4 +54,31 @@ func (t Type) String() string {
 	default:
 		return "Unknown type"
 	}
+}
+
+func isConvertible(src, dst reflect.Type) bool {
+	switch src.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		switch dst.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return true
+		default:
+			return false
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		switch dst.Kind() {
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			return true
+		default:
+			return false
+		}
+	case reflect.Float32, reflect.Float64:
+		switch dst.Kind() {
+		case reflect.Float32, reflect.Float64:
+			return true
+		default:
+			return false
+		}
+	}
+	return false
 }
