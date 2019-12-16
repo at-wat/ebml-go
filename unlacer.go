@@ -47,7 +47,15 @@ func (u *unlacer) Read() ([]byte, error) {
 	u.i++
 	b := make([]byte, n)
 	_, err := io.ReadFull(u.r, b)
+	if err == io.EOF {
+		return nil, io.ErrUnexpectedEOF
+	}
 	return b, err
+}
+
+// NewNoUnlacer creates pass-through Unlacer for not laced data.
+func NewNoUnlacer(r io.Reader, n uint64) (Unlacer, error) {
+	return &unlacer{r: r}, nil
 }
 
 // NewXiphUnlacer creates Unlacer for Xiph laced data.

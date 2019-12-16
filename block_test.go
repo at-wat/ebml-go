@@ -38,10 +38,31 @@ func TestUnmarshalBlock(t *testing.T) {
 			[]byte{0x21, 0x23, 0x45, 0x00, 0x02, 0x00},
 			Block{0x012345, 0x0002, false, false, LacingNo, false, nil, [][]byte{{}}},
 		},
+		"FixedLace": {
+			[]byte{0x82, 0x01, 0x23, 0x02, 0x02, 0x0A, 0x0B, 0x0C},
+			Block{
+				0x02, 0x0123, false, false, LacingFixed, false, nil,
+				[][]byte{{0x0A}, {0x0B}, {0x0C}},
+			},
+		},
+		"XiphLace": {
+			[]byte{0x82, 0x01, 0x23, 0x04, 0x02, 0x01, 0x02, 0x0A, 0x0B, 0x1B, 0x0C},
+			Block{
+				0x02, 0x0123, false, false, LacingXiph, false, nil,
+				[][]byte{{0x0A}, {0x0B, 0x1B}, {0x0C}},
+			},
+		},
+		"EBMLLace": {
+			[]byte{0x82, 0x01, 0x23, 0x06, 0x02, 0x81, 0x82, 0x0A, 0x0B, 0x1B, 0x0C},
+			Block{
+				0x02, 0x0123, false, false, LacingEBML, false, nil,
+				[][]byte{{0x0A}, {0x0B, 0x1B}, {0x0C}},
+			},
+		},
 	}
 	for n, c := range testCases {
 		t.Run(n, func(t *testing.T) {
-			block, err := UnmarshalBlock(bytes.NewBuffer(c.input))
+			block, err := UnmarshalBlock(bytes.NewBuffer(c.input), uint64(len(c.input)))
 			if err != nil {
 				t.Fatalf("Failed to unmarshal block: %v", err)
 			}
@@ -53,18 +74,32 @@ func TestUnmarshalBlock(t *testing.T) {
 }
 
 func TestUnmarshalBlock_Error(t *testing.T) {
-	input := []byte{0x21, 0x23, 0x45, 0x00, 0x02, 0x00}
-
-	t.Run("EOF",
-		func(t *testing.T) {
-			for l := 0; l < len(input); l++ {
-				if _, err := UnmarshalBlock(bytes.NewBuffer(input[:l])); err != io.ErrUnexpectedEOF {
-					t.Errorf("UnmarshalBlock should return %v against short data (%d bytes), but got %v",
-						io.ErrUnexpectedEOF, l, err)
-				}
+	t.Run("EOF", func(t *testing.T) {
+		input := []byte{0x21, 0x23, 0x45, 0x00, 0x02, 0x00}
+		for l := 0; l < len(input); l++ {
+			if _, err := UnmarshalBlock(bytes.NewBuffer(input[:l]), uint64(len(input))); err != io.ErrUnexpectedEOF {
+				t.Errorf("UnmarshalBlock should return %v against short data (%d bytes), but got %v",
+					io.ErrUnexpectedEOF, l, err)
 			}
+		}
+	})
+	testCases := map[string]struct {
+		input []byte
+		err   error
+	}{
+		"UndivisibleFixedLace": {
+			[]byte{0x82, 0x00, 0x00, 0x02, 0x02, 0x00, 0x00},
+			errFixedLaceUndivisible,
 		},
-	)
+	}
+	for n, c := range testCases {
+		t.Run(n, func(t *testing.T) {
+			_, err := UnmarshalBlock(bytes.NewBuffer(c.input), uint64(len(c.input)))
+			if err != c.err {
+				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
+			}
+		})
+	}
 }
 
 func TestMarshalBlock(t *testing.T) {

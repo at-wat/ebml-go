@@ -17,7 +17,6 @@ package ebml
 import (
 	"errors"
 	"io"
-	"io/ioutil"
 )
 
 var (
@@ -76,17 +75,20 @@ type Lace struct {
 }
 
 // UnmarshalBlock unmarshals EBML Block structure.
-func UnmarshalBlock(r io.Reader) (*Block, error) {
+func UnmarshalBlock(r io.Reader, n uint64) (*Block, error) {
 	var b Block
 	var err error
-	if b.TrackNumber, _, err = readVInt(r); err != nil {
+	var nRead int
+	if b.TrackNumber, nRead, err = readVInt(r); err != nil {
 		return nil, err
 	}
+	n -= uint64(nRead)
 	if v, err := readInt(r, 2); err == nil {
 		b.Timecode = int16(v.(int64))
 	} else {
 		return nil, err
 	}
+	n -= 2
 
 	var bs [1]byte
 	switch _, err := io.ReadFull(r, bs[:]); err {
@@ -96,6 +98,8 @@ func UnmarshalBlock(r io.Reader) (*Block, error) {
 	default:
 		return nil, err
 	}
+	n--
+
 	if bs[0]&blockFlagMaskKeyframe != 0 {
 		b.Keyframe = true
 	}
@@ -107,16 +111,30 @@ func UnmarshalBlock(r io.Reader) (*Block, error) {
 	}
 	b.Lacing = LacingMode((bs[0] & blockFlagMaskLacing) >> 1)
 
-	if b.Lacing != LacingNo {
-		return nil, errLaceUnimplemented
+	var ul Unlacer
+	switch b.Lacing {
+	case LacingNo:
+		ul, err = NewNoUnlacer(r, n)
+	case LacingXiph:
+		ul, err = NewXiphUnlacer(r, n)
+	case LacingEBML:
+		ul, err = NewEBMLUnlacer(r, n)
+	case LacingFixed:
+		ul, err = NewFixedUnlacer(r, n)
 	}
-
-	b.Data = [][]byte{{}}
-	b.Data[0], err = ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
-	return &b, nil
+	for {
+		frame, err := ul.Read()
+		if err == io.EOF {
+			return &b, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		b.Data = append(b.Data, frame)
+	}
 }
 
 // MarshalBlock marshals EBML Block structure.
