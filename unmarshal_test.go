@@ -287,6 +287,28 @@ func TestUnmarshal_Error(t *testing.T) {
 			})
 		}
 	})
+	t.Run("ErrorPropagation", func(t *testing.T) {
+		TestBinaries := map[string][]byte{
+			"UInt":       {0x42, 0x86, 0x84, 0x00, 0x00, 0x00, 0x00},
+			"Float":      {0x44, 0x89, 0x84, 0x00, 0x00, 0x00, 0x00},
+			"String":     {0x42, 0x82, 0x84, 0x00, 0x00, 0x00, 0x00},
+			"Block":      {0xA3, 0x85, 0x81, 0x00, 0x00, 0x00, 0x00},
+			"BlockXiph":  {0xA3, 0x88, 0x81, 0x00, 0x00, 0x04, 0x01, 0x01, 0x00, 0x00},
+			"BlockFixed": {0xA3, 0x87, 0x81, 0x00, 0x00, 0x02, 0x01, 0x00, 0x00},
+			"BlockEBML":  {0xA3, 0x88, 0x81, 0x00, 0x00, 0x06, 0x01, 0x81, 0x00, 0x00},
+		}
+		for name, b := range TestBinaries {
+			t.Run(name, func(t *testing.T) {
+				for i := 1; i < len(b)-1; i++ {
+					var val TestEBML
+					r := &delayedBrokenReader{b: b, limit: i}
+					if err := Unmarshal(r, &val); err != io.ErrClosedPipe {
+						t.Errorf("Error is not propagated from Reader, limit: %d, expected: %v, got: %v\n", i, io.ErrClosedPipe, err)
+					}
+				}
+			})
+		}
+	})
 	t.Run("Incompatible", func(t *testing.T) {
 		cases := map[string]struct {
 			b   []byte
