@@ -75,14 +75,14 @@ type Lace struct {
 }
 
 // UnmarshalBlock unmarshals EBML Block structure.
-func UnmarshalBlock(r io.Reader, n uint64) (*Block, error) {
+func UnmarshalBlock(r io.Reader, n int64) (*Block, error) {
 	var b Block
 	var err error
 	var nRead int
 	if b.TrackNumber, nRead, err = readVInt(r); err != nil {
 		return nil, err
 	}
-	n -= uint64(nRead)
+	n -= int64(nRead)
 	if v, err := readInt(r, 2); err == nil {
 		b.Timecode = int16(v.(int64))
 	} else {

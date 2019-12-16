@@ -62,7 +62,7 @@ func TestUnmarshalBlock(t *testing.T) {
 	}
 	for n, c := range testCases {
 		t.Run(n, func(t *testing.T) {
-			block, err := UnmarshalBlock(bytes.NewBuffer(c.input), uint64(len(c.input)))
+			block, err := UnmarshalBlock(bytes.NewBuffer(c.input), int64(len(c.input)))
 			if err != nil {
 				t.Fatalf("Failed to unmarshal block: %v", err)
 			}
@@ -77,7 +77,7 @@ func TestUnmarshalBlock_Error(t *testing.T) {
 	t.Run("EOF", func(t *testing.T) {
 		input := []byte{0x21, 0x23, 0x45, 0x00, 0x02, 0x00}
 		for l := 0; l < len(input); l++ {
-			if _, err := UnmarshalBlock(bytes.NewBuffer(input[:l]), uint64(len(input))); err != io.ErrUnexpectedEOF {
+			if _, err := UnmarshalBlock(bytes.NewBuffer(input[:l]), int64(len(input))); err != io.ErrUnexpectedEOF {
 				t.Errorf("UnmarshalBlock should return %v against short data (%d bytes), but got %v",
 					io.ErrUnexpectedEOF, l, err)
 			}
@@ -94,7 +94,7 @@ func TestUnmarshalBlock_Error(t *testing.T) {
 	}
 	for n, c := range testCases {
 		t.Run(n, func(t *testing.T) {
-			_, err := UnmarshalBlock(bytes.NewBuffer(c.input), uint64(len(c.input)))
+			_, err := UnmarshalBlock(bytes.NewBuffer(c.input), int64(len(c.input)))
 			if err != c.err {
 				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
 			}
