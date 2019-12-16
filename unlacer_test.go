@@ -22,7 +22,7 @@ import (
 
 func TestUnlacer(t *testing.T) {
 	cases := map[string]struct {
-		newUnlacer func(io.Reader, uint64) (Unlacer, error)
+		newUnlacer func(io.Reader, int64) (Unlacer, error)
 		header     []byte
 		frames     [][]byte
 		err        error
@@ -162,7 +162,7 @@ func TestUnlacer(t *testing.T) {
 				b = append(b, f...)
 			}
 
-			ul, err := c.newUnlacer(bytes.NewReader(b), uint64(len(b)))
+			ul, err := c.newUnlacer(bytes.NewReader(b), int64(len(b)))
 			if err != c.err {
 				t.Fatalf("Unexpected error, expected: %v, got: %v", c.err, err)
 			}

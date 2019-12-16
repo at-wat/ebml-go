@@ -190,7 +190,7 @@ func readFloat(r io.Reader, n uint64) (interface{}, error) {
 	}
 }
 func readBlock(r io.Reader, n uint64) (interface{}, error) {
-	b, err := UnmarshalBlock(r, n)
+	b, err := UnmarshalBlock(r, int64(n))
 	if err != nil {
 		return nil, err
 	}

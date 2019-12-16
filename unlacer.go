@@ -47,12 +47,12 @@ func (u *unlacer) Read() ([]byte, error) {
 }
 
 // NewNoUnlacer creates pass-through Unlacer for not laced data.
-func NewNoUnlacer(r io.Reader, n uint64) (Unlacer, error) {
+func NewNoUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	return &unlacer{r: r, size: []int{int(n)}}, nil
 }
 
 // NewXiphUnlacer creates Unlacer for Xiph laced data.
-func NewXiphUnlacer(r io.Reader, n uint64) (Unlacer, error) {
+func NewXiphUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	var nFrame int
 	var b [1]byte
 	switch _, err := io.ReadFull(r, b[:]); err {
@@ -96,7 +96,7 @@ func NewXiphUnlacer(r io.Reader, n uint64) (Unlacer, error) {
 }
 
 // NewFixedUnlacer creates Unlacer for Fixed laced data.
-func NewFixedUnlacer(r io.Reader, n uint64) (Unlacer, error) {
+func NewFixedUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	var nFrame int
 	var b [1]byte
 	switch _, err := io.ReadFull(r, b[:]); err {
@@ -123,7 +123,7 @@ func NewFixedUnlacer(r io.Reader, n uint64) (Unlacer, error) {
 }
 
 // NewEBMLUnlacer creates Unlacer for EBML laced data.
-func NewEBMLUnlacer(r io.Reader, n uint64) (Unlacer, error) {
+func NewEBMLUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	var nFrame int
 	var b [1]byte
 	switch _, err := io.ReadFull(r, b[:]); err {
@@ -145,7 +145,7 @@ func NewEBMLUnlacer(r io.Reader, n uint64) (Unlacer, error) {
 		if err != nil {
 			return nil, err
 		}
-		n -= uint64(nRead)
+		n -= int64(nRead)
 		ul.size[i] = int(n64)
 		ul.size[nFrame-1] -= int(n64)
 	}
