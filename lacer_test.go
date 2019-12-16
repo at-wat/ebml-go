@@ -162,22 +162,22 @@ func TestLacer(t *testing.T) {
 }
 
 func TestLacer_WriterError(t *testing.T) {
-	frames := [][]byte{{0x01}, {0x02}}
 	lacers := map[string]struct {
+		frames   [][]byte
 		newLacer func(io.Writer) Lacer
 		n        int
 	}{
-		"NoLacer":    {NewNoLacer, 1},
-		"XiphLacer":  {NewXiphLacer, 1},
-		"FixedLacer": {NewFixedLacer, 1},
-		"EBMLLacer":  {NewEBMLLacer, 1},
+		"NoLacer":    {[][]byte{{0x01, 0x02}}, NewNoLacer, 3},
+		"XiphLacer":  {[][]byte{{0x01}, {0x02}}, NewXiphLacer, 4},
+		"FixedLacer": {[][]byte{{0x01}, {0x02}}, NewFixedLacer, 3},
+		"EBMLLacer":  {[][]byte{{0x01}, {0x02}}, NewEBMLLacer, 4},
 	}
 	for name, c := range lacers {
 		t.Run(name, func(t *testing.T) {
 			for l := 0; l < c.n-1; l++ {
-				lacer := c.newLacer(&limitedDummyWriter{limit: c.n})
-				if err := lacer.Write(frames); err != bytes.ErrTooLarge {
-					t.Errorf("Lacer should fail with bytes.ErrTooLarge against too large data (Writer size limit: %d), but got %v", c.n, err)
+				lacer := c.newLacer(&limitedDummyWriter{limit: l})
+				if err := lacer.Write(c.frames); err != bytes.ErrTooLarge {
+					t.Errorf("Lacer should fail with bytes.ErrTooLarge against too large data (Writer size limit: %d), but got %v", l, err)
 				}
 			}
 		})
