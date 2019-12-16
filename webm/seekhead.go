@@ -64,8 +64,7 @@ func setSeekHead(header *flexHeader, opts ...ebml.MarshalOption) error {
 	var segmentPos uint64
 	hook := func(e *ebml.Element) {
 		switch e.Name {
-		case "SeekHead":
-			// SeekHead position is the top of the Segment contents.
+		case "Segment":
 			// Origin of the segment position is here.
 			segmentPos = e.Position
 		case "Info":
