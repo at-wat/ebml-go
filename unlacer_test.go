@@ -56,7 +56,7 @@ func TestUnlacer(t *testing.T) {
 			err:    io.ErrUnexpectedEOF,
 		},
 		"XiphMissingFrame": {
-			newUnlacer: NewEBMLUnlacer,
+			newUnlacer: NewXiphUnlacer,
 			header: []byte{
 				0x02,
 				0x02,
@@ -66,7 +66,7 @@ func TestUnlacer(t *testing.T) {
 			err:    io.ErrUnexpectedEOF,
 		},
 		"XiphMissingLastFrame": {
-			newUnlacer: NewEBMLUnlacer,
+			newUnlacer: NewXiphUnlacer,
 			header: []byte{
 				0x02,
 				0x02,
