@@ -153,11 +153,18 @@ func MarshalBlock(b *Block, w io.Writer) error {
 		return err
 	}
 
-	if b.Lacing != LacingNo {
-		return errLaceUnimplemented
+	var l Lacer
+	switch b.Lacing {
+	case LacingNo:
+		l = NewNoLacer(w)
+	case LacingXiph:
+		l = NewXiphLacer(w)
+	case LacingEBML:
+		l = NewEBMLLacer(w)
+	case LacingFixed:
+		l = NewFixedLacer(w)
 	}
-
-	if _, err := w.Write(b.Data[0]); err != nil {
+	if err := l.Write(b.Data); err != nil {
 		return err
 	}
 
