@@ -49,7 +49,6 @@ type Block struct {
 	Invisible   bool
 	Lacing      LacingMode
 	Discardable bool
-	Lace        *Lace
 	Data        [][]byte
 }
 
@@ -66,12 +65,6 @@ func (b *Block) packFlags() byte {
 	}
 	f |= byte(b.Lacing) << 1
 	return f
-}
-
-// Lace represents Lace header of EBML Block/SimpleBlock element.
-type Lace struct {
-	NumFrames uint8
-	Len       []uint8
 }
 
 // UnmarshalBlock unmarshals EBML Block structure.
@@ -153,11 +146,18 @@ func MarshalBlock(b *Block, w io.Writer) error {
 		return err
 	}
 
-	if b.Lacing != LacingNo {
-		return errLaceUnimplemented
+	var l Lacer
+	switch b.Lacing {
+	case LacingNo:
+		l = NewNoLacer(w)
+	case LacingXiph:
+		l = NewXiphLacer(w)
+	case LacingEBML:
+		l = NewEBMLLacer(w)
+	case LacingFixed:
+		l = NewFixedLacer(w)
 	}
-
-	if _, err := w.Write(b.Data[0]); err != nil {
+	if err := l.Write(b.Data); err != nil {
 		return err
 	}
 
