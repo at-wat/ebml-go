@@ -35,9 +35,6 @@ func parseTag(rawtag string) (*structTag, error) {
 	tag := &structTag{}
 
 	ts := strings.Split(rawtag, ",")
-	if len(ts) == 0 {
-		return tag, nil
-	}
 
 	for i, t := range ts {
 		kv := strings.SplitN(t, "=", 2)
