@@ -49,7 +49,6 @@ type Block struct {
 	Invisible   bool
 	Lacing      LacingMode
 	Discardable bool
-	Lace        *Lace
 	Data        [][]byte
 }
 
@@ -66,12 +65,6 @@ func (b *Block) packFlags() byte {
 	}
 	f |= byte(b.Lacing) << 1
 	return f
-}
-
-// Lace represents Lace header of EBML Block/SimpleBlock element.
-type Lace struct {
-	NumFrames uint8
-	Len       []uint8
 }
 
 // UnmarshalBlock unmarshals EBML Block structure.

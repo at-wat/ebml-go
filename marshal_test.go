@@ -58,6 +58,9 @@ func TestMarshal(t *testing.T) {
 		DocType        interface{} `ebml:"EBMLDocType"`
 		DocTypeVersion interface{} `ebml:"EBMLDocTypeVersion"`
 	}
+	type TestBlocks struct {
+		Block Block `ebml:"SimpleBlock"`
+	}
 
 	var str string
 	var uinteger uint64
@@ -156,6 +159,38 @@ func TestMarshal(t *testing.T) {
 				0x42, 0x82, 0x81, 0x00,
 				0x42, 0x87, 0x81, 0x00,
 			},
+		},
+		"Block": {
+			&TestBlocks{
+				Block: Block{
+					TrackNumber: 0x01, Timecode: 0x0123, Lacing: LacingNo, Data: [][]byte{{0x01}},
+				},
+			},
+			[]byte{0xA3, 0x85, 0x81, 0x01, 0x23, 0x00, 0x01},
+		},
+		"BlockXiph": {
+			&TestBlocks{
+				Block: Block{
+					TrackNumber: 0x01, Timecode: 0x0123, Lacing: LacingXiph, Data: [][]byte{{0x01}, {0x02}},
+				},
+			},
+			[]byte{0xA3, 0x88, 0x81, 0x01, 0x23, 0x04, 0x01, 0x01, 0x01, 0x02},
+		},
+		"BlockFixed": {
+			&TestBlocks{
+				Block: Block{
+					TrackNumber: 0x01, Timecode: 0x0123, Lacing: LacingFixed, Data: [][]byte{{0x01}, {0x02}},
+				},
+			},
+			[]byte{0xA3, 0x87, 0x81, 0x01, 0x23, 0x02, 0x01, 0x01, 0x02},
+		},
+		"BlockEBML": {
+			&TestBlocks{
+				Block: Block{
+					TrackNumber: 0x01, Timecode: 0x0123, Lacing: LacingEBML, Data: [][]byte{{0x01}, {0x02}},
+				},
+			},
+			[]byte{0xA3, 0x88, 0x81, 0x01, 0x23, 0x06, 0x01, 0x81, 0x01, 0x02},
 		},
 	}
 

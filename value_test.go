@@ -147,7 +147,7 @@ func TestValue(t *testing.T) {
 		"Float32(4B)": {[]byte{0x40, 0x10, 0x00, 0x00}, TypeFloat, float64(2.25), 4, float32(2.25)},
 		"Float64(8B)": {[]byte{0x40, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, TypeFloat, float64(2.25), 8, nil},
 		"Block": {[]byte{0x85, 0x12, 0x34, 0x80, 0x34, 0x56}, TypeBlock,
-			Block{uint64(5), int16(0x1234), true, false, LacingNo, false, nil, [][]byte{{0x34, 0x56}}}, 0, nil,
+			Block{uint64(5), int16(0x1234), true, false, LacingNo, false, [][]byte{{0x34, 0x56}}}, 0, nil,
 		},
 		"ConvertInt8":   {[]byte{0x01}, TypeInt, int64(0x01), 0, int8(0x01)},
 		"ConvertInt16":  {[]byte{0x01, 0x02}, TypeInt, int64(0x0102), 0, int16(0x0102)},
