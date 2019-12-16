@@ -43,9 +43,6 @@ func (u *unlacer) Read() ([]byte, error) {
 
 	b := make([]byte, n)
 	_, err := io.ReadFull(u.r, b)
-	if err == io.EOF && u.i < len(u.size) {
-		return nil, io.ErrUnexpectedEOF
-	}
 	return b, err
 }
 
@@ -91,6 +88,9 @@ func NewXiphUnlacer(r io.Reader, n uint64) (Unlacer, error) {
 		}
 	}
 	ul.size[nFrame-1] += int(n)
+	if ul.size[nFrame-1] <= 0 {
+		return nil, io.ErrUnexpectedEOF
+	}
 
 	return ul, nil
 }
@@ -150,6 +150,9 @@ func NewEBMLUnlacer(r io.Reader, n uint64) (Unlacer, error) {
 		ul.size[nFrame-1] -= int(n64)
 	}
 	ul.size[nFrame-1] += int(n)
+	if ul.size[nFrame-1] <= 0 {
+		return nil, io.ErrUnexpectedEOF
+	}
 
 	return ul, nil
 }

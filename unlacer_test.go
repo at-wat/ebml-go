@@ -55,6 +55,26 @@ func TestUnlacer(t *testing.T) {
 			frames: [][]byte{},
 			err:    io.ErrUnexpectedEOF,
 		},
+		"XiphMissingFrame": {
+			newUnlacer: NewEBMLUnlacer,
+			header: []byte{
+				0x02,
+				0x02,
+				0x01,
+			},
+			frames: [][]byte{{0x00, 0x01}},
+			err:    io.ErrUnexpectedEOF,
+		},
+		"XiphMissingLastFrame": {
+			newUnlacer: NewEBMLUnlacer,
+			header: []byte{
+				0x02,
+				0x02,
+				0x01,
+			},
+			frames: [][]byte{{0x00, 0x01}, {0x02}},
+			err:    io.ErrUnexpectedEOF,
+		},
 		"Fixed": {
 			newUnlacer: NewFixedUnlacer,
 			header: []byte{
@@ -112,6 +132,26 @@ func TestUnlacer(t *testing.T) {
 				0x41,
 			},
 			frames: [][]byte{},
+			err:    io.ErrUnexpectedEOF,
+		},
+		"EBMLMissingFrame": {
+			newUnlacer: NewEBMLUnlacer,
+			header: []byte{
+				0x02,
+				0x82,
+				0x81,
+			},
+			frames: [][]byte{{0x00, 0x01}},
+			err:    io.ErrUnexpectedEOF,
+		},
+		"EBMLMissingLastFrame": {
+			newUnlacer: NewEBMLUnlacer,
+			header: []byte{
+				0x02,
+				0x82,
+				0x81,
+			},
+			frames: [][]byte{{0x00, 0x01}, {0x02}},
 			err:    io.ErrUnexpectedEOF,
 		},
 	}
