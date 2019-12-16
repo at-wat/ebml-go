@@ -258,13 +258,20 @@ func TestUnmarshal_Error(t *testing.T) {
 			t.Errorf("Unexpected error, %v, got %v\n", errIndefiniteType, err)
 		}
 	})
-	t.Run("UnknownElement", func(t *testing.T) {
+	t.Run("UnknownElementType", func(t *testing.T) {
 		input := &struct {
 			Header struct {
 			} `ebml:"Unknown"`
 		}{}
 		if err := Unmarshal(bytes.NewBuffer([]byte{}), input); err != errUnknownElementType {
 			t.Errorf("Unexpected error, %v, got %v\n", errUnknownElementType, err)
+		}
+	})
+	t.Run("UnknownElement", func(t *testing.T) {
+		input := &TestEBML{}
+		b := []byte{0x80}
+		if err := Unmarshal(bytes.NewBuffer(b), input); err != errUnknownElement {
+			t.Errorf("Unexpected error, %v, got %v\n", errUnknownElement, err)
 		}
 	})
 	t.Run("Short", func(t *testing.T) {
