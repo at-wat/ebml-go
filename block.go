@@ -29,8 +29,8 @@ type LacingMode uint8
 // Type of laced data.
 const (
 	LacingNo    LacingMode = 0
-	LacingFixed LacingMode = 1
-	LacingXiph  LacingMode = 2
+	LacingXiph  LacingMode = 1
+	LacingFixed LacingMode = 2
 	LacingEBML  LacingMode = 3
 )
 
