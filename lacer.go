@@ -20,9 +20,8 @@ import (
 )
 
 var (
-	errMultipleFramesNoLace = errors.New("multiple frames in no lace")
-	errUnevenFixedLace      = errors.New("uneven size of frames in fixed lace")
-	errTooManyFrames        = errors.New("too many frames")
+	errUnevenFixedLace = errors.New("uneven size of frames in fixed lace")
+	errTooManyFrames   = errors.New("too many frames")
 )
 
 // Lacer is the interface to read laced frames in Block.
@@ -49,7 +48,7 @@ func (l *noLacer) Write(b [][]byte) error {
 	case nFrames == 0:
 		return nil
 	case nFrames != 1:
-		return errMultipleFramesNoLace
+		return errTooManyFrames
 	}
 	_, err := l.w.Write(b[0])
 	return err

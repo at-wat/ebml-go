@@ -27,6 +27,18 @@ func TestLacer(t *testing.T) {
 		b        []byte
 		err      error
 	}{
+		"NoLaceEmpty": {
+			newLacer: NewNoLacer,
+			frames:   [][]byte{},
+			b:        []byte{},
+			err:      nil,
+		},
+		"NoLaceTooMany": {
+			newLacer: NewNoLacer,
+			frames:   make([][]byte, 2),
+			b:        []byte{},
+			err:      errTooManyFrames,
+		},
 		"Xiph": {
 			newLacer: NewXiphLacer,
 			frames: [][]byte{
@@ -94,6 +106,12 @@ func TestLacer(t *testing.T) {
 			b:   nil,
 			err: errUnevenFixedLace,
 		},
+		"FixedTooLong": {
+			newLacer: NewFixedLacer,
+			frames:   make([][]byte, 256),
+			b:        nil,
+			err:      errTooManyFrames,
+		},
 		"EBML": {
 			newLacer: NewEBMLLacer,
 			frames: [][]byte{
@@ -121,6 +139,12 @@ func TestLacer(t *testing.T) {
 			b:        []byte{},
 			err:      nil,
 		},
+		"EBMLTooLong": {
+			newLacer: NewEBMLLacer,
+			frames:   make([][]byte, 256),
+			b:        nil,
+			err:      errTooManyFrames,
+		},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -132,6 +156,29 @@ func TestLacer(t *testing.T) {
 			}
 			if !bytes.Equal(c.b, buf.Bytes()) {
 				t.Errorf("Unexpected data, \nexpected: %v, \n     got: %v", c.b, buf.Bytes())
+			}
+		})
+	}
+}
+
+func TestLacer_WriterError(t *testing.T) {
+	frames := [][]byte{{0x01}, {0x02}}
+	lacers := map[string]struct {
+		newLacer func(io.Writer) Lacer
+		n        int
+	}{
+		"NoLacer":    {NewNoLacer, 1},
+		"XiphLacer":  {NewXiphLacer, 1},
+		"FixedLacer": {NewFixedLacer, 1},
+		"EBMLLacer":  {NewEBMLLacer, 1},
+	}
+	for name, c := range lacers {
+		t.Run(name, func(t *testing.T) {
+			for l := 0; l < c.n-1; l++ {
+				lacer := c.newLacer(&limitedDummyWriter{limit: c.n})
+				if err := lacer.Write(frames); err != bytes.ErrTooLarge {
+					t.Errorf("Lacer should fail with bytes.ErrTooLarge against too large data (Writer size limit: %d), but got %v", c.n, err)
+				}
 			}
 		})
 	}
