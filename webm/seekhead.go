@@ -44,7 +44,6 @@ type flexHeader struct {
 func setSeekHead(header *flexHeader, opts ...ebml.MarshalOption) error {
 	infoPos := new(uint64)
 	tracksPos := new(uint64)
-	clusterPos := new(uint64)
 	header.Segment.SeekHead = &seekHeadFixed{}
 	if header.Segment.Info != nil {
 		header.Segment.SeekHead.Seek = append(header.Segment.SeekHead.Seek, seekFixed{
@@ -55,10 +54,6 @@ func setSeekHead(header *flexHeader, opts ...ebml.MarshalOption) error {
 	header.Segment.SeekHead.Seek = append(header.Segment.SeekHead.Seek, seekFixed{
 		SeekID:       ebml.ElementTracks.Bytes(),
 		SeekPosition: tracksPos,
-	})
-	header.Segment.SeekHead.Seek = append(header.Segment.SeekHead.Seek, seekFixed{
-		SeekID:       ebml.ElementCluster.Bytes(),
-		SeekPosition: clusterPos,
 	})
 
 	var segmentPos uint64
@@ -82,7 +77,6 @@ func setSeekHead(header *flexHeader, opts ...ebml.MarshalOption) error {
 	if err := ebml.Marshal(header, buf, optsWithHook...); err != nil {
 		return err
 	}
-	*clusterPos = uint64(buf.Len()) - segmentPos
 
 	return nil
 }
