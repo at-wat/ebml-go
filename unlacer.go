@@ -17,7 +17,6 @@ package ebml
 import (
 	"errors"
 	"io"
-	"io/ioutil"
 )
 
 var (
@@ -36,18 +35,15 @@ type unlacer struct {
 }
 
 func (u *unlacer) Read() ([]byte, error) {
-	if u.i >= len(u.size)+1 {
+	if u.i >= len(u.size) {
 		return nil, io.EOF
-	}
-	if u.i == len(u.size) {
-		u.i++
-		return ioutil.ReadAll(u.r)
 	}
 	n := u.size[u.i]
 	u.i++
+
 	b := make([]byte, n)
 	_, err := io.ReadFull(u.r, b)
-	if err == io.EOF {
+	if err == io.EOF && u.i < len(u.size) {
 		return nil, io.ErrUnexpectedEOF
 	}
 	return b, err
@@ -55,7 +51,7 @@ func (u *unlacer) Read() ([]byte, error) {
 
 // NewNoUnlacer creates pass-through Unlacer for not laced data.
 func NewNoUnlacer(r io.Reader, n uint64) (Unlacer, error) {
-	return &unlacer{r: r}, nil
+	return &unlacer{r: r, size: []int{int(n)}}, nil
 }
 
 // NewXiphUnlacer creates Unlacer for Xiph laced data.
@@ -70,10 +66,11 @@ func NewXiphUnlacer(r io.Reader, n uint64) (Unlacer, error) {
 	default:
 		return nil, err
 	}
+	n--
 
 	ul := &unlacer{
 		r:    r,
-		size: make([]int, nFrame-1),
+		size: make([]int, nFrame),
 	}
 	for i := 0; i < nFrame-1; i++ {
 		for {
@@ -85,12 +82,15 @@ func NewXiphUnlacer(r io.Reader, n uint64) (Unlacer, error) {
 			default:
 				return nil, err
 			}
+			n--
 			ul.size[i] += int(b[0])
 			if b[0] != 0xFF {
+				ul.size[nFrame-1] -= ul.size[i]
 				break
 			}
 		}
 	}
+	ul.size[nFrame-1] += int(n)
 
 	return ul, nil
 }
@@ -110,10 +110,10 @@ func NewFixedUnlacer(r io.Reader, n uint64) (Unlacer, error) {
 
 	ul := &unlacer{
 		r:    r,
-		size: make([]int, nFrame-1),
+		size: make([]int, nFrame),
 	}
 	ul.size[0] = (int(n) - 1) / nFrame
-	for i := 1; i < nFrame-1; i++ {
+	for i := 1; i < nFrame; i++ {
 		ul.size[i] = ul.size[0]
 	}
 	if ul.size[0]*nFrame+1 != int(n) {
@@ -134,18 +134,22 @@ func NewEBMLUnlacer(r io.Reader, n uint64) (Unlacer, error) {
 	default:
 		return nil, err
 	}
+	n--
 
 	ul := &unlacer{
 		r:    r,
-		size: make([]int, nFrame-1),
+		size: make([]int, nFrame),
 	}
 	for i := 0; i < nFrame-1; i++ {
-		n64, _, err := readVInt(ul.r)
+		n64, nRead, err := readVInt(ul.r)
 		if err != nil {
 			return nil, err
 		}
+		n -= uint64(nRead)
 		ul.size[i] = int(n64)
+		ul.size[nFrame-1] -= int(n64)
 	}
+	ul.size[nFrame-1] += int(n)
 
 	return ul, nil
 }
