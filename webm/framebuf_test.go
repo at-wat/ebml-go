@@ -22,6 +22,10 @@ import (
 func TestFrameBuffer(t *testing.T) {
 	buf := &frameBuffer{}
 
+	if h := buf.Pop(); h != nil {
+		t.Errorf("Pop() must return nil if empty, expected: nil, got %v", h)
+	}
+
 	if n := buf.Size(); n != 0 {
 		t.Errorf("Size() must return 0 at beginning, got %d", n)
 	}

@@ -49,6 +49,41 @@ func ExampleUnmarshal() {
 	// Output: {{webm 2 2}}
 }
 
+func TestUnmarshal_MultipleUnknownSize(t *testing.T) {
+	b := []byte{
+		0x18, 0x53, 0x80, 0x67, // Segment
+		0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0x1F, 0x43, 0xB6, 0x75, // Cluster
+		0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0x42, 0x87, 0x81, 0x01,
+		0x1F, 0x43, 0xB6, 0x75, // Cluster
+		0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0x42, 0x87, 0x81, 0x02,
+	}
+	type Cluster struct {
+		DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"`
+	}
+	type Segment struct {
+		Cluster []Cluster `ebml:"Cluster"`
+	}
+	type TestEBML struct {
+		Segment Segment `ebml:"Segment"`
+	}
+	expected := TestEBML{
+		Segment: Segment{
+			Cluster: []Cluster{{0x01}, {0x02}},
+		},
+	}
+
+	var ret TestEBML
+	if err := Unmarshal(bytes.NewReader(b), &ret); err != nil {
+		t.Fatalf("Unexpected error: %v\n", err)
+	}
+	if !reflect.DeepEqual(expected, ret) {
+		t.Errorf("Unexpected result, expected: %v, got: %v", expected, ret)
+	}
+}
+
 func TestUnmarshal_Convert(t *testing.T) {
 	cases := map[string]struct {
 		b        []byte
@@ -258,13 +293,20 @@ func TestUnmarshal_Error(t *testing.T) {
 			t.Errorf("Unexpected error, %v, got %v\n", errIndefiniteType, err)
 		}
 	})
-	t.Run("UnknownElement", func(t *testing.T) {
+	t.Run("UnknownElementType", func(t *testing.T) {
 		input := &struct {
 			Header struct {
 			} `ebml:"Unknown"`
 		}{}
 		if err := Unmarshal(bytes.NewBuffer([]byte{}), input); err != errUnknownElementType {
 			t.Errorf("Unexpected error, %v, got %v\n", errUnknownElementType, err)
+		}
+	})
+	t.Run("UnknownElement", func(t *testing.T) {
+		input := &TestEBML{}
+		b := []byte{0x80}
+		if err := Unmarshal(bytes.NewBuffer(b), input); err != errUnknownElement {
+			t.Errorf("Unexpected error, %v, got %v\n", errUnknownElement, err)
 		}
 	})
 	t.Run("Short", func(t *testing.T) {
