@@ -16,6 +16,7 @@ package ebml
 
 import (
 	"reflect"
+	"strconv"
 	"testing"
 )
 
@@ -23,7 +24,7 @@ func TestParseTag(t *testing.T) {
 	cases := map[string]struct {
 		input    string
 		expected *structTag
-		err      error
+		err      interface{}
 	}{
 		"Empty": {
 			"",
@@ -53,6 +54,13 @@ func TestParseTag(t *testing.T) {
 			"Name123,inf",
 			&structTag{name: "Name123", size: sizeUnknown}, nil,
 		},
+		"InvalidSize": {
+			"Name123,size=a",
+			nil, func(err error) bool {
+				_, ok := err.(*strconv.NumError)
+				return ok
+			},
+		},
 		"InvalidTag": {
 			"Name,invalidtag",
 			nil, errInvalidTag,
@@ -77,7 +85,7 @@ func TestParseTag(t *testing.T) {
 	for n, c := range cases {
 		t.Run(n, func(t *testing.T) {
 			tag, err := parseTag(c.input)
-			if err != c.err {
+			if !isErr(err, c.err) {
 				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
 			}
 			if (c.expected == nil) != (tag == nil) {
