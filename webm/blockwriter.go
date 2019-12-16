@@ -79,7 +79,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackEntry, opts ...BlockW
 			panic(err)
 		},
 		interceptor: DefaultBlockInterceptor,
-		seekHead:    true,
+		seekHead:    false,
 	}
 	for _, o := range opts {
 		if err := o(options); err != nil {
