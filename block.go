@@ -15,12 +15,7 @@
 package ebml
 
 import (
-	"errors"
 	"io"
-)
-
-var (
-	errLaceUnimplemented = errors.New("lacing in unimplementd")
 )
 
 // LacingMode is type of laced data.

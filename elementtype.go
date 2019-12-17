@@ -18,12 +18,11 @@ import (
 	"errors"
 )
 
+// ErrUnknownElementName means that a element name is not found in the ElementType list.
+var ErrUnknownElementName = errors.New("unknown element name")
+
 // ElementType represents EBML Element type.
 type ElementType int
-
-var (
-	errUnknownElementType = errors.New("unknown element type")
-)
 
 // EBML Element types.
 const (
@@ -498,6 +497,6 @@ func ElementTypeFromString(s string) (ElementType, error) {
 		return ElementTimecode, nil
 
 	default:
-		return 0, errUnknownElementType
+		return 0, ErrUnknownElementName
 	}
 }

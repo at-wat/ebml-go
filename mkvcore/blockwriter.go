@@ -22,9 +22,8 @@ import (
 	"github.com/at-wat/ebml-go"
 )
 
-var (
-	errIgnoreOldFrame = errors.New("too old frame")
-)
+// ErrIgnoreOldFrame means that a frame has too old timestamp and ignored.
+var ErrIgnoreOldFrame = errors.New("too old frame")
 
 type blockWriter struct {
 	trackNumber uint64
@@ -218,7 +217,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 				if tc <= -0x7FFF {
 					// Ignore too old frame
 					if options.onError != nil {
-						options.onError(errIgnoreOldFrame)
+						options.onError(ErrIgnoreOldFrame)
 					}
 					continue
 				}

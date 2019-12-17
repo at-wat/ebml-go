@@ -37,7 +37,7 @@ func TestLacer(t *testing.T) {
 			newLacer: NewNoLacer,
 			frames:   make([][]byte, 2),
 			b:        []byte{},
-			err:      errTooManyFrames,
+			err:      ErrTooManyFrames,
 		},
 		"Xiph": {
 			newLacer: NewXiphLacer,
@@ -69,7 +69,7 @@ func TestLacer(t *testing.T) {
 			newLacer: NewXiphLacer,
 			frames:   make([][]byte, 256),
 			b:        nil,
-			err:      errTooManyFrames,
+			err:      ErrTooManyFrames,
 		},
 		"Fixed": {
 			newLacer: NewFixedLacer,
@@ -104,13 +104,13 @@ func TestLacer(t *testing.T) {
 				bytes.Repeat([]byte{0x55}, 15),
 			},
 			b:   nil,
-			err: errUnevenFixedLace,
+			err: ErrUnevenFixedLace,
 		},
 		"FixedTooLong": {
 			newLacer: NewFixedLacer,
 			frames:   make([][]byte, 256),
 			b:        nil,
-			err:      errTooManyFrames,
+			err:      ErrTooManyFrames,
 		},
 		"EBML": {
 			newLacer: NewEBMLLacer,
@@ -143,7 +143,7 @@ func TestLacer(t *testing.T) {
 			newLacer: NewEBMLLacer,
 			frames:   make([][]byte, 256),
 			b:        nil,
-			err:      errTooManyFrames,
+			err:      ErrTooManyFrames,
 		},
 	}
 	for name, c := range cases {

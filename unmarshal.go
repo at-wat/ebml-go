@@ -22,11 +22,14 @@ import (
 	"strings"
 )
 
-var (
-	errUnknownElement   = errors.New("unknown element")
-	errIndefiniteType   = errors.New("unmarshal to indefinite type")
-	errIncompatibleType = errors.New("unmarshal to incompatible type")
-)
+// ErrUnknownElement means that a decoded element is not known.
+var ErrUnknownElement = errors.New("unknown element")
+
+// ErrIndefiniteType means that a unmarshal destination type is not valid.
+var ErrIndefiniteType = errors.New("unmarshal to indefinite type")
+
+// ErrIncompatibleType means that an element is not convertible to a corresponding struct field.
+var ErrIncompatibleType = errors.New("unmarshal to incompatible type")
 
 // Unmarshal EBML stream.
 func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
@@ -39,7 +42,7 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 
 	vo := reflect.ValueOf(val)
 	if !vo.IsValid() {
-		return errIndefiniteType
+		return ErrIndefiniteType
 	}
 	voe := vo.Elem()
 	for {
@@ -93,7 +96,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 		}
 		v, ok := revTable[uint32(e)]
 		if !ok {
-			return nil, errUnknownElement
+			return nil, ErrUnknownElement
 		}
 
 		size, nb, err := readVInt(r)
@@ -165,10 +168,10 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 					case isConvertible(vr.Type(), t):
 						vnext.Set(reflect.Append(vnext, vr.Convert(t)))
 					default:
-						return nil, errIncompatibleType
+						return nil, ErrIncompatibleType
 					}
 				default:
-					return nil, errIncompatibleType
+					return nil, ErrIncompatibleType
 				}
 			}
 			if elem != nil {

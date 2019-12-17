@@ -289,24 +289,24 @@ func TestUnmarshal_Error(t *testing.T) {
 		} `ebml:"EBML"`
 	}
 	t.Run("NilValue", func(t *testing.T) {
-		if err := Unmarshal(bytes.NewBuffer([]byte{}), nil); err != errIndefiniteType {
-			t.Errorf("Unexpected error, %v, got %v\n", errIndefiniteType, err)
+		if err := Unmarshal(bytes.NewBuffer([]byte{}), nil); err != ErrIndefiniteType {
+			t.Errorf("Unexpected error, %v, got %v\n", ErrIndefiniteType, err)
 		}
 	})
-	t.Run("UnknownElementType", func(t *testing.T) {
+	t.Run("UnknownElementName", func(t *testing.T) {
 		input := &struct {
 			Header struct {
 			} `ebml:"Unknown"`
 		}{}
-		if err := Unmarshal(bytes.NewBuffer([]byte{}), input); err != errUnknownElementType {
-			t.Errorf("Unexpected error, %v, got %v\n", errUnknownElementType, err)
+		if err := Unmarshal(bytes.NewBuffer([]byte{}), input); err != ErrUnknownElementName {
+			t.Errorf("Unexpected error, %v, got %v\n", ErrUnknownElementName, err)
 		}
 	})
 	t.Run("UnknownElement", func(t *testing.T) {
 		input := &TestEBML{}
 		b := []byte{0x80}
-		if err := Unmarshal(bytes.NewBuffer(b), input); err != errUnknownElement {
-			t.Errorf("Unexpected error, %v, got %v\n", errUnknownElement, err)
+		if err := Unmarshal(bytes.NewBuffer(b), input); err != ErrUnknownElement {
+			t.Errorf("Unexpected error, %v, got %v\n", ErrUnknownElement, err)
 		}
 	})
 	t.Run("Short", func(t *testing.T) {
@@ -362,56 +362,56 @@ func TestUnmarshal_Error(t *testing.T) {
 				ret: &struct {
 					DocTypeVersion int64 `ebml:"EBMLDocTypeVersion"`
 				}{},
-				err: errIncompatibleType,
+				err: ErrIncompatibleType,
 			},
 			"Int64ToUInt64": {
 				b: []byte{0xFB, 0x81, 0xFF},
 				ret: &struct {
 					ReferenceBlock uint64 `ebml:"ReferenceBlock"`
 				}{},
-				err: errIncompatibleType,
+				err: ErrIncompatibleType,
 			},
 			"Float64ToInt64": {
 				b: []byte{0x44, 0x89, 0x84, 0x00, 0x00, 0x00, 0x00},
 				ret: &struct {
 					Duration int64 `ebml:"Duration"`
 				}{},
-				err: errIncompatibleType,
+				err: ErrIncompatibleType,
 			},
 			"StringToInt64": {
 				b: []byte{0x42, 0x82, 0x85, 0x77, 0x65, 0x62, 0x6d, 0x00},
 				ret: &struct {
 					EBMLDocType int64 `ebml:"EBMLDocType"`
 				}{},
-				err: errIncompatibleType,
+				err: ErrIncompatibleType,
 			},
 			"UInt64ToInt64Slice": {
 				b: []byte{0x42, 0x87, 0x81, 0x02},
 				ret: &struct {
 					DocTypeVersion []int64 `ebml:"EBMLDocTypeVersion"`
 				}{},
-				err: errIncompatibleType,
+				err: ErrIncompatibleType,
 			},
 			"Int64ToUInt64Slice": {
 				b: []byte{0xFB, 0x81, 0xFF},
 				ret: &struct {
 					ReferenceBlock []uint64 `ebml:"ReferenceBlock"`
 				}{},
-				err: errIncompatibleType,
+				err: ErrIncompatibleType,
 			},
 			"Float64ToInt64Slice": {
 				b: []byte{0x44, 0x89, 0x84, 0x00, 0x00, 0x00, 0x00},
 				ret: &struct {
 					Duration []int64 `ebml:"Duration"`
 				}{},
-				err: errIncompatibleType,
+				err: ErrIncompatibleType,
 			},
 			"StringToInt64Slice": {
 				b: []byte{0x42, 0x82, 0x85, 0x77, 0x65, 0x62, 0x6d, 0x00},
 				ret: &struct {
 					EBMLDocType []int64 `ebml:"EBMLDocType"`
 				}{},
-				err: errIncompatibleType,
+				err: ErrIncompatibleType,
 			},
 		}
 		for name, c := range cases {

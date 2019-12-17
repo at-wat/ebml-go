@@ -29,11 +29,14 @@ const (
 	sizeUnknown         = 0xffffffffffffff
 )
 
-var (
-	errInvalidFloatSize     = errors.New("invalid float size")
-	errInvalidType          = errors.New("invalid type")
-	errUnsupportedElementID = errors.New("unsupported Element ID")
-)
+// ErrInvalidFloatSize means that a element size is invalid for float type. Float must be 4 or 8 bytes.
+var ErrInvalidFloatSize = errors.New("invalid float size")
+
+// ErrInvalidType means that a value is not convertible to the element data.
+var ErrInvalidType = errors.New("invalid type")
+
+// ErrUnsupportedElementID means that a value is out of range of EBML encoding.
+var ErrUnsupportedElementID = errors.New("unsupported Element ID")
 
 var perTypeReader = map[Type]func(io.Reader, uint64) (interface{}, error){
 	TypeInt:    readInt,
@@ -168,7 +171,7 @@ func readDate(r io.Reader, n uint64) (interface{}, error) {
 }
 func readFloat(r io.Reader, n uint64) (interface{}, error) {
 	if n != 4 && n != 8 {
-		return 0.0, errInvalidFloatSize
+		return 0.0, ErrInvalidFloatSize
 	}
 	bs := make([]byte, n)
 
@@ -246,12 +249,12 @@ func encodeElementID(v uint64) ([]byte, error) {
 	case v < 0x2000000000000:
 		return []byte{byte(v>>48) | 0x2, byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
 	}
-	return nil, errUnsupportedElementID
+	return nil, ErrUnsupportedElementID
 }
 func encodeBinary(i interface{}, n uint64) ([]byte, error) {
 	v, ok := i.([]byte)
 	if !ok {
-		return []byte{}, errInvalidType
+		return []byte{}, ErrInvalidType
 	}
 	if uint64(len(v)) >= n {
 		return v, nil
@@ -261,7 +264,7 @@ func encodeBinary(i interface{}, n uint64) ([]byte, error) {
 func encodeString(i interface{}, n uint64) ([]byte, error) {
 	v, ok := i.(string)
 	if !ok {
-		return []byte{}, errInvalidType
+		return []byte{}, ErrInvalidType
 	}
 	if uint64(len(v)+1) >= n {
 		return append([]byte(v), 0x00), nil
@@ -282,7 +285,7 @@ func encodeInt(i interface{}, n uint64) ([]byte, error) {
 	case int64:
 		v = v2
 	default:
-		return []byte{}, errInvalidType
+		return []byte{}, ErrInvalidType
 	}
 	return encodeUInt(uint64(v), n)
 }
@@ -300,7 +303,7 @@ func encodeUInt(i interface{}, n uint64) ([]byte, error) {
 	case uint64:
 		v = v2
 	default:
-		return []byte{}, errInvalidType
+		return []byte{}, ErrInvalidType
 	}
 	switch {
 	case v < 0x100 && n < 2:
@@ -324,7 +327,7 @@ func encodeUInt(i interface{}, n uint64) ([]byte, error) {
 func encodeDate(i interface{}, n uint64) ([]byte, error) {
 	v, ok := i.(time.Time)
 	if !ok {
-		return []byte{}, errInvalidType
+		return []byte{}, ErrInvalidType
 	}
 	dtns := v.Sub(time.Unix(dateEpochInUnixtime, 0)).Nanoseconds()
 	return encodeInt(int64(dtns), n)
@@ -350,7 +353,7 @@ func encodeFloat(i interface{}, n uint64) ([]byte, error) {
 		case 8:
 			return encodeFloat64(v)
 		default:
-			return []byte{}, errInvalidFloatSize
+			return []byte{}, ErrInvalidFloatSize
 		}
 	case float32:
 		switch n {
@@ -361,16 +364,16 @@ func encodeFloat(i interface{}, n uint64) ([]byte, error) {
 		case 8:
 			return encodeFloat64(float64(v))
 		default:
-			return []byte{}, errInvalidFloatSize
+			return []byte{}, ErrInvalidFloatSize
 		}
 	default:
-		return []byte{}, errInvalidType
+		return []byte{}, ErrInvalidType
 	}
 }
 func encodeBlock(i interface{}, n uint64) ([]byte, error) {
 	v, ok := i.(Block)
 	if !ok {
-		return []byte{}, errInvalidType
+		return []byte{}, ErrInvalidType
 	}
 	var b bytes.Buffer
 	if err := MarshalBlock(&v, &b); err != nil {

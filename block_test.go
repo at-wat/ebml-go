@@ -89,7 +89,7 @@ func TestUnmarshalBlock_Error(t *testing.T) {
 	}{
 		"UndivisibleFixedLace": {
 			[]byte{0x82, 0x00, 0x00, 0x04, 0x02, 0x00, 0x00},
-			errFixedLaceUndivisible,
+			ErrFixedLaceUndivisible,
 		},
 	}
 	for n, c := range testCases {

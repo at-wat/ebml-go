@@ -19,10 +19,11 @@ import (
 	"io"
 )
 
-var (
-	errUnevenFixedLace = errors.New("uneven size of frames in fixed lace")
-	errTooManyFrames   = errors.New("too many frames")
-)
+// ErrUnevenFixedLace means that an uneven number of frames are stored in a fixed lacing block.
+var ErrUnevenFixedLace = errors.New("uneven size of frames in fixed lace")
+
+// ErrTooManyFrames means that a number of frames exceeds the limit.
+var ErrTooManyFrames = errors.New("too many frames")
 
 // Lacer is the interface to read laced frames in Block.
 type Lacer interface {
@@ -48,7 +49,7 @@ func (l *noLacer) Write(b [][]byte) error {
 	case nFrames == 0:
 		return nil
 	case nFrames != 1:
-		return errTooManyFrames
+		return ErrTooManyFrames
 	}
 	_, err := l.w.Write(b[0])
 	return err
@@ -60,7 +61,7 @@ func (l *xiphLacer) Write(b [][]byte) error {
 	case nFrames == 0:
 		return nil
 	case nFrames > 0xFF:
-		return errTooManyFrames
+		return ErrTooManyFrames
 	}
 	size := []byte{byte(nFrames - 1)}
 	for i := 0; i < nFrames-1; i++ {
@@ -87,11 +88,11 @@ func (l *fixedLacer) Write(b [][]byte) error {
 	case nFrames == 0:
 		return nil
 	case nFrames > 0xFF:
-		return errTooManyFrames
+		return ErrTooManyFrames
 	}
 	for i := 1; i < nFrames; i++ {
 		if len(b[i]) != len(b[0]) {
-			return errUnevenFixedLace
+			return ErrUnevenFixedLace
 		}
 	}
 	if _, err := l.w.Write([]byte{byte(nFrames - 1)}); err != nil {
@@ -111,7 +112,7 @@ func (l *ebmlLacer) Write(b [][]byte) error {
 	case nFrames == 0:
 		return nil
 	case nFrames > 0xFF:
-		return errTooManyFrames
+		return ErrTooManyFrames
 	}
 	size := []byte{byte(nFrames - 1)}
 	for i := 0; i < nFrames-1; i++ {

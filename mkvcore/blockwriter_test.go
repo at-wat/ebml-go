@@ -197,7 +197,7 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 			opts: []BlockWriterOption{
 				WithMaxKeyframeInterval(0, 0),
 			},
-			err: errInvalidTrackNumber,
+			err: ErrInvalidTrackNumber,
 		},
 	}
 
@@ -364,8 +364,8 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			}
 			select {
 			case err := <-chError:
-				if err != errIgnoreOldFrame {
-					t.Errorf("Unexpected error, expected: %v, got: %v", errIgnoreOldFrame, err)
+				if err != ErrIgnoreOldFrame {
+					t.Errorf("Unexpected error, expected: %v, got: %v", ErrIgnoreOldFrame, err)
 				}
 			case err := <-chFatal:
 				t.Fatalf("Unexpected fatal: %v", err)

@@ -96,8 +96,8 @@ func TestElementID(t *testing.T) {
 	}
 
 	_, err := encodeElementID(0x2000000000000)
-	if err != errUnsupportedElementID {
-		t.Errorf("Unexpected error type result, expected: %s, got: %s", errUnsupportedElementID, err)
+	if err != ErrUnsupportedElementID {
+		t.Errorf("Unexpected error type result, expected: %s, got: %s", ErrUnsupportedElementID, err)
 	}
 
 }
@@ -195,37 +195,37 @@ func TestEncodeValue_WrongInputType(t *testing.T) {
 		{
 			TypeBinary,
 			[]interface{}{"aaa", int64(1), uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
-			errInvalidType,
+			ErrInvalidType,
 		},
 		{
 			TypeString,
 			[]interface{}{[]byte{0x01}, int64(1), uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
-			errInvalidType,
+			ErrInvalidType,
 		},
 		{
 			TypeInt,
 			[]interface{}{"aaa", []byte{0x01}, uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
-			errInvalidType,
+			ErrInvalidType,
 		},
 		{
 			TypeUInt,
 			[]interface{}{"aaa", []byte{0x01}, int64(1), time.Unix(1, 0), float32(1.0), float64(1.0), Block{}},
-			errInvalidType,
+			ErrInvalidType,
 		},
 		{
 			TypeDate,
 			[]interface{}{"aaa", []byte{0x01}, int64(1), uint64(1), float32(1.0), float64(1.0), Block{}},
-			errInvalidType,
+			ErrInvalidType,
 		},
 		{
 			TypeFloat,
 			[]interface{}{"aaa", []byte{0x01}, int64(1), uint64(1), time.Unix(1, 0), Block{}},
-			errInvalidType,
+			ErrInvalidType,
 		},
 		{
 			TypeBlock,
 			[]interface{}{"aaa", []byte{0x01}, int64(1), uint64(1), time.Unix(1, 0), float32(1.0), float64(1.0)},
-			errInvalidType,
+			ErrInvalidType,
 		},
 	}
 	for _, c := range testCases {
@@ -251,13 +251,13 @@ func TestEncodeValue_WrongSize(t *testing.T) {
 			TypeFloat,
 			float32(1.0),
 			3,
-			errInvalidFloatSize,
+			ErrInvalidFloatSize,
 		},
 		"Float64(9B)": {
 			TypeFloat,
 			float64(1.0),
 			9,
-			errInvalidFloatSize,
+			ErrInvalidFloatSize,
 		},
 	}
 	for n, c := range testCases {
@@ -281,7 +281,7 @@ func TestReadValue_WrongSize(t *testing.T) {
 			TypeFloat,
 			[]byte{0, 0, 0},
 			3,
-			errInvalidFloatSize,
+			ErrInvalidFloatSize,
 		},
 	}
 	for n, c := range testCases {
