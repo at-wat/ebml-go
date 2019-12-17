@@ -1,14 +1,9 @@
-package webm
+package mkvcore
 
 import (
 	"errors"
 
 	"github.com/at-wat/ebml-go"
-)
-
-var (
-	// DefaultBlockInterceptor is the default BlockInterceptor used by BlockWriter.
-	DefaultBlockInterceptor = NewMultiTrackBlockSorter(16, BlockSorterDropOutdated)
 )
 
 var (

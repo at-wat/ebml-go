@@ -12,34 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package webm
+package mkvcore
 
 import (
 	"bytes"
 
 	"github.com/at-wat/ebml-go"
 )
-
-type seekFixed struct {
-	SeekID       []byte  `ebml:"SeekID"`
-	SeekPosition *uint64 `ebml:"SeekPosition,size=8"`
-}
-
-type seekHeadFixed struct {
-	Seek []seekFixed `ebml:"Seek"`
-}
-
-type flexSegment struct {
-	SeekHead *seekHeadFixed `ebml:"SeekHead,omitempty"`
-	Info     interface{}    `ebml:"Info"`
-	Tracks   Tracks         `ebml:"Tracks"`
-	Cluster  []Cluster      `ebml:"Cluster"`
-}
-
-type flexHeader struct {
-	Header  interface{} `ebml:"EBML"`
-	Segment flexSegment `ebml:"Segment,size=unknown"`
-}
 
 func setSeekHead(header *flexHeader, opts ...ebml.MarshalOption) error {
 	infoPos := new(uint64)

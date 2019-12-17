@@ -12,36 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package webm
-
-type frameBuffer struct {
-	buf []*frame
-}
-
-func (b *frameBuffer) Push(f *frame) {
-	b.buf = append(b.buf, f)
-}
-func (b *frameBuffer) Head() *frame {
-	if len(b.buf) == 0 {
-		return nil
-	}
-	return b.buf[0]
-}
-func (b *frameBuffer) Pop() *frame {
-	n := len(b.buf)
-	if n == 0 {
-		return nil
-	}
-	head := b.buf[0]
-	b.buf[0] = nil
-
-	if n == 1 {
-		b.buf = nil
-	} else {
-		b.buf = b.buf[1:]
-	}
-	return head
-}
-func (b *frameBuffer) Size() int {
-	return len(b.buf)
-}
+// Package mkvcore provides core functionallity of Matroska/WebM multimedia writer.
+//
+// The package implements block data writer for multi-track media container.
+package mkvcore
