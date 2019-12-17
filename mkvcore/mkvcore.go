@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package mkvcore provides core functionallity of Matroska/WebM multimedia writer.
+// Package mkvcore provides the core functionality of Matroska/WebM multimedia writer.
 //
-// The package implements block data writer for multi-track media container.
+// The package implements block data writer for EBML based multi-track media container.
 package mkvcore

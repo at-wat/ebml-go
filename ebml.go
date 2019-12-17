@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package ebml implements encoding and decoding of Extensible Binary Meta Language (EBML).
+// Package ebml implements the encoder and decoder of Extensible Binary Meta Language (EBML).
 //
 // The package supports Marshal and Unmarshal between tagged struct and EBML binary stream.
 // WebM block data writer is provided as webm sub-package.
