@@ -52,8 +52,8 @@ func setSeekHead(header *flexHeader, opts ...ebml.MarshalOption) error {
 	optsWithHook := append([]ebml.MarshalOption{}, opts...)
 	optsWithHook = append(optsWithHook, ebml.WithElementWriteHooks(hook))
 
-	buf := &bytes.Buffer{}
-	if err := ebml.Marshal(header, buf, optsWithHook...); err != nil {
+	var buf bytes.Buffer
+	if err := ebml.Marshal(header, &buf, optsWithHook...); err != nil {
 		return err
 	}
 
