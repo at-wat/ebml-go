@@ -32,7 +32,9 @@ func TestBlockWriter(t *testing.T) {
 		{TrackNumber: 1},
 		{TrackNumber: 2},
 	}
-	ws, err := NewSimpleBlockWriter(buf, tracks)
+	ws, err := NewSimpleBlockWriter(buf, tracks,
+		WithBlockInterceptor(NewMultiTrackBlockSorter(10, BlockSorterDropOutdated)),
+	)
 	if err != nil {
 		t.Fatalf("Failed to create BlockWriter: %v", err)
 	}
@@ -41,16 +43,16 @@ func TestBlockWriter(t *testing.T) {
 		t.Fatalf("Number of the returned writer (%d) must be same as the number of TrackEntry (%d)", len(ws), len(tracks))
 	}
 
-	if n, err := ws[0].Write(false, 100, []byte{0x01, 0x02}); err != nil {
-		t.Fatalf("Failed to Write: %v", err)
-	} else if n != 2 {
-		t.Errorf("Unexpected return value of BlockWriter.Write, expected: 2, got: %d", n)
-	}
-
 	if n, err := ws[1].Write(true, 110, []byte{0x03, 0x04, 0x05}); err != nil {
 		t.Fatalf("Failed to Write: %v", err)
 	} else if n != 3 {
 		t.Errorf("Unexpected return value of BlockWriter.Write, expected: 3, got: %d", n)
+	}
+
+	if n, err := ws[0].Write(false, 100, []byte{0x01, 0x02}); err != nil {
+		t.Fatalf("Failed to Write: %v", err)
+	} else if n != 2 {
+		t.Errorf("Unexpected return value of BlockWriter.Write, expected: 2, got: %d", n)
 	}
 
 	// Ignored due to old timestamp
@@ -129,7 +131,9 @@ func TestBlockWriter_Options(t *testing.T) {
 
 	ws, err := NewSimpleBlockWriter(
 		buf, tracks,
-		WithEBMLHeader(nil),
+		WithEBMLHeader(&struct {
+			DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"`
+		}{}),
 		WithSegmentInfo(nil),
 		WithMarshalOptions(ebml.WithDataSizeLen(2)),
 		WithSeekHead(false),
@@ -144,6 +148,8 @@ func TestBlockWriter_Options(t *testing.T) {
 	ws[0].Close()
 
 	expectedBytes := []byte{
+		0x1A, 0x45, 0xDF, 0xA3, 0x40, 0x05,
+		0x42, 0x87, 0x40, 0x01, 0x00,
 		0x18, 0x53, 0x80, 0x67, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 		0x16, 0x54, 0xAE, 0x6B, 0x40, 0x00,
 		0x1F, 0x43, 0xB6, 0x75, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -286,8 +292,6 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 				w, tracks,
 				WithOnErrorHandler(func(err error) { chError <- err }),
 				WithOnFatalHandler(func(err error) { chFatal <- err }),
-				WithSeekHead(false),
-				WithBlockInterceptor(nil), // write without sorter
 			)
 			if err != nil {
 				if errAt == atBeginning {
