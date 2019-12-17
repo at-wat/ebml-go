@@ -125,12 +125,9 @@ func TestBlockWriter(t *testing.T) {
 func TestBlockWriter_Options(t *testing.T) {
 	buf := &bufferCloser{closed: make(chan struct{})}
 
-	tracks := []TrackDescription{
-		{TrackNumber: 1},
-	}
-
 	ws, err := NewSimpleBlockWriter(
-		buf, tracks,
+		buf,
+		[]TrackDescription{{TrackNumber: 1}},
 		WithEBMLHeader(&struct {
 			DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"`
 		}{}),
@@ -251,9 +248,6 @@ func (w *errorWriter) Close() error {
 }
 
 func TestBlockWriter_ErrorHandling(t *testing.T) {
-	tracks := []TrackDescription{
-		{TrackNumber: 1},
-	}
 
 	const (
 		atBeginning int = iota
@@ -289,7 +283,8 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			}
 			clearErr()
 			ws, err := NewSimpleBlockWriter(
-				w, tracks,
+				w,
+				[]TrackDescription{{TrackNumber: 1}},
 				WithOnErrorHandler(func(err error) { chError <- err }),
 				WithOnFatalHandler(func(err error) { chFatal <- err }),
 			)
@@ -398,12 +393,9 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 func TestBlockWriter_WithMaxKeyframeInterval(t *testing.T) {
 	buf := &bufferCloser{closed: make(chan struct{})}
 
-	tracks := []TrackDescription{
-		{TrackNumber: 1},
-	}
-
 	ws, err := NewSimpleBlockWriter(
-		buf, tracks,
+		buf,
+		[]TrackDescription{{TrackNumber: 1}},
 		WithEBMLHeader(nil),
 		WithSegmentInfo(nil),
 		WithMaxKeyframeInterval(1, 900*0x6FFF),
@@ -460,51 +452,65 @@ func TestBlockWriter_WithMaxKeyframeInterval(t *testing.T) {
 }
 
 func TestBlockWriter_WithSeekHead(t *testing.T) {
-	buf := &bufferCloser{closed: make(chan struct{})}
+	t.Run("GenerateSeekHead", func(t *testing.T) {
+		buf := &bufferCloser{closed: make(chan struct{})}
 
-	tracks := []TrackDescription{
-		{TrackNumber: 1},
-	}
+		ws, err := NewSimpleBlockWriter(
+			buf,
+			[]TrackDescription{{TrackNumber: 1}},
+			WithEBMLHeader(nil),
+			WithSegmentInfo(&struct {
+				TimecodeScale uint64 `ebml:"TimecodeScale"`
+			}{TimecodeScale: 1000000}),
+			WithSeekHead(true),
+		)
+		if err != nil {
+			t.Fatalf("Failed to create BlockWriter: %v", err)
+		}
+		if len(ws) != 1 {
+			t.Fatalf("Number of the returned writer must be 1, but got %d", len(ws))
+		}
 
-	ws, err := NewSimpleBlockWriter(
-		buf, tracks,
-		WithEBMLHeader(nil),
-		WithSegmentInfo(&struct {
-			TimecodeScale uint64 `ebml:"TimecodeScale"`
-		}{TimecodeScale: 1000000}),
-		WithSeekHead(true),
-	)
-	if err != nil {
-		t.Fatalf("Failed to create BlockWriter: %v", err)
-	}
-	if len(ws) != 1 {
-		t.Fatalf("Number of the returned writer must be 1, but got %d", len(ws))
-	}
+		ws[0].Close()
 
-	ws[0].Close()
+		expectedBytes := []byte{
+			// 1     2     3     4     5     6     7     8     9    10    11    12
+			// Segment
+			0x18, 0x53, 0x80, 0x67, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			// SeekHead
+			0x11, 0x4D, 0x9B, 0x74, 0xAA,
+			0x4D, 0xBB, 0x92,
+			0x53, 0xAB, 0x84, 0x15, 0x49, 0xA9, 0x66, // Info
+			0x53, 0xAC, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2F,
+			0x4D, 0xBB, 0x92,
+			0x53, 0xAB, 0x84, 0x16, 0x54, 0xAE, 0x6B, // Tracks
+			0x53, 0xAC, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3B,
+			// Info, pos: 47
+			0x15, 0x49, 0xA9, 0x66, 0x87,
+			0x2A, 0xD7, 0xB1, 0x83, 0x0F, 0x42, 0x40,
+			// Tracks, pos: 59
+			0x16, 0x54, 0xAE, 0x6B, 0x80,
+			// Cluster
+			0x1F, 0x43, 0xB6, 0x75, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0xE7, 0x81, 0x00,
+		}
+		if !bytes.Equal(buf.Bytes(), expectedBytes) {
+			t.Errorf("Unexpected binary,\nexpected: %+v\n     got: %+v", expectedBytes, buf.Bytes())
+		}
+	})
+	t.Run("InvalidHeader", func(t *testing.T) {
+		buf := &bufferCloser{closed: make(chan struct{})}
 
-	expectedBytes := []byte{
-		// 1     2     3     4     5     6     7     8     9    10    11    12
-		// Segment
-		0x18, 0x53, 0x80, 0x67, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-		// SeekHead
-		0x11, 0x4D, 0x9B, 0x74, 0xAA,
-		0x4D, 0xBB, 0x92,
-		0x53, 0xAB, 0x84, 0x15, 0x49, 0xA9, 0x66, // Info
-		0x53, 0xAC, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2F,
-		0x4D, 0xBB, 0x92,
-		0x53, 0xAB, 0x84, 0x16, 0x54, 0xAE, 0x6B, // Tracks
-		0x53, 0xAC, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3B,
-		// Info, pos: 47
-		0x15, 0x49, 0xA9, 0x66, 0x87,
-		0x2A, 0xD7, 0xB1, 0x83, 0x0F, 0x42, 0x40,
-		// Tracks, pos: 59
-		0x16, 0x54, 0xAE, 0x6B, 0x80,
-		// Cluster
-		0x1F, 0x43, 0xB6, 0x75, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-		0xE7, 0x81, 0x00,
-	}
-	if !bytes.Equal(buf.Bytes(), expectedBytes) {
-		t.Errorf("Unexpected binary,\nexpected: %+v\n     got: %+v", expectedBytes, buf.Bytes())
-	}
+		_, err := NewSimpleBlockWriter(
+			buf,
+			[]TrackDescription{{TrackNumber: 1}},
+			WithSegmentInfo(&struct {
+				Invalid uint64 `ebml:"InvalidA"`
+			}{}),
+			WithSeekHead(true),
+		)
+		if err != ebml.ErrUnknownElementName {
+			t.Errorf("Unexpected error, expected: %v, got: %v", ebml.ErrUnknownElementName, err)
+		}
+	})
 }
