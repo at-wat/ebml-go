@@ -12,41 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package webm
+package mkvcore
 
-import (
-	"github.com/at-wat/ebml-go/mkvcore"
-)
-
-// BlockWriter is a WebM block writer interface.
+// BlockWriter is a Matroska block writer interface.
 type BlockWriter interface {
-	mkvcore.BlockWriter
+	// Write a block to the connected Matroska writer.
+	// timestamp is in millisecond.
+	Write(keyframe bool, timestamp int64, b []byte) (int, error)
 }
 
-// BlockReader is a WebM block reader interface.
+// BlockReader is a Matroska block reader interface.
 type BlockReader interface {
-	mkvcore.BlockReader
+	// Read a block from the connected Matroska reader.
+	Read() (b []byte, keyframe bool, timestamp int64, err error)
 }
 
-// BlockCloser is a WebM closer interface.
+// BlockCloser is a Matroska closer interface.
 type BlockCloser interface {
-	mkvcore.BlockCloser
+	// Close the stream frame writer.
+	// Output Matroska will be closed after closing all FrameWriter.
+	Close() error
 }
 
 // BlockWriteCloser groups Writer and Closer.
 type BlockWriteCloser interface {
-	mkvcore.BlockWriteCloser
+	BlockWriter
+	BlockCloser
 }
 
 // BlockReadCloser groups Reader and Closer.
 type BlockReadCloser interface {
-	mkvcore.BlockReadCloser
-}
-
-// FrameWriter is a backward compatibility wrapper of BlockWriteCloser.
-//
-// Deprecated: This is exposed to keep compatibility with the old version.
-// Use BlockWriteCloser interface instead.
-type FrameWriter struct {
-	mkvcore.BlockWriteCloser
+	BlockReader
+	BlockCloser
 }

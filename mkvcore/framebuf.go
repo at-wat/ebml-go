@@ -12,30 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package webm
+package mkvcore
 
-import (
-	"io"
-)
-
-type writerWithSizeCount struct {
-	size int
-	w    io.WriteCloser
+type frameBuffer struct {
+	buf []*frame
 }
 
-func (w *writerWithSizeCount) Write(b []byte) (int, error) {
-	w.size += len(b)
-	return w.w.Write(b)
+func (b *frameBuffer) Push(f *frame) {
+	b.buf = append(b.buf, f)
 }
-
-func (w *writerWithSizeCount) Clear() {
-	w.size = 0
+func (b *frameBuffer) Head() *frame {
+	if len(b.buf) == 0 {
+		return nil
+	}
+	return b.buf[0]
 }
+func (b *frameBuffer) Pop() *frame {
+	n := len(b.buf)
+	if n == 0 {
+		return nil
+	}
+	head := b.buf[0]
+	b.buf[0] = nil
 
-func (w *writerWithSizeCount) Close() error {
-	return w.w.Close()
+	if n == 1 {
+		b.buf = nil
+	} else {
+		b.buf = b.buf[1:]
+	}
+	return head
 }
-
-func (w *writerWithSizeCount) Size() int {
-	return w.size
+func (b *frameBuffer) Size() int {
+	return len(b.buf)
 }

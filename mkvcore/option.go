@@ -1,14 +1,23 @@
-package webm
+// Copyright 2019 The ebml-go authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package mkvcore
 
 import (
 	"errors"
 
 	"github.com/at-wat/ebml-go"
-)
-
-var (
-	// DefaultBlockInterceptor is the default BlockInterceptor used by BlockWriter.
-	DefaultBlockInterceptor = NewMultiTrackBlockSorter(16, BlockSorterDropOutdated)
 )
 
 var (
@@ -31,7 +40,7 @@ type BlockWriterOptions struct {
 	maxKeyframeInterval int64
 }
 
-// WithEBMLHeader sets EBML header of WebM.
+// WithEBMLHeader sets EBML header.
 func WithEBMLHeader(h interface{}) BlockWriterOption {
 	return func(o *BlockWriterOptions) error {
 		o.ebmlHeader = h
@@ -39,7 +48,7 @@ func WithEBMLHeader(h interface{}) BlockWriterOption {
 	}
 }
 
-// WithSegmentInfo sets Segment.Info of WebM.
+// WithSegmentInfo sets Segment.Info.
 func WithSegmentInfo(i interface{}) BlockWriterOption {
 	return func(o *BlockWriterOptions) error {
 		o.segmentInfo = i

@@ -14,6 +14,10 @@
 
 package webm
 
+import (
+	"github.com/at-wat/ebml-go/mkvcore"
+)
+
 var (
 	// DefaultEBMLHeader is the default EBML header used by BlockWriter.
 	DefaultEBMLHeader = &EBMLHeader{
@@ -31,4 +35,6 @@ var (
 		MuxingApp:     "ebml-go.webm.FrameWriter",
 		WritingApp:    "ebml-go.webm.FrameWriter",
 	}
+	// DefaultBlockInterceptor is the default BlockInterceptor used by BlockWriter.
+	DefaultBlockInterceptor = mkvcore.NewMultiTrackBlockSorter(16, mkvcore.BlockSorterDropOutdated)
 )
