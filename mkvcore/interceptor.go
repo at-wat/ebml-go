@@ -19,7 +19,7 @@ import (
 	"sync"
 )
 
-// BlockInterceptor is a interface of WebM block stream muxer.
+// BlockInterceptor is a interface of block stream muxer.
 type BlockInterceptor interface {
 	// Intercept reads blocks of each track, filters, and writes.
 	Intercept(r []BlockReader, w []BlockWriter)

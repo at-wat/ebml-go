@@ -118,7 +118,7 @@ func TestBlockWriter(t *testing.T) {
 		t.Fatalf("Failed to Unmarshal resultant binary: %v", err)
 	}
 	if !reflect.DeepEqual(expected, result) {
-		t.Errorf("Unexpected WebM data,\nexpected: %+v\n     got: %+v, \n%v", expected, result, buf.Bytes())
+		t.Errorf("Unexpected data,\nexpected: %+v\n     got: %+v", expected, result)
 	}
 }
 
@@ -156,7 +156,7 @@ func TestBlockWriter_Options(t *testing.T) {
 		0xE7, 0x40, 0x01, 0x00,
 	}
 	if !bytes.Equal(buf.Bytes(), expectedBytes) {
-		t.Errorf("Unexpected WebM binary,\nexpected: %+v\n     got: %+v", expectedBytes, buf.Bytes())
+		t.Errorf("Unexpected binary,\nexpected: %+v\n     got: %+v", expectedBytes, buf.Bytes())
 	}
 }
 
@@ -455,7 +455,7 @@ func TestBlockWriter_WithMaxKeyframeInterval(t *testing.T) {
 		0xAB, 0x81, 0x1A,
 	}
 	if !bytes.Equal(buf.Bytes(), expectedBytes) {
-		t.Errorf("Unexpected WebM binary,\nexpected: %+v\n     got: %+v", expectedBytes, buf.Bytes())
+		t.Errorf("Unexpected binary,\nexpected: %+v\n     got: %+v", expectedBytes, buf.Bytes())
 	}
 }
 
@@ -505,6 +505,6 @@ func TestBlockWriter_WithSeekHead(t *testing.T) {
 		0xE7, 0x81, 0x00,
 	}
 	if !bytes.Equal(buf.Bytes(), expectedBytes) {
-		t.Errorf("Unexpected WebM binary,\nexpected: %+v\n     got: %+v", expectedBytes, buf.Bytes())
+		t.Errorf("Unexpected binary,\nexpected: %+v\n     got: %+v", expectedBytes, buf.Bytes())
 	}
 }

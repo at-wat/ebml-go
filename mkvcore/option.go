@@ -40,7 +40,7 @@ type BlockWriterOptions struct {
 	maxKeyframeInterval int64
 }
 
-// WithEBMLHeader sets EBML header of WebM.
+// WithEBMLHeader sets EBML header.
 func WithEBMLHeader(h interface{}) BlockWriterOption {
 	return func(o *BlockWriterOptions) error {
 		o.ebmlHeader = h
@@ -48,7 +48,7 @@ func WithEBMLHeader(h interface{}) BlockWriterOption {
 	}
 }
 
-// WithSegmentInfo sets Segment.Info of WebM.
+// WithSegmentInfo sets Segment.Info.
 func WithSegmentInfo(i interface{}) BlockWriterOption {
 	return func(o *BlockWriterOptions) error {
 		o.segmentInfo = i
