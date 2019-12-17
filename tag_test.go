@@ -63,23 +63,23 @@ func TestParseTag(t *testing.T) {
 		},
 		"InvalidTag": {
 			"Name,invalidtag",
-			nil, errInvalidTag,
+			nil, ErrInvalidTag,
 		},
 		"InvalidTagWithValue": {
 			"Name,invalidtag=1",
-			nil, errInvalidTag,
+			nil, ErrInvalidTag,
 		},
 		"EmptyTag": {
 			"Name,",
-			nil, errEmptyTag,
+			nil, ErrEmptyTag,
 		},
 		"EmptyTagWithValue": {
 			"Name,=45",
-			nil, errEmptyTag,
+			nil, ErrEmptyTag,
 		},
 		"TwoEmptyTags": {
 			"Name,,",
-			nil, errEmptyTag,
+			nil, ErrEmptyTag,
 		},
 	}
 	for n, c := range cases {

@@ -103,7 +103,7 @@ func TestUnlacer(t *testing.T) {
 				bytes.Repeat([]byte{0xCC}, 16),
 				bytes.Repeat([]byte{0x55}, 15),
 			},
-			err: errFixedLaceUndivisible,
+			err: ErrFixedLaceUndivisible,
 		},
 		"EBML": {
 			newUnlacer: NewEBMLUnlacer,

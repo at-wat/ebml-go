@@ -19,9 +19,8 @@ import (
 	"io"
 )
 
-var (
-	errFixedLaceUndivisible = errors.New("undivisible fixed lace")
-)
+// ErrFixedLaceUndivisible means that a length of a fixed lacing data is undivisible.
+var ErrFixedLaceUndivisible = errors.New("undivisible fixed lace")
 
 // Unlacer is the interface to read laced frames in Block.
 type Unlacer interface {
@@ -117,7 +116,7 @@ func NewFixedUnlacer(r io.Reader, n int64) (Unlacer, error) {
 		ul.size[i] = ul.size[0]
 	}
 	if ul.size[0]*nFrame+1 != int(n) {
-		return nil, errFixedLaceUndivisible
+		return nil, ErrFixedLaceUndivisible
 	}
 	return ul, nil
 }

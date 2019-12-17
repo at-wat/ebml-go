@@ -20,9 +20,8 @@ import (
 	"github.com/at-wat/ebml-go"
 )
 
-var (
-	errInvalidTrackNumber = errors.New("invalid track number")
-)
+// ErrInvalidTrackNumber means that a track number is invalid. The track number must be larger than 0.
+var ErrInvalidTrackNumber = errors.New("invalid track number")
 
 // BlockWriterOption configures a BlockWriterOptions.
 type BlockWriterOption func(*BlockWriterOptions) error
@@ -102,7 +101,7 @@ func WithBlockInterceptor(interceptor BlockInterceptor) BlockWriterOption {
 func WithMaxKeyframeInterval(mainTrackNumber uint64, interval int64) BlockWriterOption {
 	return func(o *BlockWriterOptions) error {
 		if mainTrackNumber == 0 {
-			return errInvalidTrackNumber
+			return ErrInvalidTrackNumber
 		}
 		o.mainTrackNumber = mainTrackNumber
 		o.maxKeyframeInterval = interval

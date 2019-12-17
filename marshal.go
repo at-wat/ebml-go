@@ -21,9 +21,8 @@ import (
 	"reflect"
 )
 
-var (
-	errUnsupportedElement = errors.New("unsupported element")
-)
+// ErrUnsupportedElement means that a element name is known but unsupported in this version of ebml-go.
+var ErrUnsupportedElement = errors.New("unsupported element")
 
 // Marshal struct to EBML bytes.
 //
@@ -122,7 +121,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 		if t, err := ElementTypeFromString(tag.name); err == nil {
 			e, ok := table[t]
 			if !ok {
-				return pos, errUnsupportedElement
+				return pos, ErrUnsupportedElement
 			}
 
 			unknown := tag.size == sizeUnknown

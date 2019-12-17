@@ -26,10 +26,11 @@ type structTag struct {
 	omitEmpty bool
 }
 
-var (
-	errEmptyTag   = errors.New("empty tag in tag string")
-	errInvalidTag = errors.New("invalid tag in tag string")
-)
+// ErrEmptyTag means that a tag string has empty item.
+var ErrEmptyTag = errors.New("empty tag in tag string")
+
+// ErrInvalidTag means that an invaild tag is specified.
+var ErrInvalidTag = errors.New("invalid tag in tag string")
 
 func parseTag(rawtag string) (*structTag, error) {
 	tag := &structTag{}
@@ -45,14 +46,14 @@ func parseTag(rawtag string) (*structTag, error) {
 			} else {
 				switch kv[0] {
 				case "":
-					return nil, errEmptyTag
+					return nil, ErrEmptyTag
 				case "omitempty":
 					tag.omitEmpty = true
 				case "inf":
 					// os.Stderr.WriteString("Deprecated: \"inf\" tag is replaced by \"size=unknown\"\n")
 					tag.size = sizeUnknown
 				default:
-					return nil, errInvalidTag
+					return nil, ErrInvalidTag
 				}
 			}
 			continue
@@ -60,7 +61,7 @@ func parseTag(rawtag string) (*structTag, error) {
 
 		switch kv[0] {
 		case "":
-			return nil, errEmptyTag
+			return nil, ErrEmptyTag
 		case "size":
 			if kv[1] == "unknown" {
 				tag.size = sizeUnknown
@@ -72,7 +73,7 @@ func parseTag(rawtag string) (*structTag, error) {
 				tag.size = uint64(s)
 			}
 		default:
-			return nil, errInvalidTag
+			return nil, ErrInvalidTag
 		}
 	}
 	return tag, nil
