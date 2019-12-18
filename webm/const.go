@@ -26,14 +26,14 @@ var (
 		EBMLMaxIDLength:    4,
 		EBMLMaxSizeLength:  8,
 		DocType:            "webm",
-		DocTypeVersion:     2,
-		DocTypeReadVersion: 2,
+		DocTypeVersion:     4, // May contain v4 elements,
+		DocTypeReadVersion: 2, // and playable by parsing v2 elements.
 	}
 	// DefaultSegmentInfo is the default Segment.Info used by BlockWriter.
 	DefaultSegmentInfo = &Info{
 		TimecodeScale: 1000000, // 1ms
-		MuxingApp:     "ebml-go.webm.FrameWriter",
-		WritingApp:    "ebml-go.webm.FrameWriter",
+		MuxingApp:     "ebml-go.webm.BlockWriter",
+		WritingApp:    "ebml-go.webm.BlockWriter",
 	}
 	// DefaultBlockInterceptor is the default BlockInterceptor used by BlockWriter.
 	DefaultBlockInterceptor = mkvcore.NewMultiTrackBlockSorter(16, mkvcore.BlockSorterDropOutdated)
