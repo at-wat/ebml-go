@@ -38,6 +38,7 @@ type bufferCloser struct {
 	closeOnce sync.Once
 }
 
+// New creates and initialize a new BufferCloser.
 func New() BufferCloser {
 	return &bufferCloser{
 		closed: make(chan struct{}),
