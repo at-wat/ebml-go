@@ -22,8 +22,8 @@ var (
 		EBMLMaxIDLength:    4,
 		EBMLMaxSizeLength:  8,
 		DocType:            "matroska",
-		DocTypeVersion:     2,
-		DocTypeReadVersion: 2,
+		DocTypeVersion:     4, // May contain v4 elements,
+		DocTypeReadVersion: 2, // and playable by parsing v2 elements.
 	}
 	// DefaultSegmentInfo is the default Segment.Info used by BlockWriter.
 	DefaultSegmentInfo = &Info{
