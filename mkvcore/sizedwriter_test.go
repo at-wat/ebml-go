@@ -15,22 +15,13 @@
 package mkvcore
 
 import (
-	"bytes"
 	"testing"
+
+	"github.com/at-wat/ebml-go/internal/buffercloser"
 )
 
-type bufferCloser struct {
-	bytes.Buffer
-	closed chan struct{}
-}
-
-func (b *bufferCloser) Close() error {
-	close(b.closed)
-	return nil
-}
-
 func TestWriterWithSizeCount(t *testing.T) {
-	buf := &bufferCloser{closed: make(chan struct{})}
+	buf := buffercloser.New()
 	w := &writerWithSizeCount{w: buf}
 
 	if n, err := w.Write([]byte{0x01, 0x02}); err != nil {
@@ -52,7 +43,7 @@ func TestWriterWithSizeCount(t *testing.T) {
 		t.Errorf("writerWithSizeCount.Close() doesn't propagate base io.WriteCloser.Close() return value")
 	}
 	select {
-	case <-buf.closed:
+	case <-buf.Closed():
 	default:
 		t.Errorf("Base io.WriteCloser is not closed by writerWithSizeCount.Close()")
 	}
