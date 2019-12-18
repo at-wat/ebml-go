@@ -16,6 +16,7 @@ package ebml
 
 import (
 	"errors"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -50,7 +51,7 @@ func parseTag(rawtag string) (*structTag, error) {
 				case "omitempty":
 					tag.omitEmpty = true
 				case "inf":
-					// os.Stderr.WriteString("Deprecated: \"inf\" tag is replaced by \"size=unknown\"\n")
+					os.Stderr.WriteString("Deprecated: \"inf\" tag is replaced by \"size=unknown\"\n")
 					tag.size = sizeUnknown
 				default:
 					return nil, ErrInvalidTag
