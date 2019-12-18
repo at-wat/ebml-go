@@ -20,21 +20,12 @@ import (
 	"testing"
 
 	"github.com/at-wat/ebml-go"
+	"github.com/at-wat/ebml-go/internal/buffercloser"
 	"github.com/at-wat/ebml-go/mkvcore"
 )
 
-type bufferCloser struct {
-	bytes.Buffer
-	closed chan struct{}
-}
-
-func (b *bufferCloser) Close() error {
-	close(b.closed)
-	return nil
-}
-
 func TestBlockWriter(t *testing.T) {
-	buf := &bufferCloser{closed: make(chan struct{})}
+	buf := buffercloser.New()
 
 	tracks := []TrackEntry{
 		{
@@ -97,7 +88,7 @@ func TestBlockWriter(t *testing.T) {
 	ws[0].Close()
 	ws[1].Close()
 	select {
-	case <-buf.closed:
+	case <-buf.Closed():
 	default:
 		t.Errorf("Base io.WriteCloser is not closed by BlockWriter")
 	}
@@ -156,7 +147,7 @@ func TestBlockWriter(t *testing.T) {
 }
 
 func TestBlockWriter_NewSimpleWriter(t *testing.T) {
-	buf := &bufferCloser{closed: make(chan struct{})}
+	buf := buffercloser.New()
 
 	tracks := []TrackEntry{
 		{

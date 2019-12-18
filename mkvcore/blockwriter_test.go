@@ -23,10 +23,11 @@ import (
 	"time"
 
 	"github.com/at-wat/ebml-go"
+	"github.com/at-wat/ebml-go/internal/buffercloser"
 )
 
 func TestBlockWriter(t *testing.T) {
-	buf := &bufferCloser{closed: make(chan struct{})}
+	buf := buffercloser.New()
 
 	tracks := []TrackDescription{
 		{TrackNumber: 1},
@@ -71,7 +72,7 @@ func TestBlockWriter(t *testing.T) {
 	ws[0].Close()
 	ws[1].Close()
 	select {
-	case <-buf.closed:
+	case <-buf.Closed():
 	default:
 		t.Errorf("Base io.WriteCloser is not closed by BlockWriter")
 	}
@@ -123,7 +124,7 @@ func TestBlockWriter(t *testing.T) {
 }
 
 func TestBlockWriter_Options(t *testing.T) {
-	buf := &bufferCloser{closed: make(chan struct{})}
+	buf := buffercloser.New()
 
 	ws, err := NewSimpleBlockWriter(
 		buf,
@@ -200,7 +201,7 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			buf := &bufferCloser{closed: make(chan struct{})}
+			buf := buffercloser.New()
 			_, err := NewSimpleBlockWriter(buf, []TrackDescription{}, c.opts...)
 			if err != c.err {
 				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
@@ -391,7 +392,7 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 }
 
 func TestBlockWriter_WithMaxKeyframeInterval(t *testing.T) {
-	buf := &bufferCloser{closed: make(chan struct{})}
+	buf := buffercloser.New()
 
 	ws, err := NewSimpleBlockWriter(
 		buf,
@@ -453,7 +454,7 @@ func TestBlockWriter_WithMaxKeyframeInterval(t *testing.T) {
 
 func TestBlockWriter_WithSeekHead(t *testing.T) {
 	t.Run("GenerateSeekHead", func(t *testing.T) {
-		buf := &bufferCloser{closed: make(chan struct{})}
+		buf := buffercloser.New()
 
 		ws, err := NewSimpleBlockWriter(
 			buf,
@@ -499,7 +500,7 @@ func TestBlockWriter_WithSeekHead(t *testing.T) {
 		}
 	})
 	t.Run("InvalidHeader", func(t *testing.T) {
-		buf := &bufferCloser{closed: make(chan struct{})}
+		buf := buffercloser.New()
 
 		_, err := NewSimpleBlockWriter(
 			buf,
