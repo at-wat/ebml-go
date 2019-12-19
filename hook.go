@@ -20,12 +20,11 @@ import (
 
 // Element represents an EBML element.
 type Element struct {
-	Value       interface{}
-	Name        string
-	ElementType ElementType
-	Position    uint64
-	Size        uint64
-	Parent      *Element
+	Value    interface{}
+	Name     string
+	Position uint64
+	Size     uint64
+	Parent   *Element
 }
 
 func withElementMap(m map[string][]*Element) func(*Element) {
