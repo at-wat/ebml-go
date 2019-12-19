@@ -290,6 +290,12 @@ func TestMarshal_WithWriteHooks(t *testing.T) {
 	if !reflect.DeepEqual(expected, posMap) {
 		t.Errorf("Unexpected write hook positions, \nexpected: %v, \n     got: %v", expected, posMap)
 	}
+	switch {
+	case len(m["EBML"]) != 1:
+		t.Errorf("EBML write hook should be called once, but called %d times", len(m["EBML"]))
+	case m["EBML"][0].Type != ElementEBML:
+		t.Errorf("ElementType of EBML should be %s, got %s", ElementEBML, m["EBML"][0].Type)
+	}
 }
 
 func ExampleMarshal() {

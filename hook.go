@@ -22,6 +22,7 @@ import (
 type Element struct {
 	Value    interface{}
 	Name     string
+	Type     ElementType
 	Position uint64
 	Size     uint64
 	Parent   *Element

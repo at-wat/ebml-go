@@ -259,6 +259,12 @@ func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 	if !reflect.DeepEqual(expected, posMap) {
 		t.Errorf("Unexpected read hook positions, \nexpected: %v, \n     got: %v", expected, posMap)
 	}
+	switch {
+	case len(m["Segment"]) != 1:
+		t.Errorf("Segment read hook should be called once, but called %d times", len(m["Segment"]))
+	case m["Segment"][0].Type != ElementSegment:
+		t.Errorf("ElementType of Segment should be %s, got %s", ElementSegment, m["Segment"][0].Type)
+	}
 }
 
 func TestUnmarshal_Tag(t *testing.T) {

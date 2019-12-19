@@ -162,6 +162,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 				elem = &Element{
 					Value:    vn.Interface(),
 					Name:     tag.name,
+					Type:     t,
 					Position: pos,
 					Size:     sizeUnknown,
 					Parent:   parent,
