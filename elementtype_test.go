@@ -22,4 +22,7 @@ func TestElementType_Bytes(t *testing.T) {
 	if !bytes.Equal(ElementSegment.Bytes(), expected) {
 		t.Errorf("Unexpected bytes, expected: %v, got: %v", expected, ElementSegment.Bytes())
 	}
+	if ElementSegment.DataType() != DataTypeMaster {
+		t.Errorf("Unexpected DataType, expected: %s, got: %s", DataTypeMaster, ElementSegment.DataType())
+	}
 }
