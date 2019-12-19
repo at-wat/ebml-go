@@ -342,6 +342,11 @@ func (i ElementType) Bytes() []byte {
 	return table[i].b
 }
 
+// DataType returns DataType of the element.
+func (i ElementType) DataType() DataType {
+	return table[i].t
+}
+
 // ElementTypeFromString converts string to ElementType.
 func ElementTypeFromString(s string) (ElementType, error) {
 	switch s {
