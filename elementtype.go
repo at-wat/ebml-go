@@ -172,6 +172,10 @@ func (i ElementType) String() string {
 		return "SeekPosition"
 	case ElementInfo:
 		return "Info"
+	case ElementSegmentUID:
+		return "SegmentUID"
+	case ElementSegmentFilename:
+		return "SegmentFilename"
 	case ElementTimestampScale:
 		return "TimestampScale"
 	case ElementDuration:
@@ -188,6 +192,8 @@ func (i ElementType) String() string {
 		return "Cluster"
 	case ElementTimestamp:
 		return "Timestamp"
+	case ElementPosition:
+		return "Position"
 	case ElementPrevSize:
 		return "PrevSize"
 	case ElementSimpleBlock:
@@ -314,6 +320,18 @@ func (i ElementType) String() string {
 		return "CueClusterPosition"
 	case ElementCueBlockNumber:
 		return "CueBlockNumber"
+	case ElementTags:
+		return "Tags"
+	case ElementTag:
+		return "Tag"
+	case ElementSimpleTag:
+		return "SimpleTag"
+	case ElementTagName:
+		return "TagName"
+	case ElementTagString:
+		return "TagString"
+	case ElementTagBinary:
+		return "TagBinary"
 	default:
 		return "unknown"
 	}
