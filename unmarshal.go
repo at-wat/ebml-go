@@ -113,6 +113,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 		if len(options.hooks) > 0 && vnext.IsValid() {
 			elem = &Element{
 				Name:     v.e.String(),
+				Type:     v.e,
 				Position: pos,
 				Size:     size,
 				Parent:   parent,
