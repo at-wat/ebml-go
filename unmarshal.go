@@ -120,7 +120,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 		}
 
 		switch v.t {
-		case TypeMaster:
+		case DataTypeMaster:
 			if v.top && depth > 1 {
 				b := bytes.Join([][]byte{table[v.e].b, encodeDataSize(size, uint64(nb))}, []byte{})
 				return bytes.NewBuffer(b), io.EOF

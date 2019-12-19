@@ -129,7 +129,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 
 		unknown := tag.size == sizeUnknown
 
-		lst, ok := pealElem(vn, e.t == TypeBinary, tag.omitEmpty)
+		lst, ok := pealElem(vn, e.t == DataTypeBinary, tag.omitEmpty)
 		if !ok {
 			continue
 		}
@@ -169,7 +169,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 			}
 
 			var size uint64
-			if e.t == TypeMaster {
+			if e.t == DataTypeMaster {
 				p, err := marshalImpl(vn, bw, pos+headerSize, elem, options)
 				if err != nil {
 					return pos, err

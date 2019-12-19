@@ -18,38 +18,38 @@ import (
 	"reflect"
 )
 
-// Type represents EBML Element data type.
-type Type int
+// DataType represents EBML Element data type.
+type DataType int
 
 // EBML Element data types.
 const (
-	TypeMaster Type = iota
-	TypeInt
-	TypeUInt
-	TypeDate
-	TypeFloat
-	TypeBinary
-	TypeString
-	TypeBlock
+	DataTypeMaster DataType = iota
+	DataTypeInt
+	DataTypeUInt
+	DataTypeDate
+	DataTypeFloat
+	DataTypeBinary
+	DataTypeString
+	DataTypeBlock
 )
 
-func (t Type) String() string {
+func (t DataType) String() string {
 	switch t {
-	case TypeMaster:
+	case DataTypeMaster:
 		return "Master"
-	case TypeInt:
+	case DataTypeInt:
 		return "Int"
-	case TypeUInt:
+	case DataTypeUInt:
 		return "UInt"
-	case TypeDate:
+	case DataTypeDate:
 		return "Date"
-	case TypeFloat:
+	case DataTypeFloat:
 		return "Float"
-	case TypeBinary:
+	case DataTypeBinary:
 		return "Binary"
-	case TypeString:
+	case DataTypeString:
 		return "String"
-	case TypeBlock:
+	case DataTypeBlock:
 		return "Block"
 	default:
 		return "Unknown type"
