@@ -38,14 +38,14 @@ var ErrInvalidType = errors.New("invalid type")
 // ErrUnsupportedElementID means that a value is out of range of EBML encoding.
 var ErrUnsupportedElementID = errors.New("unsupported Element ID")
 
-var perTypeReader = map[Type]func(io.Reader, uint64) (interface{}, error){
-	TypeInt:    readInt,
-	TypeUInt:   readUInt,
-	TypeDate:   readDate,
-	TypeFloat:  readFloat,
-	TypeBinary: readBinary,
-	TypeString: readString,
-	TypeBlock:  readBlock,
+var perTypeReader = map[DataType]func(io.Reader, uint64) (interface{}, error){
+	DataTypeInt:    readInt,
+	DataTypeUInt:   readUInt,
+	DataTypeDate:   readDate,
+	DataTypeFloat:  readFloat,
+	DataTypeBinary: readBinary,
+	DataTypeString: readString,
+	DataTypeBlock:  readBlock,
 }
 
 func readVInt(r io.Reader) (uint64, int, error) {
@@ -200,14 +200,14 @@ func readBlock(r io.Reader, n uint64) (interface{}, error) {
 	return *b, nil
 }
 
-var perTypeEncoder = map[Type]func(interface{}, uint64) ([]byte, error){
-	TypeInt:    encodeInt,
-	TypeUInt:   encodeUInt,
-	TypeDate:   encodeDate,
-	TypeFloat:  encodeFloat,
-	TypeBinary: encodeBinary,
-	TypeString: encodeString,
-	TypeBlock:  encodeBlock,
+var perTypeEncoder = map[DataType]func(interface{}, uint64) ([]byte, error){
+	DataTypeInt:    encodeInt,
+	DataTypeUInt:   encodeUInt,
+	DataTypeDate:   encodeDate,
+	DataTypeFloat:  encodeFloat,
+	DataTypeBinary: encodeBinary,
+	DataTypeString: encodeString,
+	DataTypeBlock:  encodeBlock,
 }
 
 func encodeDataSize(v, n uint64) []byte {
