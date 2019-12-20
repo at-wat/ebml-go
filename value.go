@@ -50,6 +50,13 @@ var perTypeReader = map[DataType]func(io.Reader, uint64) (interface{}, error){
 	DataTypeBlock:  readBlock,
 }
 
+func readDataSize(r io.Reader) (uint64, int, error) {
+	v, n, err := readVInt(r)
+	if v == (uint64(0xFFFFFFFFFFFFFFFF) >> uint(64-n*7)) {
+		return SizeUnknown, n, err
+	}
+	return v, n, err
+}
 func readVInt(r io.Reader) (uint64, int, error) {
 	var bs [1]byte
 	bytesRead, err := io.ReadFull(r, bs[:])
