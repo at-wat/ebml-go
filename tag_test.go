@@ -48,11 +48,11 @@ func TestParseTag(t *testing.T) {
 		},
 		"UnknownSize": {
 			"Name123,size=unknown",
-			&structTag{name: "Name123", size: sizeUnknown}, nil,
+			&structTag{name: "Name123", size: SizeUnknown}, nil,
 		},
 		"UnknownSizeDeprecated": {
 			"Name123,inf",
-			&structTag{name: "Name123", size: sizeUnknown}, nil,
+			&structTag{name: "Name123", size: SizeUnknown}, nil,
 		},
 		"InvalidSize": {
 			"Name123,size=a",

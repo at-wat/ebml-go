@@ -50,7 +50,7 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 
 	voe := vo.Elem()
 	for {
-		if _, err := readElement(r, sizeUnknown, voe, 0, 0, nil, options); err != nil {
+		if _, err := readElement(r, SizeUnknown, voe, 0, 0, nil, options); err != nil {
 			if err == io.EOF {
 				return nil
 			}
@@ -61,7 +61,7 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 
 func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64, parent *Element, options *UnmarshalOptions) (io.Reader, error) {
 	var r io.Reader
-	if n != sizeUnknown {
+	if n != SizeUnknown {
 		r = io.LimitReader(r0, n)
 	} else {
 		r = r0

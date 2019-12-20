@@ -132,7 +132,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 			return pos, ErrUnsupportedElement
 		}
 
-		unknown := tag.size == sizeUnknown
+		unknown := tag.size == SizeUnknown
 
 		lst, ok := pealElem(vn, e.t == DataTypeBinary, tag.omitEmpty)
 		if !ok {
@@ -151,7 +151,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 			var bw io.Writer
 			if unknown {
 				// Directly write length unspecified element
-				bsz := encodeDataSize(uint64(sizeUnknown), 0)
+				bsz := encodeDataSize(uint64(SizeUnknown), 0)
 				n, err := w.Write(bsz)
 				if err != nil {
 					return pos, err
@@ -169,7 +169,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 					Name:     tag.name,
 					Type:     t,
 					Position: pos,
-					Size:     sizeUnknown,
+					Size:     SizeUnknown,
 					Parent:   parent,
 				}
 			}
