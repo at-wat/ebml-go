@@ -406,22 +406,6 @@ func TestMarshal_InvalidTag(t *testing.T) {
 }
 
 func TestMarshal_Chan(t *testing.T) {
-	type Cluster struct {
-		Timecode uint64 `ebml:"Timecode"`
-	}
-	type TestOmitempty struct {
-		Segment struct {
-			Cluster chan Cluster `ebml:"Cluster,size=unknown"`
-		} `ebml:"Segment,size=unknown"`
-	}
-
-	ch := make(chan Cluster, 100)
-	input := &TestOmitempty{}
-	input.Segment.Cluster = ch
-	ch <- Cluster{Timecode: 0x01}
-	ch <- Cluster{Timecode: 0x02}
-	close(ch)
-
 	expected := []byte{
 		0x18, 0x53, 0x80, 0x67, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 		0x1F, 0x43, 0xB6, 0x75, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -429,14 +413,78 @@ func TestMarshal_Chan(t *testing.T) {
 		0x1F, 0x43, 0xB6, 0x75, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 		0xE7, 0x81, 0x02,
 	}
+	type Cluster struct {
+		Timecode uint64 `ebml:"Timecode"`
+	}
 
-	var b bytes.Buffer
-	if err := Marshal(input, &b); err != nil {
-		t.Fatalf("Unexpected error: %+v", err)
-	}
-	if !bytes.Equal(expected, b.Bytes()) {
-		t.Errorf("Marshaled binary doesn't match:\n expected: %v,\n      got: %v", expected, b.Bytes())
-	}
+	t.Run("ChanStruct", func(t *testing.T) {
+		ch := make(chan Cluster, 100)
+		input := &struct {
+			Segment struct {
+				Cluster chan Cluster `ebml:"Cluster,size=unknown"`
+			} `ebml:"Segment,size=unknown"`
+		}{}
+		input.Segment.Cluster = ch
+		ch <- Cluster{Timecode: 0x01}
+		ch <- Cluster{Timecode: 0x02}
+		close(ch)
+
+		var b bytes.Buffer
+		if err := Marshal(input, &b); err != nil {
+			t.Fatalf("Unexpected error: %+v", err)
+		}
+		if !bytes.Equal(expected, b.Bytes()) {
+			t.Errorf("Marshaled binary doesn't match:\n expected: %v,\n      got: %v", expected, b.Bytes())
+		}
+	})
+	t.Run("ChanStructPtr", func(t *testing.T) {
+		input := &struct {
+			Segment struct {
+				Cluster chan *Cluster `ebml:"Cluster,size=unknown"`
+			} `ebml:"Segment,size=unknown"`
+		}{}
+
+		t.Run("Valid", func(t *testing.T) {
+			ch := make(chan *Cluster, 100)
+			input.Segment.Cluster = ch
+			ch <- &Cluster{Timecode: 0x01}
+			ch <- &Cluster{Timecode: 0x02}
+			close(ch)
+
+			var b bytes.Buffer
+			if err := Marshal(input, &b); err != nil {
+				t.Fatalf("Unexpected error: %+v", err)
+			}
+			if !bytes.Equal(expected, b.Bytes()) {
+				t.Errorf("Marshaled binary doesn't match:\n expected: %v,\n      got: %v", expected, b.Bytes())
+			}
+		})
+		t.Run("Nil", func(t *testing.T) {
+			ch := make(chan *Cluster, 100)
+			input.Segment.Cluster = ch
+			ch <- nil
+			close(ch)
+
+			if err := Marshal(input, &bytes.Buffer{}); err != ErrIncompatibleType {
+				t.Fatalf("Expected %v, got %v", ErrIncompatibleType, err)
+			}
+		})
+	})
+	t.Run("ChanStructSlice", func(t *testing.T) {
+		input := &struct {
+			Segment struct {
+				Cluster chan []Cluster `ebml:"Cluster,size=unknown"`
+			} `ebml:"Segment,size=unknown"`
+		}{}
+		ch := make(chan []Cluster, 100)
+		input.Segment.Cluster = ch
+		ch <- make([]Cluster, 2)
+		close(ch)
+
+		if err := Marshal(input, &bytes.Buffer{}); err != ErrIncompatibleType {
+			t.Fatalf("Expected %v, got %v", ErrIncompatibleType, err)
+		}
+	})
 }
 
 func BenchmarkMarshal(b *testing.B) {

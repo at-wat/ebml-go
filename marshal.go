@@ -225,7 +225,14 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 					if !ok {
 						break
 					}
-					pos, err = writeOne(val)
+					lst, ok := pealElem(val, e.t == DataTypeBinary, tag.omitEmpty)
+					if !ok {
+						return pos, ErrIncompatibleType
+					}
+					if len(lst) != 1 {
+						return pos, ErrIncompatibleType
+					}
+					pos, err = writeOne(lst[0])
 				}
 			default:
 				pos, err = writeOne(vn)
