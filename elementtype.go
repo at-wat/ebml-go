@@ -549,6 +549,6 @@ func ElementTypeFromString(s string) (ElementType, error) {
 		return ElementTimecode, nil
 
 	default:
-		return 0, ErrUnknownElementName
+		return 0, wrapErrorf(ErrUnknownElementName, "parsing %s", s)
 	}
 }

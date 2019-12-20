@@ -22,6 +22,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func ExampleUnmarshal() {
@@ -351,12 +353,12 @@ func TestUnmarshal_Error(t *testing.T) {
 		} `ebml:"EBML"`
 	}
 	t.Run("NilValue", func(t *testing.T) {
-		if err := Unmarshal(bytes.NewBuffer([]byte{}), nil); err != ErrIndefiniteType {
+		if err := Unmarshal(bytes.NewBuffer([]byte{}), nil); !errs.Is(err, ErrIndefiniteType) {
 			t.Errorf("Unexpected error, expected %v, got %v\n", ErrIndefiniteType, err)
 		}
 	})
 	t.Run("NonPtr", func(t *testing.T) {
-		if err := Unmarshal(bytes.NewBuffer([]byte{}), struct{}{}); err != ErrIncompatibleType {
+		if err := Unmarshal(bytes.NewBuffer([]byte{}), struct{}{}); !errs.Is(err, ErrIncompatibleType) {
 			t.Errorf("Unexpected error, expected %v, got %v\n", ErrIncompatibleType, err)
 		}
 	})
@@ -365,14 +367,14 @@ func TestUnmarshal_Error(t *testing.T) {
 			Header struct {
 			} `ebml:"Unknown"`
 		}{}
-		if err := Unmarshal(bytes.NewBuffer([]byte{}), input); err != ErrUnknownElementName {
+		if err := Unmarshal(bytes.NewBuffer([]byte{}), input); !errs.Is(err, ErrUnknownElementName) {
 			t.Errorf("Unexpected error, expected %v, got %v\n", ErrUnknownElementName, err)
 		}
 	})
 	t.Run("UnknownElement", func(t *testing.T) {
 		input := &TestEBML{}
 		b := []byte{0x80}
-		if err := Unmarshal(bytes.NewBuffer(b), input); err != ErrUnknownElement {
+		if err := Unmarshal(bytes.NewBuffer(b), input); !errs.Is(err, ErrUnknownElement) {
 			t.Errorf("Unexpected error, expected %v, got %v\n", ErrUnknownElement, err)
 		}
 	})
@@ -483,7 +485,7 @@ func TestUnmarshal_Error(t *testing.T) {
 		}
 		for name, c := range cases {
 			t.Run(name, func(t *testing.T) {
-				if err := Unmarshal(bytes.NewBuffer(c.b), c.ret); err != c.err {
+				if err := Unmarshal(bytes.NewBuffer(c.b), c.ret); !errs.Is(err, c.err) {
 					t.Errorf("Unexpected error, expected: %v, got: %v\n", c.err, err)
 				}
 			})

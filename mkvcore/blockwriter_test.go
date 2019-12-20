@@ -24,6 +24,7 @@ import (
 
 	"github.com/at-wat/ebml-go"
 	"github.com/at-wat/ebml-go/internal/buffercloser"
+	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestBlockWriter(t *testing.T) {
@@ -203,7 +204,7 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			buf := buffercloser.New()
 			_, err := NewSimpleBlockWriter(buf, []TrackDescription{}, c.opts...)
-			if err != c.err {
+			if !errs.Is(err, c.err) {
 				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
 			}
 		})
@@ -360,7 +361,7 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			}
 			select {
 			case err := <-chError:
-				if err != ErrIgnoreOldFrame {
+				if !errs.Is(err, ErrIgnoreOldFrame) {
 					t.Errorf("Unexpected error, expected: %v, got: %v", ErrIgnoreOldFrame, err)
 				}
 			case err := <-chFatal:
@@ -510,8 +511,8 @@ func TestBlockWriter_WithSeekHead(t *testing.T) {
 			}{}),
 			WithSeekHead(true),
 		)
-		if err != ebml.ErrUnknownElementName {
-			t.Errorf("Unexpected error, expected: %v, got: %v", ebml.ErrUnknownElementName, err)
+		if !errs.Is(err, ebml.ErrUnknownElementName) {
+			t.Errorf("Expected error: %v, got: %v", ebml.ErrUnknownElementName, err)
 		}
 	})
 }

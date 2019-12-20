@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestMarshal(t *testing.T) {
@@ -226,7 +228,7 @@ func TestMarshal_Error(t *testing.T) {
 	for n, c := range testCases {
 		t.Run(n, func(t *testing.T) {
 			var b bytes.Buffer
-			if err := Marshal(c.input, &b); err != c.err {
+			if err := Marshal(c.input, &b); !errs.Is(err, c.err) {
 				t.Fatalf("Unexpected error, expected: %v, got: %v", c.err, err)
 			}
 		})
@@ -465,8 +467,8 @@ func TestMarshal_Chan(t *testing.T) {
 			ch <- nil
 			close(ch)
 
-			if err := Marshal(input, &bytes.Buffer{}); err != ErrIncompatibleType {
-				t.Fatalf("Expected %v, got %v", ErrIncompatibleType, err)
+			if err := Marshal(input, &bytes.Buffer{}); !errs.Is(err, ErrIncompatibleType) {
+				t.Fatalf("Expected error: %v, got: %v", ErrIncompatibleType, err)
 			}
 		})
 	})
@@ -481,7 +483,7 @@ func TestMarshal_Chan(t *testing.T) {
 		ch <- make([]Cluster, 2)
 		close(ch)
 
-		if err := Marshal(input, &bytes.Buffer{}); err != ErrIncompatibleType {
+		if err := Marshal(input, &bytes.Buffer{}); !errs.Is(err, ErrIncompatibleType) {
 			t.Fatalf("Expected %v, got %v", ErrIncompatibleType, err)
 		}
 	})
