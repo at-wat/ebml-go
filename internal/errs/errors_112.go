@@ -16,6 +16,10 @@
 
 package errs
 
+import (
+	"reflect"
+)
+
 func Is(err, target error) bool {
 	if target == nil {
 		return err == nil
@@ -26,7 +30,19 @@ func Is(err, target error) bool {
 		}
 		x, ok := err.(interface{ Unwrap() error })
 		if !ok {
-			return false
+			if reflect.TypeOf(err).Kind() == reflect.Ptr {
+				e := reflect.ValueOf(err).Elem().FieldByName("Err")
+				if e.IsValid() {
+					e2, ok := e.Interface().(error)
+					if !ok {
+						return false
+					}
+					err = e2
+					continue
+				}
+			} else {
+				return false
+			}
 		}
 		if err = x.Unwrap(); err == nil {
 			return false

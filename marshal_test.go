@@ -402,7 +402,7 @@ func TestMarshal_InvalidTag(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	if err := Marshal(&input, &buf); err != ErrInvalidTag {
+	if err := Marshal(&input, &buf); !errs.Is(err, ErrInvalidTag) {
 		t.Errorf("Unexpected error against invalid tag, expected: %v, got: %v", ErrInvalidTag, err)
 	}
 }

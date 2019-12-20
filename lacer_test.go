@@ -18,6 +18,8 @@ import (
 	"bytes"
 	"io"
 	"testing"
+
+	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestLacer(t *testing.T) {
@@ -151,11 +153,11 @@ func TestLacer(t *testing.T) {
 			var buf bytes.Buffer
 			l := c.newLacer(&buf)
 			err := l.Write(c.frames)
-			if !isErr(err, c.err) {
-				t.Fatalf("Unexpected error, expected: %v, got: %v", c.err, err)
+			if !errs.Is(err, c.err) {
+				t.Fatalf("Expected error: %v, got: %v", c.err, err)
 			}
 			if !bytes.Equal(c.b, buf.Bytes()) {
-				t.Errorf("Unexpected data, \nexpected: %v, \n     got: %v", c.b, buf.Bytes())
+				t.Errorf("Expected data: %v, \n         got: %v", c.b, buf.Bytes())
 			}
 		})
 	}
@@ -176,7 +178,7 @@ func TestLacer_WriterError(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			for l := 0; l < c.n-1; l++ {
 				lacer := c.newLacer(&limitedDummyWriter{limit: l})
-				if err := lacer.Write(c.frames); err != bytes.ErrTooLarge {
+				if err := lacer.Write(c.frames); !errs.Is(err, bytes.ErrTooLarge) {
 					t.Errorf("Lacer should fail with bytes.ErrTooLarge against too large data (Writer size limit: %d), but got %v", l, err)
 				}
 			}
