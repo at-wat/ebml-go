@@ -25,8 +25,10 @@ import (
 )
 
 const (
-	dateEpochInUnixtime = 978307200
-	sizeUnknown         = 0xffffffffffffff
+	// DateEpochInUnixtime is the Unixtime of EBML date epoch.
+	DateEpochInUnixtime = 978307200
+	// SizeUnknown is the longest unknown size value.
+	SizeUnknown = 0xffffffffffffff
 )
 
 // ErrInvalidFloatSize means that a element size is invalid for float type. Float must be 4 or 8 bytes.
@@ -174,7 +176,7 @@ func readDate(r io.Reader, n uint64) (interface{}, error) {
 	if err != nil {
 		return time.Unix(0, 0), err
 	}
-	return time.Unix(dateEpochInUnixtime, i.(int64)), nil
+	return time.Unix(DateEpochInUnixtime, i.(int64)), nil
 }
 func readFloat(r io.Reader, n uint64) (interface{}, error) {
 	if n != 4 && n != 8 {
@@ -233,7 +235,7 @@ func encodeDataSize(v, n uint64) []byte {
 		return []byte{byte(v>>40) | 0x4, byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
 	case v < 0x2000000000000-1 && n < 8:
 		return []byte{byte(v>>48) | 0x2, byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
-	case v < sizeUnknown:
+	case v < SizeUnknown:
 		return []byte{0x1, byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
 	default:
 		return []byte{0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
@@ -336,7 +338,7 @@ func encodeDate(i interface{}, n uint64) ([]byte, error) {
 	if !ok {
 		return []byte{}, ErrInvalidType
 	}
-	dtns := v.Sub(time.Unix(dateEpochInUnixtime, 0)).Nanoseconds()
+	dtns := v.Sub(time.Unix(DateEpochInUnixtime, 0)).Nanoseconds()
 	return encodeInt(int64(dtns), n)
 }
 func encodeFloat32(i float32) ([]byte, error) {
