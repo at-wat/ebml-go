@@ -227,7 +227,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 					}
 					lst, ok := pealElem(val, e.t == DataTypeBinary, tag.omitEmpty)
 					if !ok {
-						continue
+						return pos, ErrIncompatibleType
 					}
 					if len(lst) != 1 {
 						return pos, ErrIncompatibleType
