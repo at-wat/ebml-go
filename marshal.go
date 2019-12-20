@@ -89,6 +89,8 @@ func pealElem(v reflect.Value, binary, omitEmpty bool) ([]reflect.Value, bool) {
 				lst = append(lst, vv...)
 			}
 			return lst, true
+		case reflect.Chan:
+			return []reflect.Value{v}, true
 		default:
 			if omitEmpty && deepIsZero(v) {
 				return nil, false
@@ -134,7 +136,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 			continue
 		}
 
-		for _, vn := range lst {
+		writeOne := func(vn reflect.Value) (uint64, error) {
 			// Write element ID
 			var headerSize uint64
 			n, err := w.Write(e.b)
@@ -208,6 +210,26 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 				cb(elem)
 			}
 			pos += headerSize + size
+			return pos, nil
+		}
+
+		for _, vn := range lst {
+			var err error
+			switch vn.Kind() {
+			case reflect.Chan:
+				for {
+					val, ok := vn.Recv()
+					if !ok {
+						break
+					}
+					pos, err = writeOne(val)
+				}
+			default:
+				pos, err = writeOne(vn)
+			}
+			if err != nil {
+				return pos, err
+			}
 		}
 	}
 	return pos, nil

@@ -21,6 +21,7 @@ import (
 	"io"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func ExampleUnmarshal() {
@@ -273,6 +274,52 @@ func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 		t.Errorf("Invalid type of data: %T", v)
 	case v != "Video":
 		t.Errorf("The value should be Video, got %s", v)
+	}
+}
+
+func TestUnmarshal_Chan(t *testing.T) {
+	TestBinary := []byte{
+		0x18, 0x53, 0x80, 0x67, 0x8f, // Segment
+		0x16, 0x54, 0xae, 0x6b, 0x8a, // Tracks
+		0xae, 0x83, // TrackEntry[0]
+		0xd7, 0x81, 0x01, // TrackNumber=1
+		0xae, 0x83, // TrackEntry[0]
+		0xd7, 0x81, 0x02, // TrackNumber=2
+	}
+	type TestEBML struct {
+		Segment struct {
+			Tracks struct {
+				TrackEntry struct {
+					TrackNumber chan uint64 `ebml:"TrackNumber"`
+				} `ebml:"TrackEntry"`
+			} `ebml:"Tracks"`
+		} `ebml:"Segment"`
+	}
+
+	var ret TestEBML
+	ch := make(chan uint64, 100)
+	ret.Segment.Tracks.TrackEntry.TrackNumber = ch
+
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-time.After(5 * time.Second):
+			panic("test timeout")
+		case <-done:
+		}
+	}()
+	if err := Unmarshal(bytes.NewReader(TestBinary), &ret); err != nil {
+		t.Errorf("Unexpected error: %+v", err)
+	}
+	close(done)
+	if len(ch) != 2 {
+		t.Fatalf("Element chan should be sent twice, but sent %d times", len(ch))
+	}
+	if v := <-ch; v != 1 {
+		t.Errorf("First value should be 1, got %d", v)
+	}
+	if v := <-ch; v != 2 {
+		t.Errorf("Second value should be 2, got %d", v)
 	}
 }
 

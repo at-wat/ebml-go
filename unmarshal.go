@@ -109,6 +109,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			vnext = vn
 		}
 
+		var chanSend reflect.Value
 		var elem *Element
 		if len(options.hooks) > 0 && vnext.IsValid() {
 			elem = &Element{
@@ -118,6 +119,10 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 				Size:     size,
 				Parent:   parent,
 			}
+		}
+		if vnext.Kind() == reflect.Chan {
+			chanSend = vnext
+			vnext = reflect.New(vnext.Type().Elem()).Elem()
 		}
 
 		switch v.t {
@@ -178,6 +183,9 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			if elem != nil {
 				elem.Value = vr.Interface()
 			}
+		}
+		if chanSend.IsValid() {
+			chanSend.Send(vnext)
 		}
 		if elem != nil {
 			for _, hook := range options.hooks {
