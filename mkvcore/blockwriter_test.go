@@ -515,3 +515,32 @@ func TestBlockWriter_WithSeekHead(t *testing.T) {
 		}
 	})
 }
+
+func BenchmarkBlockWriter(b *testing.B) {
+	buf := buffercloser.New()
+
+	tracks := []TrackDescription{
+		{TrackNumber: 1},
+		{TrackNumber: 2},
+	}
+	ws, err := NewSimpleBlockWriter(buf, tracks,
+		WithBlockInterceptor(NewMultiTrackBlockSorter(10, BlockSorterDropOutdated)),
+	)
+	if err != nil {
+		b.Fatalf("Failed to create BlockWriter: %v", err)
+	}
+
+	data := make([]byte, 100)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for _, w := range ws {
+			if _, err := w.Write(true, int64(i*100), data); err != nil {
+				b.Fatalf("Failed to Write: %v", err)
+			}
+		}
+	}
+
+	for _, w := range ws {
+		w.Close()
+	}
+}
