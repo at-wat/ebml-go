@@ -44,6 +44,10 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 	if !vo.IsValid() {
 		return ErrIndefiniteType
 	}
+	if vo.Kind() != reflect.Ptr {
+		return ErrIncompatibleType
+	}
+
 	voe := vo.Elem()
 	for {
 		if _, err := readElement(r, sizeUnknown, voe, 0, 0, nil, options); err != nil {
