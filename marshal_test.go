@@ -401,6 +401,40 @@ func TestMarshal_InvalidTag(t *testing.T) {
 	}
 }
 
+func TestMarshal_Chan(t *testing.T) {
+	type Cluster struct {
+		Timecode uint64 `ebml:"Timecode"`
+	}
+	type TestOmitempty struct {
+		Segment struct {
+			Cluster chan Cluster `ebml:"Cluster,size=unknown"`
+		} `ebml:"Segment,size=unknown"`
+	}
+
+	ch := make(chan Cluster, 100)
+	input := &TestOmitempty{}
+	input.Segment.Cluster = ch
+	ch <- Cluster{Timecode: 0x01}
+	ch <- Cluster{Timecode: 0x02}
+	close(ch)
+
+	expected := []byte{
+		0x18, 0x53, 0x80, 0x67, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0x1F, 0x43, 0xB6, 0x75, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0xE7, 0x81, 0x01,
+		0x1F, 0x43, 0xB6, 0x75, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0xE7, 0x81, 0x02,
+	}
+
+	var b bytes.Buffer
+	if err := Marshal(input, &b); err != nil {
+		t.Fatalf("Unexpected error: %+v", err)
+	}
+	if !bytes.Equal(expected, b.Bytes()) {
+		t.Errorf("Marshaled binary doesn't match:\n expected: %v,\n      got: %v", expected, b.Bytes())
+	}
+}
+
 func BenchmarkMarshal(b *testing.B) {
 	type EBMLHeader struct {
 		DocType            string `ebml:"EBMLDocType"`
