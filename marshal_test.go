@@ -258,7 +258,7 @@ func TestMarshal_WriterError(t *testing.T) {
 
 	for l := 0; l < 25; l++ {
 		err := Marshal(&s, &limitedDummyWriter{limit: l})
-		if err != bytes.ErrTooLarge {
+		if !errs.Is(err, bytes.ErrTooLarge) {
 			t.Errorf("UnmarshalBlock should fail with bytes.ErrTooLarge against too large data (Writer size limit: %d), but got %v", l, err)
 		}
 	}

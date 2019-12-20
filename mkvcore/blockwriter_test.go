@@ -205,7 +205,7 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 			buf := buffercloser.New()
 			_, err := NewSimpleBlockWriter(buf, []TrackDescription{}, c.opts...)
 			if !errs.Is(err, c.err) {
-				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
+				t.Errorf("Expected error: %v, got: %v", c.err, err)
 			}
 		})
 	}
@@ -292,8 +292,8 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			)
 			if err != nil {
 				if errAt == atBeginning {
-					if err != bytes.ErrTooLarge {
-						t.Fatalf("Unexpected error, expected: %v, got: %v", bytes.ErrTooLarge, err)
+					if !errs.Is(err, bytes.ErrTooLarge) {
+						t.Fatalf("Expected error: %v, got: %v", bytes.ErrTooLarge, err)
 					}
 					return
 				}
@@ -314,8 +314,8 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			if errAt == atClusterWriting {
 				select {
 				case err := <-chFatal:
-					if err != bytes.ErrTooLarge {
-						t.Fatalf("Unexpected error, expected: %v, got: %v", bytes.ErrTooLarge, err)
+					if !errs.Is(err, bytes.ErrTooLarge) {
+						t.Fatalf("Expected error: %v, got: %v", bytes.ErrTooLarge, err)
 					}
 					return
 				case err := <-chError:
@@ -340,8 +340,8 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			if errAt == atFrameWriting {
 				select {
 				case err := <-chFatal:
-					if err != bytes.ErrTooLarge {
-						t.Fatalf("Unexpected error, expected: %v, got: %v", bytes.ErrTooLarge, err)
+					if !errs.Is(err, bytes.ErrTooLarge) {
+						t.Fatalf("Expected error: %v, got: %v", bytes.ErrTooLarge, err)
 					}
 					return
 				case err := <-chError:
@@ -362,7 +362,7 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			select {
 			case err := <-chError:
 				if !errs.Is(err, ErrIgnoreOldFrame) {
-					t.Errorf("Unexpected error, expected: %v, got: %v", ErrIgnoreOldFrame, err)
+					t.Errorf("Expected error: %v, got: %v", ErrIgnoreOldFrame, err)
 				}
 			case err := <-chFatal:
 				t.Fatalf("Unexpected fatal: %v", err)
@@ -378,8 +378,8 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			if errAt == atClosing {
 				select {
 				case err := <-chFatal:
-					if err != bytes.ErrTooLarge {
-						t.Fatalf("Unexpected error, expected: %v, got: %v", bytes.ErrTooLarge, err)
+					if !errs.Is(err, bytes.ErrTooLarge) {
+						t.Fatalf("Expected error: %v, got: %v", bytes.ErrTooLarge, err)
 					}
 					return
 				case err := <-chError:

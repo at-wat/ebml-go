@@ -146,7 +146,9 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 			var headerSize uint64
 			n, err := w.Write(e.b)
 			if err != nil {
-				return pos, err
+				return pos, wrapError(
+					err, "writing element ID",
+				)
 			}
 			headerSize += uint64(n)
 
@@ -156,7 +158,9 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 				bsz := encodeDataSize(uint64(SizeUnknown), 0)
 				n, err := w.Write(bsz)
 				if err != nil {
-					return pos, err
+					return pos, wrapError(
+						err, "writing data size",
+					)
 				}
 				headerSize += uint64(n)
 				bw = w
@@ -190,7 +194,9 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 				}
 				n, err := bw.Write(bc)
 				if err != nil {
-					return pos, err
+					return pos, wrapError(
+						err, "writing data contents",
+					)
 				}
 				size = uint64(n)
 			}
@@ -203,12 +209,16 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 				bsz := encodeDataSize(size, options.dataSizeLen)
 				n, err := w.Write(bsz)
 				if err != nil {
-					return pos, err
+					return pos, wrapError(
+						err, "writing data size",
+					)
 				}
 				headerSize += uint64(n)
 
 				if _, err := w.Write(bw.(*bytes.Buffer).Bytes()); err != nil {
-					return pos, err
+					return pos, wrapError(
+						err, "writing data contents",
+					)
 				}
 			}
 			for _, cb := range options.hooks {
