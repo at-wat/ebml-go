@@ -290,11 +290,20 @@ func TestMarshal_WithWriteHooks(t *testing.T) {
 	if !reflect.DeepEqual(expected, posMap) {
 		t.Errorf("Unexpected write hook positions, \nexpected: %v, \n     got: %v", expected, posMap)
 	}
+	checkTarget := "Segment.Cluster.Timecode"
 	switch {
-	case len(m["EBML"]) != 1:
-		t.Errorf("EBML write hook should be called once, but called %d times", len(m["EBML"]))
-	case m["EBML"][0].Type != ElementEBML:
-		t.Errorf("ElementType of EBML should be %s, got %s", ElementEBML, m["EBML"][0].Type)
+	case len(m[checkTarget]) != 2:
+		t.Fatalf("%s write hook should be called twice, but called %d times",
+			checkTarget, len(m[checkTarget]))
+	case m[checkTarget][0].Type != ElementTimecode:
+		t.Fatalf("ElementType of %s should be %s, got %s",
+			checkTarget, ElementTimecode, m[checkTarget][0].Type)
+	}
+	switch v, ok := m[checkTarget][0].Value.(uint64); {
+	case !ok:
+		t.Errorf("Invalid type of data: %T", v)
+	case v != 0:
+		t.Errorf("The value should be 0, got %d", v)
 	}
 }
 

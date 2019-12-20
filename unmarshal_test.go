@@ -259,11 +259,20 @@ func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 	if !reflect.DeepEqual(expected, posMap) {
 		t.Errorf("Unexpected read hook positions, \nexpected: %v, \n     got: %v", expected, posMap)
 	}
+	checkTarget := "Segment.Tracks.TrackEntry.Name"
 	switch {
-	case len(m["Segment"]) != 1:
-		t.Errorf("Segment read hook should be called once, but called %d times", len(m["Segment"]))
-	case m["Segment"][0].Type != ElementSegment:
-		t.Errorf("ElementType of Segment should be %s, got %s", ElementSegment, m["Segment"][0].Type)
+	case len(m[checkTarget]) != 2:
+		t.Fatalf("%s read hook should be called twice, but called %d times",
+			checkTarget, len(m[checkTarget]))
+	case m[checkTarget][0].Type != ElementName:
+		t.Fatalf("ElementType of %s should be %s, got %s",
+			checkTarget, ElementName, m[checkTarget][0].Type)
+	}
+	switch v, ok := m[checkTarget][0].Value.(string); {
+	case !ok:
+		t.Errorf("Invalid type of data: %T", v)
+	case v != "Video":
+		t.Errorf("The value should be Video, got %s", v)
 	}
 }
 
