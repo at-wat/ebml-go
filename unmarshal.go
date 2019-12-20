@@ -176,7 +176,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 				}
 			}
 			if elem != nil {
-				elem.Value = vr
+				elem.Value = vr.Interface()
 			}
 		}
 		if elem != nil {
