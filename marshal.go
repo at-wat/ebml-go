@@ -58,9 +58,12 @@ func Marshal(val interface{}, w io.Writer, opts ...MarshalOption) error {
 			return err
 		}
 	}
-	vo := reflect.ValueOf(val).Elem()
+	vo := reflect.ValueOf(val)
+	if vo.Kind() != reflect.Ptr {
+		return ErrInvalidType
+	}
 
-	_, err := marshalImpl(vo, w, 0, nil, options)
+	_, err := marshalImpl(vo.Elem(), w, 0, nil, options)
 	return err
 }
 

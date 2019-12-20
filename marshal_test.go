@@ -212,6 +212,10 @@ func TestMarshal_Error(t *testing.T) {
 		input interface{}
 		err   error
 	}{
+		"InvalidInput": {
+			struct{}{},
+			ErrInvalidType,
+		},
 		"InvalidElementName": {
 			&struct {
 				Invalid uint64 `ebml:"Invalid"`

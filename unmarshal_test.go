@@ -352,7 +352,12 @@ func TestUnmarshal_Error(t *testing.T) {
 	}
 	t.Run("NilValue", func(t *testing.T) {
 		if err := Unmarshal(bytes.NewBuffer([]byte{}), nil); err != ErrIndefiniteType {
-			t.Errorf("Unexpected error, %v, got %v\n", ErrIndefiniteType, err)
+			t.Errorf("Unexpected error, expected %v, got %v\n", ErrIndefiniteType, err)
+		}
+	})
+	t.Run("NonPtr", func(t *testing.T) {
+		if err := Unmarshal(bytes.NewBuffer([]byte{}), struct{}{}); err != ErrIncompatibleType {
+			t.Errorf("Unexpected error, expected %v, got %v\n", ErrIncompatibleType, err)
 		}
 	})
 	t.Run("UnknownElementName", func(t *testing.T) {
@@ -361,14 +366,14 @@ func TestUnmarshal_Error(t *testing.T) {
 			} `ebml:"Unknown"`
 		}{}
 		if err := Unmarshal(bytes.NewBuffer([]byte{}), input); err != ErrUnknownElementName {
-			t.Errorf("Unexpected error, %v, got %v\n", ErrUnknownElementName, err)
+			t.Errorf("Unexpected error, expected %v, got %v\n", ErrUnknownElementName, err)
 		}
 	})
 	t.Run("UnknownElement", func(t *testing.T) {
 		input := &TestEBML{}
 		b := []byte{0x80}
 		if err := Unmarshal(bytes.NewBuffer(b), input); err != ErrUnknownElement {
-			t.Errorf("Unexpected error, %v, got %v\n", ErrUnknownElement, err)
+			t.Errorf("Unexpected error, expected %v, got %v\n", ErrUnknownElement, err)
 		}
 	})
 	t.Run("Short", func(t *testing.T) {
