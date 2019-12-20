@@ -516,13 +516,31 @@ func TestBlockWriter_WithSeekHead(t *testing.T) {
 	})
 }
 
-func BenchmarkBlockWriter(b *testing.B) {
-	buf := buffercloser.New()
-
+func BenchmarkBlockWriter_InitFinalize(b *testing.B) {
 	tracks := []TrackDescription{
 		{TrackNumber: 1},
-		{TrackNumber: 2},
 	}
+
+	for i := 0; i < b.N; i++ {
+		buf := buffercloser.New()
+		ws, err := NewSimpleBlockWriter(buf, tracks,
+			WithBlockInterceptor(NewMultiTrackBlockSorter(10, BlockSorterDropOutdated)),
+		)
+		if err != nil {
+			b.Fatalf("Failed to create BlockWriter: %v", err)
+		}
+		for _, w := range ws {
+			w.Close()
+		}
+	}
+}
+
+func BenchmarkBlockWriter_SimpleBlock(b *testing.B) {
+	tracks := []TrackDescription{
+		{TrackNumber: 1},
+	}
+
+	buf := buffercloser.New()
 	ws, err := NewSimpleBlockWriter(buf, tracks,
 		WithBlockInterceptor(NewMultiTrackBlockSorter(10, BlockSorterDropOutdated)),
 	)
@@ -530,16 +548,16 @@ func BenchmarkBlockWriter(b *testing.B) {
 		b.Fatalf("Failed to create BlockWriter: %v", err)
 	}
 
-	data := make([]byte, 100)
+	data := []byte{}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, w := range ws {
-			if _, err := w.Write(true, int64(i*100), data); err != nil {
+			if _, err := w.Write(true, int64(i*20), data); err != nil {
 				b.Fatalf("Failed to Write: %v", err)
 			}
 		}
 	}
-
+	b.StopTimer()
 	for _, w := range ws {
 		w.Close()
 	}
