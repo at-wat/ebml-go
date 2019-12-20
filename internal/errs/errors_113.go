@@ -14,12 +14,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package errs is for compatibility with Go1.13 error wrapping.
 package errs
 
 import (
 	"errors"
 )
 
+// Is compares error type. Wrapping Go1.13 errors.Is().
 func Is(err, target error) bool {
 	return errors.Is(err, target)
 }
