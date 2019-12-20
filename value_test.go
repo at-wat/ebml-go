@@ -32,10 +32,21 @@ func TestDataSize(t *testing.T) {
 	}
 
 	for n, c := range testCases {
-		t.Run("Decode "+n, func(t *testing.T) {
+		t.Run("DecodeVInt "+n, func(t *testing.T) {
 			r, _, err := readVInt(bytes.NewBuffer(c.b))
 			if err != nil {
 				t.Fatalf("Failed to readVInt: %v", err)
+			}
+			if r != c.i {
+				t.Errorf("Unexpected readVInt result, expected: %d, got: %d", c.i, r)
+			}
+		})
+	}
+	for n, c := range testCases {
+		t.Run("DecodeDataSize "+n, func(t *testing.T) {
+			r, _, err := readDataSize(bytes.NewBuffer(c.b))
+			if err != nil {
+				t.Fatalf("Failed to readDataSize: %v", err)
 			}
 			if r != c.i {
 				t.Errorf("Unexpected readVInt result, expected: %d, got: %d", c.i, r)
@@ -47,6 +58,31 @@ func TestDataSize(t *testing.T) {
 			b := encodeDataSize(c.i, 0)
 			if !bytes.Equal(b, c.b) {
 				t.Errorf("Unexpected encodeDataSize result, expected: %d, got: %d", c.b, b)
+			}
+		})
+	}
+}
+
+func TestDataSize_Unknown(t *testing.T) {
+	testCases := map[string][]byte{
+		"1 byte":  []byte{0xFF},
+		"2 bytes": []byte{0x7F, 0xFF},
+		"3 bytes": []byte{0x3F, 0xFF, 0xFF},
+		"4 bytes": []byte{0x1F, 0xFF, 0xFF, 0xFF},
+		"5 bytes": []byte{0x0F, 0xFF, 0xFF, 0xFF, 0xFF},
+		"6 bytes": []byte{0x07, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+		"7 bytes": []byte{0x03, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+		"8 bytes": []byte{0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+	}
+
+	for n, b := range testCases {
+		t.Run("DecodeDataSize "+n, func(t *testing.T) {
+			r, _, err := readDataSize(bytes.NewBuffer(b))
+			if err != nil {
+				t.Fatalf("Failed to readDataSize: %v", err)
+			}
+			if r != SizeUnknown {
+				t.Errorf("Unexpected readDataSize result, expected: %d, got: %d", SizeUnknown, r)
 			}
 		})
 	}

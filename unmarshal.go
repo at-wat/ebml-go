@@ -103,7 +103,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			return nil, ErrUnknownElement
 		}
 
-		size, nb, err := readVInt(r)
+		size, nb, err := readDataSize(r)
 		headerSize += uint64(nb)
 		if err != nil {
 			return nil, err
