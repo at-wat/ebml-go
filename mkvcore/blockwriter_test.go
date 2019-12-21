@@ -24,6 +24,7 @@ import (
 
 	"github.com/at-wat/ebml-go"
 	"github.com/at-wat/ebml-go/internal/buffercloser"
+	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestBlockWriter(t *testing.T) {
@@ -37,7 +38,7 @@ func TestBlockWriter(t *testing.T) {
 		WithBlockInterceptor(NewMultiTrackBlockSorter(10, BlockSorterDropOutdated)),
 	)
 	if err != nil {
-		t.Fatalf("Failed to create BlockWriter: %v", err)
+		t.Fatalf("Failed to create BlockWriter: '%v'", err)
 	}
 
 	if len(ws) != len(tracks) {
@@ -45,28 +46,28 @@ func TestBlockWriter(t *testing.T) {
 	}
 
 	if n, err := ws[1].Write(true, 110, []byte{0x03, 0x04, 0x05}); err != nil {
-		t.Fatalf("Failed to Write: %v", err)
+		t.Fatalf("Failed to Write: '%v'", err)
 	} else if n != 3 {
-		t.Errorf("Unexpected return value of BlockWriter.Write, expected: 3, got: %d", n)
+		t.Errorf("Expected return value of BlockWriter.Write: 3, got: %d", n)
 	}
 
 	if n, err := ws[0].Write(false, 100, []byte{0x01, 0x02}); err != nil {
-		t.Fatalf("Failed to Write: %v", err)
+		t.Fatalf("Failed to Write: '%v'", err)
 	} else if n != 2 {
-		t.Errorf("Unexpected return value of BlockWriter.Write, expected: 2, got: %d", n)
+		t.Errorf("Expected return value of BlockWriter.Write: 2, got: %d", n)
 	}
 
 	// Ignored due to old timestamp
 	if n, err := ws[0].Write(true, -32769, []byte{0x0A}); err != nil {
-		t.Fatalf("Failed to Write: %v", err)
+		t.Fatalf("Failed to Write: '%v'", err)
 	} else if n != 1 {
-		t.Errorf("Unexpected return value of BlockWriter.Write, expected: 1, got: %d", n)
+		t.Errorf("Expected return value of BlockWriter.Write: 1, got: %d", n)
 	}
 
 	if n, err := ws[0].Write(true, 130, []byte{0x06}); err != nil {
-		t.Fatalf("Failed to Write: %v", err)
+		t.Fatalf("Failed to Write: '%v'", err)
 	} else if n != 1 {
-		t.Errorf("Unexpected return value of BlockWriter.Write, expected: 1, got: %d", n)
+		t.Errorf("Expected return value of BlockWriter.Write: 1, got: %d", n)
 	}
 
 	ws[0].Close()
@@ -116,7 +117,7 @@ func TestBlockWriter(t *testing.T) {
 		Segment flexSegment `ebml:"Segment,size=unknown"`
 	}
 	if err := ebml.Unmarshal(bytes.NewReader(buf.Bytes()), &result); err != nil {
-		t.Fatalf("Failed to Unmarshal resultant binary: %v", err)
+		t.Fatalf("Failed to Unmarshal resultant binary: '%v'", err)
 	}
 	if !reflect.DeepEqual(expected, result) {
 		t.Errorf("Unexpected data,\nexpected: %+v\n     got: %+v", expected, result)
@@ -137,11 +138,11 @@ func TestBlockWriter_Options(t *testing.T) {
 		WithSeekHead(false),
 	)
 	if err != nil {
-		t.Fatalf("Failed to create BlockWriter: %v", err)
+		t.Fatalf("Failed to create BlockWriter: '%v'", err)
 	}
 
 	if len(ws) != 1 {
-		t.Fatalf("Number of the returned writer must be 1, but got %d", len(ws))
+		t.Fatalf("Number of the returned writer must be 1, got %d", len(ws))
 	}
 	ws[0].Close()
 
@@ -203,8 +204,8 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			buf := buffercloser.New()
 			_, err := NewSimpleBlockWriter(buf, []TrackDescription{}, c.opts...)
-			if err != c.err {
-				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
+			if !errs.Is(err, c.err) {
+				t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
 			}
 		})
 	}
@@ -291,16 +292,16 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			)
 			if err != nil {
 				if errAt == atBeginning {
-					if err != bytes.ErrTooLarge {
-						t.Fatalf("Unexpected error, expected: %v, got: %v", bytes.ErrTooLarge, err)
+					if !errs.Is(err, bytes.ErrTooLarge) {
+						t.Fatalf("Expected error: '%v', got: '%v'", bytes.ErrTooLarge, err)
 					}
 					return
 				}
-				t.Fatalf("Failed to create SimpleWriter: %v", err)
+				t.Fatalf("Failed to create SimpleWriter: '%v'", err)
 			}
 
 			if len(ws) != 1 {
-				t.Fatalf("Number of the returned writer must be 1, but got %d", len(ws))
+				t.Fatalf("Number of the returned writer must be 1, got %d", len(ws))
 			}
 
 			if errAt == atClusterWriting {
@@ -308,17 +309,17 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			}
 			clearErr()
 			if _, err := ws[0].Write(false, 100, []byte{0x01, 0x02}); err != nil {
-				t.Fatalf("Failed to Write: %v", err)
+				t.Fatalf("Failed to Write: '%v'", err)
 			}
 			if errAt == atClusterWriting {
 				select {
 				case err := <-chFatal:
-					if err != bytes.ErrTooLarge {
-						t.Fatalf("Unexpected error, expected: %v, got: %v", bytes.ErrTooLarge, err)
+					if !errs.Is(err, bytes.ErrTooLarge) {
+						t.Fatalf("Expected error: '%v', got: '%v'", bytes.ErrTooLarge, err)
 					}
 					return
 				case err := <-chError:
-					t.Fatalf("Unexpected error: %v", err)
+					t.Fatalf("Unexpected error: '%v'", err)
 				case <-time.After(time.Second):
 					t.Fatal("Error is not emitted on write error")
 				}
@@ -334,17 +335,17 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			}
 			clearErr()
 			if _, err := ws[0].Write(false, 110, []byte{0x01, 0x02}); err != nil {
-				t.Fatalf("Failed to Write: %v", err)
+				t.Fatalf("Failed to Write: '%v'", err)
 			}
 			if errAt == atFrameWriting {
 				select {
 				case err := <-chFatal:
-					if err != bytes.ErrTooLarge {
-						t.Fatalf("Unexpected error, expected: %v, got: %v", bytes.ErrTooLarge, err)
+					if !errs.Is(err, bytes.ErrTooLarge) {
+						t.Fatalf("Expected error: '%v', got: '%v'", bytes.ErrTooLarge, err)
 					}
 					return
 				case err := <-chError:
-					t.Fatalf("Unexpected error: %v", err)
+					t.Fatalf("Unexpected error: '%v'", err)
 				case <-time.After(time.Second):
 					t.Fatal("Error is not emitted on write error")
 				}
@@ -356,15 +357,15 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			// Very old frame
 			clearErr()
 			if _, err := ws[0].Write(true, -32769, []byte{0x0A}); err != nil {
-				t.Fatalf("Failed to Write: %v", err)
+				t.Fatalf("Failed to Write: '%v'", err)
 			}
 			select {
 			case err := <-chError:
-				if err != ErrIgnoreOldFrame {
-					t.Errorf("Unexpected error, expected: %v, got: %v", ErrIgnoreOldFrame, err)
+				if !errs.Is(err, ErrIgnoreOldFrame) {
+					t.Errorf("Expected error: '%v', got: '%v'", ErrIgnoreOldFrame, err)
 				}
 			case err := <-chFatal:
-				t.Fatalf("Unexpected fatal: %v", err)
+				t.Fatalf("Unexpected fatal: '%v'", err)
 			case <-time.After(time.Second):
 				t.Fatal("Error is not emitted for old frame")
 			}
@@ -377,12 +378,12 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			if errAt == atClosing {
 				select {
 				case err := <-chFatal:
-					if err != bytes.ErrTooLarge {
-						t.Fatalf("Unexpected error, expected: %v, got: %v", bytes.ErrTooLarge, err)
+					if !errs.Is(err, bytes.ErrTooLarge) {
+						t.Fatalf("Expected error: '%v', got: '%v'", bytes.ErrTooLarge, err)
 					}
 					return
 				case err := <-chError:
-					t.Fatalf("Unexpected error: %v", err)
+					t.Fatalf("Unexpected error: '%v'", err)
 				case <-time.After(time.Second):
 					t.Fatal("Error is not emitted on write error")
 				}
@@ -403,10 +404,10 @@ func TestBlockWriter_WithMaxKeyframeInterval(t *testing.T) {
 		WithSeekHead(false),
 	)
 	if err != nil {
-		t.Fatalf("Failed to create BlockWriter: %v", err)
+		t.Fatalf("Failed to create BlockWriter: '%v'", err)
 	}
 	if len(ws) != 1 {
-		t.Fatalf("Number of the returned writer must be 1, but got %d", len(ws))
+		t.Fatalf("Number of the returned writer must be 1, got %d", len(ws))
 	}
 
 	for _, block := range []struct {
@@ -420,7 +421,7 @@ func TestBlockWriter_WithMaxKeyframeInterval(t *testing.T) {
 		{true, 0x1001, []byte{0x04}}, // This will be the head of the next cluster
 	} {
 		if _, err := ws[0].Write(block.keyframe, block.timecode, block.b); err != nil {
-			t.Fatalf("Failed to Write: %v", err)
+			t.Fatalf("Failed to Write: '%v'", err)
 		}
 	}
 
@@ -466,10 +467,10 @@ func TestBlockWriter_WithSeekHead(t *testing.T) {
 			WithSeekHead(true),
 		)
 		if err != nil {
-			t.Fatalf("Failed to create BlockWriter: %v", err)
+			t.Fatalf("Failed to create BlockWriter: '%v'", err)
 		}
 		if len(ws) != 1 {
-			t.Fatalf("Number of the returned writer must be 1, but got %d", len(ws))
+			t.Fatalf("Number of the returned writer must be 1, got %d", len(ws))
 		}
 
 		ws[0].Close()
@@ -510,8 +511,8 @@ func TestBlockWriter_WithSeekHead(t *testing.T) {
 			}{}),
 			WithSeekHead(true),
 		)
-		if err != ebml.ErrUnknownElementName {
-			t.Errorf("Unexpected error, expected: %v, got: %v", ebml.ErrUnknownElementName, err)
+		if !errs.Is(err, ebml.ErrUnknownElementName) {
+			t.Errorf("Expected error: '%v', got: '%v'", ebml.ErrUnknownElementName, err)
 		}
 	})
 }

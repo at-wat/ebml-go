@@ -97,14 +97,14 @@ func TestMarshal_RoundtripWebM(t *testing.T) {
 
 	var b bytes.Buffer
 	if err := ebml.Marshal(&webm0, &b); err != nil {
-		t.Fatalf("Failed to Marshal: %v", err)
+		t.Fatalf("Failed to Marshal: '%v'", err)
 	}
 	var webm1 struct {
 		Header  webm.EBMLHeader `ebml:"EBML"`
 		Segment webm.Segment    `ebml:"Segment,size=unknown"`
 	}
 	if err := ebml.Unmarshal(bytes.NewBuffer(b.Bytes()), &webm1); err != nil {
-		t.Fatalf("Failed to Unmarshal: %v", err)
+		t.Fatalf("Failed to Unmarshal: '%v'", err)
 	}
 
 	if !reflect.DeepEqual(webm0, webm1) {

@@ -22,6 +22,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func ExampleUnmarshal() {
@@ -43,7 +45,7 @@ func ExampleUnmarshal() {
 
 	var ret TestEBML
 	if err := Unmarshal(r, &ret); err != nil {
-		fmt.Printf("error: %+v\n", err)
+		fmt.Printf("error: %v\n", err)
 	}
 	fmt.Println(ret)
 
@@ -78,10 +80,10 @@ func TestUnmarshal_MultipleUnknownSize(t *testing.T) {
 
 	var ret TestEBML
 	if err := Unmarshal(bytes.NewReader(b), &ret); err != nil {
-		t.Fatalf("Unexpected error: %v\n", err)
+		t.Fatalf("Unexpected error: '%v'\n", err)
 	}
 	if !reflect.DeepEqual(expected, ret) {
-		t.Errorf("Unexpected result, expected: %v, got: %v", expected, ret)
+		t.Errorf("Expected result: %v, got: %v", expected, ret)
 	}
 }
 
@@ -192,11 +194,11 @@ func TestUnmarshal_Convert(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ret := reflect.New(reflect.ValueOf(c.expected).Type())
 			if err := Unmarshal(bytes.NewReader(c.b), ret.Interface()); err != nil {
-				t.Fatalf("Unexpected error: %v\n", err)
+				t.Fatalf("Unexpected error: '%v'\n", err)
 			}
 
 			if !reflect.DeepEqual(c.expected, ret.Elem().Interface()) {
-				t.Errorf("Unexpected convert result, expected: %v, got %v",
+				t.Errorf("Expected convert result: %v, got %v",
 					c.expected, ret.Elem().Interface())
 			}
 		})
@@ -211,7 +213,7 @@ func TestUnmarshal_OptionError(t *testing.T) {
 		},
 	)
 	if err != errExpected {
-		t.Errorf("Unexpected error for failing UnmarshalOption, expected: %v, got: %v", errExpected, err)
+		t.Errorf("Expected error against failing UnmarshalOption: '%v', got: '%v'", errExpected, err)
 	}
 }
 
@@ -245,7 +247,7 @@ func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 	m := make(map[string][]*Element)
 	hook := withElementMap(m)
 	if err := Unmarshal(r, &ret, WithElementReadHooks(hook)); err != nil {
-		t.Errorf("Unexpected error: %+v", err)
+		t.Errorf("Unexpected error: '%v'", err)
 	}
 
 	// Verify positions of elements
@@ -309,7 +311,7 @@ func TestUnmarshal_Chan(t *testing.T) {
 		}
 	}()
 	if err := Unmarshal(bytes.NewReader(TestBinary), &ret); err != nil {
-		t.Errorf("Unexpected error: %+v", err)
+		t.Errorf("Unexpected error: '%v'", err)
 	}
 	close(done)
 	if len(ch) != 2 {
@@ -334,10 +336,10 @@ func TestUnmarshal_Tag(t *testing.T) {
 	b := []byte{0x42, 0x82, 0x85, 0x68, 0x6F, 0x67, 0x65, 0x00}
 
 	if err := Unmarshal(bytes.NewBuffer(b), &tagged); err != nil {
-		t.Fatalf("Unexpected error: %+v", err)
+		t.Fatalf("Unexpected error: '%v'", err)
 	}
 	if err := Unmarshal(bytes.NewBuffer(b), &untagged); err != nil {
-		t.Fatalf("Unexpected error: %+v", err)
+		t.Fatalf("Unexpected error: '%v'", err)
 	}
 
 	if tagged.DocCustomNamedType != untagged.EBMLDocType {
@@ -351,13 +353,13 @@ func TestUnmarshal_Error(t *testing.T) {
 		} `ebml:"EBML"`
 	}
 	t.Run("NilValue", func(t *testing.T) {
-		if err := Unmarshal(bytes.NewBuffer([]byte{}), nil); err != ErrIndefiniteType {
-			t.Errorf("Unexpected error, expected %v, got %v\n", ErrIndefiniteType, err)
+		if err := Unmarshal(bytes.NewBuffer([]byte{}), nil); !errs.Is(err, ErrIndefiniteType) {
+			t.Errorf("Expected error: '%v', got: '%v'\n", ErrIndefiniteType, err)
 		}
 	})
 	t.Run("NonPtr", func(t *testing.T) {
-		if err := Unmarshal(bytes.NewBuffer([]byte{}), struct{}{}); err != ErrIncompatibleType {
-			t.Errorf("Unexpected error, expected %v, got %v\n", ErrIncompatibleType, err)
+		if err := Unmarshal(bytes.NewBuffer([]byte{}), struct{}{}); !errs.Is(err, ErrIncompatibleType) {
+			t.Errorf("Expected error: '%v', got: '%v'\n", ErrIncompatibleType, err)
 		}
 	})
 	t.Run("UnknownElementName", func(t *testing.T) {
@@ -365,15 +367,15 @@ func TestUnmarshal_Error(t *testing.T) {
 			Header struct {
 			} `ebml:"Unknown"`
 		}{}
-		if err := Unmarshal(bytes.NewBuffer([]byte{}), input); err != ErrUnknownElementName {
-			t.Errorf("Unexpected error, expected %v, got %v\n", ErrUnknownElementName, err)
+		if err := Unmarshal(bytes.NewBuffer([]byte{}), input); !errs.Is(err, ErrUnknownElementName) {
+			t.Errorf("Expected error: '%v', got: '%v'\n", ErrUnknownElementName, err)
 		}
 	})
 	t.Run("UnknownElement", func(t *testing.T) {
 		input := &TestEBML{}
 		b := []byte{0x80}
-		if err := Unmarshal(bytes.NewBuffer(b), input); err != ErrUnknownElement {
-			t.Errorf("Unexpected error, expected %v, got %v\n", ErrUnknownElement, err)
+		if err := Unmarshal(bytes.NewBuffer(b), input); !errs.Is(err, ErrUnknownElement) {
+			t.Errorf("Expected error: '%v', got: '%v'\n", ErrUnknownElement, err)
 		}
 	})
 	t.Run("Short", func(t *testing.T) {
@@ -390,8 +392,8 @@ func TestUnmarshal_Error(t *testing.T) {
 		for name, b := range TestBinaries {
 			t.Run(name, func(t *testing.T) {
 				var val TestEBML
-				if err := Unmarshal(bytes.NewBuffer(b), &val); err != io.ErrUnexpectedEOF {
-					t.Errorf("Unexpected error, expected: %v, got: %v\n", io.ErrUnexpectedEOF, err)
+				if err := Unmarshal(bytes.NewBuffer(b), &val); !errs.Is(err, io.ErrUnexpectedEOF) {
+					t.Errorf("Expected error: '%v', got: '%v'\n", io.ErrUnexpectedEOF, err)
 				}
 			})
 		}
@@ -411,8 +413,8 @@ func TestUnmarshal_Error(t *testing.T) {
 				for i := 1; i < len(b)-1; i++ {
 					var val TestEBML
 					r := &delayedBrokenReader{b: b, limit: i}
-					if err := Unmarshal(r, &val); err != io.ErrClosedPipe {
-						t.Errorf("Error is not propagated from Reader, limit: %d, expected: %v, got: %v\n", i, io.ErrClosedPipe, err)
+					if err := Unmarshal(r, &val); !errs.Is(err, io.ErrClosedPipe) {
+						t.Errorf("Error is not propagated from Reader, limit: %d, expected: '%v', got: '%v'\n", i, io.ErrClosedPipe, err)
 					}
 				}
 			})
@@ -483,8 +485,8 @@ func TestUnmarshal_Error(t *testing.T) {
 		}
 		for name, c := range cases {
 			t.Run(name, func(t *testing.T) {
-				if err := Unmarshal(bytes.NewBuffer(c.b), c.ret); err != c.err {
-					t.Errorf("Unexpected error, expected: %v, got: %v\n", c.err, err)
+				if err := Unmarshal(bytes.NewBuffer(c.b), c.ret); !errs.Is(err, c.err) {
+					t.Errorf("Expected error: '%v', got: '%v'\n", c.err, err)
 				}
 			})
 		}
@@ -512,7 +514,7 @@ func BenchmarkUnmarshal(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if err := Unmarshal(bytes.NewReader(TestBinary), &ret); err != nil {
-			b.Fatalf("Unexpected error: %+v", err)
+			b.Fatalf("Unexpected error: '%v'", err)
 		}
 	}
 }

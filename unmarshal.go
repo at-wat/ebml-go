@@ -25,11 +25,11 @@ import (
 // ErrUnknownElement means that a decoded element is not known.
 var ErrUnknownElement = errors.New("unknown element")
 
-// ErrIndefiniteType means that a unmarshal destination type is not valid.
-var ErrIndefiniteType = errors.New("unmarshal to indefinite type")
+// ErrIndefiniteType means that a marshal/unmarshal destination type is not valid.
+var ErrIndefiniteType = errors.New("marshal/unmarshal to indefinite type")
 
 // ErrIncompatibleType means that an element is not convertible to a corresponding struct field.
-var ErrIncompatibleType = errors.New("unmarshal to incompatible type")
+var ErrIncompatibleType = errors.New("marshal/unmarshal to incompatible type")
 
 // Unmarshal EBML stream.
 func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
@@ -42,10 +42,10 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 
 	vo := reflect.ValueOf(val)
 	if !vo.IsValid() {
-		return ErrIndefiniteType
+		return wrapErrorf(ErrIndefiniteType, "unmarshalling to %T", val)
 	}
 	if vo.Kind() != reflect.Ptr {
-		return ErrIncompatibleType
+		return wrapErrorf(ErrIncompatibleType, "unmarshalling to %T", val)
 	}
 
 	voe := vo.Elem()
@@ -100,7 +100,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 		}
 		v, ok := revTable[uint32(e)]
 		if !ok {
-			return nil, ErrUnknownElement
+			return nil, wrapErrorf(ErrUnknownElement, "unmarshalling element 0x%x", e)
 		}
 
 		size, nb, err := readDataSize(r)
@@ -178,10 +178,14 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 					case isConvertible(vr.Type(), t):
 						vnext.Set(reflect.Append(vnext, vr.Convert(t)))
 					default:
-						return nil, ErrIncompatibleType
+						return nil, wrapErrorf(
+							ErrIncompatibleType, "unmarshalling %s to %s", vnext.Type(), vr.Type(),
+						)
 					}
 				default:
-					return nil, ErrIncompatibleType
+					return nil, wrapErrorf(
+						ErrIncompatibleType, "unmarshalling %s to %s", vnext.Type(), vr.Type(),
+					)
 				}
 			}
 			if elem != nil {

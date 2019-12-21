@@ -60,7 +60,7 @@ func Marshal(val interface{}, w io.Writer, opts ...MarshalOption) error {
 	}
 	vo := reflect.ValueOf(val)
 	if vo.Kind() != reflect.Ptr {
-		return ErrInvalidType
+		return wrapErrorf(ErrInvalidType, "marshalling to %T", val)
 	}
 
 	_, err := marshalImpl(vo.Elem(), w, 0, nil, options)
@@ -129,7 +129,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 		}
 		e, ok := table[t]
 		if !ok {
-			return pos, ErrUnsupportedElement
+			return pos, wrapErrorf(ErrUnsupportedElement, "marshalling \"%s\"", t)
 		}
 
 		unknown := tag.size == SizeUnknown
@@ -227,10 +227,14 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 					}
 					lst, ok := pealElem(val, e.t == DataTypeBinary, tag.omitEmpty)
 					if !ok {
-						return pos, ErrIncompatibleType
+						return pos, wrapErrorf(
+							ErrIncompatibleType, "marshalling %s from channel", val.Type(),
+						)
 					}
 					if len(lst) != 1 {
-						return pos, ErrIncompatibleType
+						return pos, wrapErrorf(
+							ErrIncompatibleType, "marshalling %s from channel", val.Type(),
+						)
 					}
 					pos, err = writeOne(lst[0])
 				}

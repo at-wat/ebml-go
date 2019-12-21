@@ -180,7 +180,7 @@ func readDate(r io.Reader, n uint64) (interface{}, error) {
 }
 func readFloat(r io.Reader, n uint64) (interface{}, error) {
 	if n != 4 && n != 8 {
-		return 0.0, ErrInvalidFloatSize
+		return 0.0, wrapErrorf(ErrInvalidFloatSize, "reading %d bytes float", n)
 	}
 	bs := make([]byte, n)
 
@@ -273,7 +273,7 @@ func encodeBinary(i interface{}, n uint64) ([]byte, error) {
 func encodeString(i interface{}, n uint64) ([]byte, error) {
 	v, ok := i.(string)
 	if !ok {
-		return []byte{}, ErrInvalidType
+		return []byte{}, wrapErrorf(ErrInvalidType, "writing %T as string", i)
 	}
 	if uint64(len(v)+1) >= n {
 		return append([]byte(v), 0x00), nil
@@ -294,7 +294,7 @@ func encodeInt(i interface{}, n uint64) ([]byte, error) {
 	case int64:
 		v = v2
 	default:
-		return []byte{}, ErrInvalidType
+		return []byte{}, wrapErrorf(ErrInvalidType, "writing %T as int", i)
 	}
 	return encodeUInt(uint64(v), n)
 }
@@ -312,7 +312,7 @@ func encodeUInt(i interface{}, n uint64) ([]byte, error) {
 	case uint64:
 		v = v2
 	default:
-		return []byte{}, ErrInvalidType
+		return []byte{}, wrapErrorf(ErrInvalidType, "writing %T as uint", i)
 	}
 	switch {
 	case v < 0x100 && n < 2:
@@ -336,7 +336,7 @@ func encodeUInt(i interface{}, n uint64) ([]byte, error) {
 func encodeDate(i interface{}, n uint64) ([]byte, error) {
 	v, ok := i.(time.Time)
 	if !ok {
-		return []byte{}, ErrInvalidType
+		return []byte{}, wrapErrorf(ErrInvalidType, "writing %T as date", i)
 	}
 	dtns := v.Sub(time.Unix(DateEpochInUnixtime, 0)).Nanoseconds()
 	return encodeInt(int64(dtns), n)
@@ -362,7 +362,7 @@ func encodeFloat(i interface{}, n uint64) ([]byte, error) {
 		case 8:
 			return encodeFloat64(v)
 		default:
-			return []byte{}, ErrInvalidFloatSize
+			return []byte{}, wrapErrorf(ErrInvalidFloatSize, "writing %d bytes float", n)
 		}
 	case float32:
 		switch n {
@@ -373,16 +373,16 @@ func encodeFloat(i interface{}, n uint64) ([]byte, error) {
 		case 8:
 			return encodeFloat64(float64(v))
 		default:
-			return []byte{}, ErrInvalidFloatSize
+			return []byte{}, wrapErrorf(ErrInvalidFloatSize, "writing %d bytes float", n)
 		}
 	default:
-		return []byte{}, ErrInvalidType
+		return []byte{}, wrapErrorf(ErrInvalidType, "writing %T as float", i)
 	}
 }
 func encodeBlock(i interface{}, n uint64) ([]byte, error) {
 	v, ok := i.(Block)
 	if !ok {
-		return []byte{}, ErrInvalidType
+		return []byte{}, wrapErrorf(ErrInvalidType, "writing %T as block", i)
 	}
 	var b bytes.Buffer
 	if err := MarshalBlock(&v, &b); err != nil {

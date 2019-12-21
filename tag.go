@@ -54,7 +54,7 @@ func parseTag(rawtag string) (*structTag, error) {
 					os.Stderr.WriteString("Deprecated: \"inf\" tag is replaced by \"size=unknown\"\n")
 					tag.size = SizeUnknown
 				default:
-					return nil, ErrInvalidTag
+					return nil, wrapErrorf(ErrInvalidTag, "parsing \"%s\"", t)
 				}
 			}
 			continue
@@ -69,12 +69,12 @@ func parseTag(rawtag string) (*structTag, error) {
 			} else {
 				s, err := strconv.Atoi(kv[1])
 				if err != nil {
-					return nil, err
+					return nil, wrapErrorf(err, "parsing \"%s\"", t)
 				}
 				tag.size = uint64(s)
 			}
 		default:
-			return nil, ErrInvalidTag
+			return nil, wrapErrorf(ErrInvalidTag, "parsing \"%s\"", t)
 		}
 	}
 	return tag, nil

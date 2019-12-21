@@ -18,13 +18,15 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+
+	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestParseTag(t *testing.T) {
 	cases := map[string]struct {
 		input    string
 		expected *structTag
-		err      interface{}
+		err      error
 	}{
 		"Empty": {
 			"",
@@ -56,10 +58,7 @@ func TestParseTag(t *testing.T) {
 		},
 		"InvalidSize": {
 			"Name123,size=a",
-			nil, func(err error) bool {
-				_, ok := err.(*strconv.NumError)
-				return ok
-			},
+			nil, strconv.ErrSyntax,
 		},
 		"InvalidTag": {
 			"Name,invalidtag",
@@ -85,13 +84,13 @@ func TestParseTag(t *testing.T) {
 	for n, c := range cases {
 		t.Run(n, func(t *testing.T) {
 			tag, err := parseTag(c.input)
-			if !isErr(err, c.err) {
-				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
+			if !errs.Is(err, c.err) {
+				t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
 			}
 			if (c.expected == nil) != (tag == nil) {
-				t.Errorf("Unexpected output nil-ness, expected: %v, got: %v", c.expected == nil, tag == nil)
+				t.Errorf("Expected output nil-ness: %v, got: %v", c.expected == nil, tag == nil)
 			} else if tag != nil && !reflect.DeepEqual(*c.expected, *tag) {
-				t.Errorf("Unexpected output, expected: %v, got: %v", *c.expected, *tag)
+				t.Errorf("Expected output: %v, got: %v", *c.expected, *tag)
 			}
 		})
 	}

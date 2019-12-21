@@ -19,6 +19,8 @@ import (
 	"io"
 	"reflect"
 	"testing"
+
+	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestUnmarshalBlock(t *testing.T) {
@@ -64,10 +66,10 @@ func TestUnmarshalBlock(t *testing.T) {
 		t.Run(n, func(t *testing.T) {
 			block, err := UnmarshalBlock(bytes.NewBuffer(c.input), int64(len(c.input)))
 			if err != nil {
-				t.Fatalf("Failed to unmarshal block: %v", err)
+				t.Fatalf("Failed to unmarshal block: '%v'", err)
 			}
 			if !reflect.DeepEqual(c.expected, *block) {
-				t.Errorf("Unexpected unmarshal result, expected: %v, got: %v", c.expected, *block)
+				t.Errorf("Expected unmarshal result: '%v', got: '%v'", c.expected, *block)
 			}
 		})
 	}
@@ -77,9 +79,9 @@ func TestUnmarshalBlock_Error(t *testing.T) {
 	t.Run("EOF", func(t *testing.T) {
 		input := []byte{0x21, 0x23, 0x45, 0x00, 0x02, 0x00}
 		for l := 0; l < len(input); l++ {
-			if _, err := UnmarshalBlock(bytes.NewBuffer(input[:l]), int64(len(input))); err != io.ErrUnexpectedEOF {
-				t.Errorf("UnmarshalBlock should return %v against short data (%d bytes), but got %v",
-					io.ErrUnexpectedEOF, l, err)
+			if _, err := UnmarshalBlock(bytes.NewBuffer(input[:l]), int64(len(input))); !errs.Is(err, io.ErrUnexpectedEOF) {
+				t.Errorf("Short data (%d bytes) expected error: '%v', got: '%v'",
+					l, io.ErrUnexpectedEOF, err)
 			}
 		}
 	})
@@ -95,8 +97,8 @@ func TestUnmarshalBlock_Error(t *testing.T) {
 	for n, c := range testCases {
 		t.Run(n, func(t *testing.T) {
 			_, err := UnmarshalBlock(bytes.NewBuffer(c.input), int64(len(c.input)))
-			if err != c.err {
-				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
+			if !errs.Is(err, c.err) {
+				t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
 			}
 		})
 	}
@@ -125,10 +127,10 @@ func TestMarshalBlock(t *testing.T) {
 			var b bytes.Buffer
 			err := MarshalBlock(&c.input, &b)
 			if err != nil {
-				t.Fatalf("Failed to marshal block: %v", err)
+				t.Fatalf("Failed to marshal block: '%v'", err)
 			}
 			if !reflect.DeepEqual(c.expected, b.Bytes()) {
-				t.Errorf("Unexpected marshal result, expected: %v, got: %v", c.expected, b.Bytes())
+				t.Errorf("Expected marshal result: '%v', got: '%v'", c.expected, b.Bytes())
 			}
 		})
 	}
@@ -142,7 +144,7 @@ func TestMarshalBlock_Error(t *testing.T) {
 			for l := 0; l < 7; l++ {
 				err := MarshalBlock(input, &limitedDummyWriter{limit: l})
 				if err != bytes.ErrTooLarge {
-					t.Errorf("UnmarshalBlock should bytes.ErrTooLarge against too large data (Writer size limit: %d), but got %v", l, err)
+					t.Errorf("Expected error against too large data (Writer size limit: %d): '%v', got: '%v'", l, bytes.ErrTooLarge, err)
 				}
 			}
 		},
