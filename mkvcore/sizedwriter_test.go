@@ -25,7 +25,7 @@ func TestWriterWithSizeCount(t *testing.T) {
 	w := &writerWithSizeCount{w: buf}
 
 	if n, err := w.Write([]byte{0x01, 0x02}); err != nil {
-		t.Fatalf("Failed to Write: %v", err)
+		t.Fatalf("Failed to Write: '%v'", err)
 	} else if n != 2 {
 		t.Errorf("Unexpected return value of writerWithSizeCount.Write, expected: 2, got: %d", n)
 	}
