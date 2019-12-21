@@ -27,16 +27,16 @@ func TestWriterWithSizeCount(t *testing.T) {
 	if n, err := w.Write([]byte{0x01, 0x02}); err != nil {
 		t.Fatalf("Failed to Write: '%v'", err)
 	} else if n != 2 {
-		t.Errorf("Unexpected return value of writerWithSizeCount.Write, expected: 2, got: %d", n)
+		t.Errorf("Expected return value of writerWithSizeCount.Write: 2, got: %d", n)
 	}
 	if n := w.Size(); n != 2 {
-		t.Errorf("Unexpected return value of writerWithSizeCount.Size(), expected: 2, got: %d", n)
+		t.Errorf("Expected return value of writerWithSizeCount.Size(): 2, got: %d", n)
 	}
 
 	w.Clear()
 
 	if n := w.Size(); n != 0 {
-		t.Errorf("Unexpected return value of writerWithSizeCount.Size(), expected: 0, got: %d", n)
+		t.Errorf("Expected return value of writerWithSizeCount.Size(): 0, got: %d", n)
 	}
 
 	if err := w.Close(); err != nil {

@@ -40,7 +40,7 @@ func TestDataSize(t *testing.T) {
 				t.Fatalf("Failed to readVInt: '%v'", err)
 			}
 			if r != c.i {
-				t.Errorf("Unexpected readVInt result, expected: %d, got: %d", c.i, r)
+				t.Errorf("Expected readVInt result: %d, got: %d", c.i, r)
 			}
 		})
 	}
@@ -51,7 +51,7 @@ func TestDataSize(t *testing.T) {
 				t.Fatalf("Failed to readDataSize: '%v'", err)
 			}
 			if r != c.i {
-				t.Errorf("Unexpected readVInt result, expected: %d, got: %d", c.i, r)
+				t.Errorf("Expected readVInt result: %d, got: %d", c.i, r)
 			}
 		})
 	}
@@ -59,7 +59,7 @@ func TestDataSize(t *testing.T) {
 		t.Run("Encode "+n, func(t *testing.T) {
 			b := encodeDataSize(c.i, 0)
 			if !bytes.Equal(b, c.b) {
-				t.Errorf("Unexpected encodeDataSize result, expected: %d, got: %d", c.b, b)
+				t.Errorf("Expected encodeDataSize result: %d, got: %d", c.b, b)
 			}
 		})
 	}
@@ -84,7 +84,7 @@ func TestDataSize_Unknown(t *testing.T) {
 				t.Fatalf("Failed to readDataSize: '%v'", err)
 			}
 			if r != SizeUnknown {
-				t.Errorf("Unexpected readDataSize result, expected: %d, got: %d", SizeUnknown, r)
+				t.Errorf("Expected readDataSize result: %d, got: %d", SizeUnknown, r)
 			}
 		})
 	}
@@ -117,7 +117,7 @@ func TestElementID(t *testing.T) {
 				t.Fatalf("Failed to readVInt: '%v'", err)
 			}
 			if r != c.i {
-				t.Errorf("Unexpected readVInt result, expected: %d, got: %d", c.i, r)
+				t.Errorf("Expected readVInt result: %d, got: %d", c.i, r)
 			}
 		})
 	}
@@ -128,14 +128,14 @@ func TestElementID(t *testing.T) {
 				t.Fatalf("Failed to encodeElementID: '%v'", err)
 			}
 			if !bytes.Equal(b, c.b) {
-				t.Errorf("Unexpected encodeDataSize result, expected: %d, got: %d", c.b, b)
+				t.Errorf("Expected encodeDataSize result: %d, got: %d", c.b, b)
 			}
 		})
 	}
 
 	_, err := encodeElementID(0x2000000000000)
 	if err != ErrUnsupportedElementID {
-		t.Errorf("Unexpected error type result, expected: %s, got: %s", ErrUnsupportedElementID, err)
+		t.Errorf("Expected error type result: %s, got: %s", ErrUnsupportedElementID, err)
 	}
 
 }

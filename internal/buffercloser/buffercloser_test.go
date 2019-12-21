@@ -38,7 +38,7 @@ func TestBufferCloser(t *testing.T) {
 	}
 
 	if !bytes.Equal(data, buf.Bytes()) {
-		t.Errorf("Unexpected bytes in the buffer, expected: %d, got: %d", data, buf.Bytes())
+		t.Errorf("Expected bytes in the buffer: %d, got: %d", data, buf.Bytes())
 	}
 
 	if err := buf.Close(); err != nil {

@@ -20,9 +20,9 @@ func TestElementType_Bytes(t *testing.T) {
 	expected := []byte{0x18, 0x53, 0x80, 0x67}
 
 	if !bytes.Equal(ElementSegment.Bytes(), expected) {
-		t.Errorf("Unexpected bytes, expected: '%v', got: '%v'", expected, ElementSegment.Bytes())
+		t.Errorf("Expected bytes: '%v', got: '%v'", expected, ElementSegment.Bytes())
 	}
 	if ElementSegment.DataType() != DataTypeMaster {
-		t.Errorf("Unexpected DataType, expected: %s, got: %s", DataTypeMaster, ElementSegment.DataType())
+		t.Errorf("Expected DataType: %s, got: %s", DataTypeMaster, ElementSegment.DataType())
 	}
 }

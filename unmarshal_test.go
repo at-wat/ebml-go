@@ -198,7 +198,7 @@ func TestUnmarshal_Convert(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(c.expected, ret.Elem().Interface()) {
-				t.Errorf("Unexpected convert result, expected: %v, got %v",
+				t.Errorf("Expected convert result: %v, got %v",
 					c.expected, ret.Elem().Interface())
 			}
 		})

@@ -69,7 +69,7 @@ func TestUnmarshalBlock(t *testing.T) {
 				t.Fatalf("Failed to unmarshal block: '%v'", err)
 			}
 			if !reflect.DeepEqual(c.expected, *block) {
-				t.Errorf("Unexpected unmarshal result, expected: '%v', got: '%v'", c.expected, *block)
+				t.Errorf("Expected unmarshal result: '%v', got: '%v'", c.expected, *block)
 			}
 		})
 	}
@@ -130,7 +130,7 @@ func TestMarshalBlock(t *testing.T) {
 				t.Fatalf("Failed to marshal block: '%v'", err)
 			}
 			if !reflect.DeepEqual(c.expected, b.Bytes()) {
-				t.Errorf("Unexpected marshal result, expected: '%v', got: '%v'", c.expected, b.Bytes())
+				t.Errorf("Expected marshal result: '%v', got: '%v'", c.expected, b.Bytes())
 			}
 		})
 	}

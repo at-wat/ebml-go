@@ -63,26 +63,26 @@ func TestBlockWriter(t *testing.T) {
 	if n, err := ws[0].Write(false, 100, []byte{0x01, 0x02}); err != nil {
 		t.Fatalf("Failed to Write: %v", err)
 	} else if n != 2 {
-		t.Errorf("Unexpected return value of BlockWriter.Write, expected: 2, got: %d", n)
+		t.Errorf("Expected return value of BlockWriter.Write: 2, got: %d", n)
 	}
 
 	if n, err := ws[1].Write(true, 110, []byte{0x03, 0x04, 0x05}); err != nil {
 		t.Fatalf("Failed to Write: %v", err)
 	} else if n != 3 {
-		t.Errorf("Unexpected return value of BlockWriter.Write, expected: 3, got: %d", n)
+		t.Errorf("Expected return value of BlockWriter.Write: 3, got: %d", n)
 	}
 
 	// Ignored due to old timestamp
 	if n, err := ws[0].Write(true, -32769, []byte{0x0A}); err != nil {
 		t.Fatalf("Failed to Write: %v", err)
 	} else if n != 1 {
-		t.Errorf("Unexpected return value of BlockWriter.Write, expected: 1, got: %d", n)
+		t.Errorf("Expected return value of BlockWriter.Write: 1, got: %d", n)
 	}
 
 	if n, err := ws[0].Write(true, 130, []byte{0x06}); err != nil {
 		t.Fatalf("Failed to Write: %v", err)
 	} else if n != 1 {
-		t.Errorf("Unexpected return value of BlockWriter.Write, expected: 1, got: %d", n)
+		t.Errorf("Expected return value of BlockWriter.Write: 1, got: %d", n)
 	}
 
 	ws[0].Close()
