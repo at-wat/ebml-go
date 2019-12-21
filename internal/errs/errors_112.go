@@ -16,39 +16,25 @@
 
 package errs
 
-import (
-	"reflect"
-)
-
 // Is compares error type. Works like Go1.13 errors.Is().
 func Is(err, target error) bool {
 	if target == nil {
 		return err == nil
 	}
 	for {
-		if err == nil {
-			return false
-		}
 		if err == target {
 			return true
 		}
+		if err == nil {
+			return false
+		}
+		if x, ok := err.(interface{ Is(error) bool }); ok {
+			return x.Is(target)
+		}
 		x, ok := err.(interface{ Unwrap() error })
 		if !ok {
-			if reflect.TypeOf(err).Kind() == reflect.Ptr {
-				e := reflect.ValueOf(err).Elem().FieldByName("Err")
-				if e.IsValid() {
-					e2, ok := e.Interface().(error)
-					if !ok {
-						return false
-					}
-					err = e2
-					continue
-				}
-			}
 			return false
 		}
-		if err = x.Unwrap(); err == nil {
-			return false
-		}
+		err = x.Unwrap()
 	}
 }

@@ -21,15 +21,57 @@ import (
 	"github.com/at-wat/ebml-go/internal/errs"
 )
 
+type dummyError struct {
+	Err error
+}
+
+func (e *dummyError) Error() string {
+	return e.Err.Error()
+}
+
 func TestError(t *testing.T) {
-	errChained := errors.New("an error")
-	err := wrapErrorf(errChained, "info")
+	errBase := errors.New("an error")
+	errOther := errors.New("an another error")
+	errChained := wrapErrorf(errBase, "info")
+	errChainedNil := wrapErrorf(nil, "info")
+	errChainedOther := wrapErrorf(errOther, "info")
+	err112Chained := wrapErrorf(&dummyError{errBase}, "info")
+	err112Nil := wrapErrorf(&dummyError{nil}, "info")
 	errStr := "info: an error"
 
-	if !errs.Is(err, errChained) {
-		t.Errorf("Wrapped error '%v' doesn't chain '%v'", err, errChained)
-	}
-	if err.Error() != errStr {
-		t.Errorf("Error string expected: %s, got: %s", errStr, err.Error())
+	t.Run("ErrorsIs", func(t *testing.T) {
+		if !errs.Is(errChained, errBase) {
+			t.Errorf("Wrapped error '%v' doesn't chain '%v'", errChained, errBase)
+		}
+	})
+
+	t.Run("Is", func(t *testing.T) {
+		if !errChained.(*Error).Is(errBase) {
+			t.Errorf("Wrapped error '%v' doesn't match '%v'", errChained, errBase)
+		}
+		if !err112Chained.(*Error).Is(errBase) {
+			t.Errorf("Wrapped error '%v' doesn't match '%v'",
+				err112Chained, errBase)
+		}
+		if !errChainedNil.(*Error).Is(nil) {
+			t.Errorf("Nil chained error '%v' doesn't match 'nil'", errChainedNil)
+		}
+
+		if errChainedNil.(*Error).Is(errBase) {
+			t.Errorf("Wrapped error '%v' unexpectedly matched '%v'",
+				errChainedNil, errBase)
+		}
+		if errChainedOther.(*Error).Is(errBase) {
+			t.Errorf("Wrapped error '%v' unexpectedly matched '%v'",
+				errChainedOther, errBase)
+		}
+		if err112Nil.(*Error).Is(errBase) {
+			t.Errorf("Wrapped error '%v' unexpectedly matched '%v'",
+				errChainedOther, errBase)
+		}
+	})
+
+	if errChained.Error() != errStr {
+		t.Errorf("Error string expected: %s, got: %s", errStr, errChained.Error())
 	}
 }

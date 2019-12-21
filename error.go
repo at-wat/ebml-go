@@ -16,6 +16,7 @@ package ebml
 
 import (
 	"fmt"
+	"reflect"
 )
 
 // Error records a failed parsing.
@@ -33,6 +34,45 @@ func (e *Error) Error() string {
 // This is for Go1.13 error unwrapping.
 func (e *Error) Unwrap() error {
 	return e.Err
+}
+
+// Is reports whether chained error contains target.
+// This is for Go1.13 error unwrapping.
+func (e *Error) Is(target error) bool {
+	err := e.Err
+
+	switch target {
+	case e:
+		return true
+	case nil:
+		return err == nil
+	}
+	for {
+		switch err {
+		case nil:
+			return false
+		case target:
+			return true
+		}
+		x, ok := err.(interface{ Unwrap() error })
+		if !ok {
+			// Some stdlibs haven't have error unwrapper yet.
+			// Check err.Err field if exposed.
+			if reflect.TypeOf(err).Kind() == reflect.Ptr {
+				e := reflect.ValueOf(err).Elem().FieldByName("Err")
+				if e.IsValid() {
+					e2, ok := e.Interface().(error)
+					if !ok {
+						return false
+					}
+					err = e2
+					continue
+				}
+			}
+			return false
+		}
+		err = x.Unwrap()
+	}
 }
 
 func wrapError(err error, failure string) error {
