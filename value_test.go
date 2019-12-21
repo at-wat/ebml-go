@@ -37,7 +37,7 @@ func TestDataSize(t *testing.T) {
 		t.Run("DecodeVInt "+n, func(t *testing.T) {
 			r, _, err := readVInt(bytes.NewBuffer(c.b))
 			if err != nil {
-				t.Fatalf("Failed to readVInt: %v", err)
+				t.Fatalf("Failed to readVInt: '%v'", err)
 			}
 			if r != c.i {
 				t.Errorf("Unexpected readVInt result, expected: %d, got: %d", c.i, r)
@@ -48,7 +48,7 @@ func TestDataSize(t *testing.T) {
 		t.Run("DecodeDataSize "+n, func(t *testing.T) {
 			r, _, err := readDataSize(bytes.NewBuffer(c.b))
 			if err != nil {
-				t.Fatalf("Failed to readDataSize: %v", err)
+				t.Fatalf("Failed to readDataSize: '%v'", err)
 			}
 			if r != c.i {
 				t.Errorf("Unexpected readVInt result, expected: %d, got: %d", c.i, r)
@@ -81,7 +81,7 @@ func TestDataSize_Unknown(t *testing.T) {
 		t.Run("DecodeDataSize "+n, func(t *testing.T) {
 			r, _, err := readDataSize(bytes.NewBuffer(b))
 			if err != nil {
-				t.Fatalf("Failed to readDataSize: %v", err)
+				t.Fatalf("Failed to readDataSize: '%v'", err)
 			}
 			if r != SizeUnknown {
 				t.Errorf("Unexpected readDataSize result, expected: %d, got: %d", SizeUnknown, r)
@@ -114,7 +114,7 @@ func TestElementID(t *testing.T) {
 		t.Run("Decode "+n, func(t *testing.T) {
 			r, _, err := readVInt(bytes.NewBuffer(c.b))
 			if err != nil {
-				t.Fatalf("Failed to readVInt: %v", err)
+				t.Fatalf("Failed to readVInt: '%v'", err)
 			}
 			if r != c.i {
 				t.Errorf("Unexpected readVInt result, expected: %d, got: %d", c.i, r)
@@ -125,7 +125,7 @@ func TestElementID(t *testing.T) {
 		t.Run("Encode "+n, func(t *testing.T) {
 			b, err := encodeElementID(c.i)
 			if err != nil {
-				t.Fatalf("Failed to encodeElementID: %v", err)
+				t.Fatalf("Failed to encodeElementID: '%v'", err)
 			}
 			if !bytes.Equal(b, c.b) {
 				t.Errorf("Unexpected encodeDataSize result, expected: %d, got: %d", c.b, b)
@@ -200,10 +200,10 @@ func TestValue(t *testing.T) {
 		t.Run("Read "+n, func(t *testing.T) {
 			v, err := perTypeReader[c.t](bytes.NewBuffer(c.b), uint64(len(c.b)))
 			if err != nil {
-				t.Fatalf("Failed to read%s: %v", n, err)
+				t.Fatalf("Failed to read %s: '%v'", n, err)
 			}
 			if !reflect.DeepEqual(v, c.v) {
-				t.Errorf("Unexpected read%s result, expected: %v, got: %v", n, c.v, v)
+				t.Errorf("Reading %s expected: %v, got: %v", n, c.v, v)
 			}
 		})
 		t.Run("Encode "+n, func(t *testing.T) {
@@ -215,10 +215,10 @@ func TestValue(t *testing.T) {
 			}
 			b, err := perTypeEncoder[c.t](v, c.n)
 			if err != nil {
-				t.Fatalf("Failed to encode%s: %v", n, err)
+				t.Fatalf("Failed to encode %s: '%v'", n, err)
 			}
 			if !bytes.Equal(b, c.b) {
-				t.Errorf("Unexpected encode%s result, expected: %v, got: %v", n, c.b, b)
+				t.Errorf("Encoding %s expected: %v, got: %v", n, c.b, b)
 			}
 		})
 	}
@@ -271,7 +271,7 @@ func TestEncodeValue_WrongInputType(t *testing.T) {
 			for _, v := range c.v {
 				_, err := perTypeEncoder[c.t](v, 0)
 				if !errs.Is(err, c.err) {
-					t.Fatalf("encode%s returned unexpected error to wrong input type: %v", c.t.String(), err)
+					t.Fatalf("Encoding wrong input type %s expected: '%v, got: '%v'", c.t.String(), c.err, err)
 				}
 			}
 		})
@@ -302,7 +302,7 @@ func TestEncodeValue_WrongSize(t *testing.T) {
 		t.Run("Encode "+n, func(t *testing.T) {
 			_, err := perTypeEncoder[c.t](c.v, c.n)
 			if !errs.Is(err, c.err) {
-				t.Fatalf("encode%s returned unexpected error to wrong input type: %v", n, err)
+				t.Fatalf("Encoding wrong input type %s expected: '%v', got: '%v'", n, c.err, err)
 			}
 		})
 	}
@@ -326,7 +326,7 @@ func TestReadValue_WrongSize(t *testing.T) {
 		t.Run("Read "+n, func(t *testing.T) {
 			_, err := perTypeReader[c.t](bytes.NewReader(c.b), c.n)
 			if !errs.Is(err, c.err) {
-				t.Fatalf("read%s returned unexpected error to wrong data size: %v", n, err)
+				t.Fatalf("Read wrong data size %s expected: %v, got: %v", n, c.err, err)
 			}
 		})
 	}
@@ -350,8 +350,8 @@ func TestReadValue_ReadUnexpectedEOF(t *testing.T) {
 				r := bytes.NewReader(c.b[:l])
 				_, err := perTypeReader[c.t](r, uint64(len(c.b)))
 				if !errs.Is(err, io.ErrUnexpectedEOF) {
-					t.Errorf("read%s returned unexpected error for %d byte(s) data, expected %v, got %v",
-						c.t.String(), l, io.ErrUnexpectedEOF, err)
+					t.Errorf("Reading short (%d bytes) %s expected: %v, got: %v",
+						l, c.t.String(), io.ErrUnexpectedEOF, err)
 				}
 			}
 		})

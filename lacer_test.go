@@ -154,7 +154,7 @@ func TestLacer(t *testing.T) {
 			l := c.newLacer(&buf)
 			err := l.Write(c.frames)
 			if !errs.Is(err, c.err) {
-				t.Fatalf("Expected error: %v, got: %v", c.err, err)
+				t.Fatalf("Expected error: '%v', got: '%v'", c.err, err)
 			}
 			if !bytes.Equal(c.b, buf.Bytes()) {
 				t.Errorf("Expected data: %v, \n         got: %v", c.b, buf.Bytes())
@@ -179,7 +179,7 @@ func TestLacer_WriterError(t *testing.T) {
 			for l := 0; l < c.n-1; l++ {
 				lacer := c.newLacer(&limitedDummyWriter{limit: l})
 				if err := lacer.Write(c.frames); !errs.Is(err, bytes.ErrTooLarge) {
-					t.Errorf("Too large data (Writer size limit: %d) expected error: %v, but got %v", l, bytes.ErrTooLarge, err)
+					t.Errorf("Too large data (Writer size limit: %d) expected error: '%v', got '%v'", l, bytes.ErrTooLarge, err)
 				}
 			}
 		})

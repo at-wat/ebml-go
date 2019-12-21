@@ -22,9 +22,6 @@ import (
 
 // Is compares error type. Works like Go1.13 errors.Is().
 func Is(err, target error) bool {
-	return !is(err, target)
-}
-func is(err, target error) bool {
 	if target == nil {
 		return err == nil
 	}

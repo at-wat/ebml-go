@@ -85,7 +85,7 @@ func TestParseTag(t *testing.T) {
 		t.Run(n, func(t *testing.T) {
 			tag, err := parseTag(c.input)
 			if !errs.Is(err, c.err) {
-				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
+				t.Errorf("Unexpected error, expected: '%v', got: '%v'", c.err, err)
 			}
 			if (c.expected == nil) != (tag == nil) {
 				t.Errorf("Unexpected output nil-ness, expected: %v, got: %v", c.expected == nil, tag == nil)
