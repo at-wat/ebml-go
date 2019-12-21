@@ -60,7 +60,7 @@ func NewXiphUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	case io.EOF:
 		return nil, io.ErrUnexpectedEOF
 	default:
-		return nil, err
+		return nil, wrapError(err, "unlacing")
 	}
 	n--
 
@@ -76,7 +76,7 @@ func NewXiphUnlacer(r io.Reader, n int64) (Unlacer, error) {
 			case io.EOF:
 				return nil, io.ErrUnexpectedEOF
 			default:
-				return nil, err
+				return nil, wrapError(err, "unlacing")
 			}
 			n--
 			ul.size[i] += int(b[0])
@@ -104,7 +104,7 @@ func NewFixedUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	case io.EOF:
 		return nil, io.ErrUnexpectedEOF
 	default:
-		return nil, err
+		return nil, wrapError(err, "unlacing")
 	}
 
 	ul := &unlacer{
@@ -116,7 +116,9 @@ func NewFixedUnlacer(r io.Reader, n int64) (Unlacer, error) {
 		ul.size[i] = ul.size[0]
 	}
 	if ul.size[0]*nFrame+1 != int(n) {
-		return nil, ErrFixedLaceUndivisible
+		return nil, wrapErrorf(
+			ErrFixedLaceUndivisible, "unlacing %d bytes by fixed unlacer", n,
+		)
 	}
 	return ul, nil
 }
@@ -131,7 +133,7 @@ func NewEBMLUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	case io.EOF:
 		return nil, io.ErrUnexpectedEOF
 	default:
-		return nil, err
+		return nil, wrapError(err, "unlacing")
 	}
 	n--
 
@@ -142,7 +144,7 @@ func NewEBMLUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	for i := 0; i < nFrame-1; i++ {
 		n64, nRead, err := readVInt(ul.r)
 		if err != nil {
-			return nil, err
+			return nil, wrapError(err, "unlacing")
 		}
 		n -= int64(nRead)
 		ul.size[i] = int(n64)

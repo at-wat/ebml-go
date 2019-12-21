@@ -50,7 +50,7 @@ func (l *noLacer) Write(b [][]byte) error {
 		return nil
 	case nFrames != 1:
 		return wrapErrorf(
-			ErrTooManyFrames, "writing %d frames by noLacer", nFrames,
+			ErrTooManyFrames, "lacing %d frames by no-lacer", nFrames,
 		)
 	}
 	_, err := l.w.Write(b[0])
@@ -64,7 +64,7 @@ func (l *xiphLacer) Write(b [][]byte) error {
 		return nil
 	case nFrames > 0xFF:
 		return wrapErrorf(
-			ErrTooManyFrames, "writing %d frames", nFrames,
+			ErrTooManyFrames, "lacing %d frames", nFrames,
 		)
 	}
 	size := []byte{byte(nFrames - 1)}
@@ -93,13 +93,13 @@ func (l *fixedLacer) Write(b [][]byte) error {
 		return nil
 	case nFrames > 0xFF:
 		return wrapErrorf(
-			ErrTooManyFrames, "writing %d frames", nFrames,
+			ErrTooManyFrames, "lacing %d frames", nFrames,
 		)
 	}
 	for i := 1; i < nFrames; i++ {
 		if len(b[i]) != len(b[0]) {
 			return wrapErrorf(
-				ErrUnevenFixedLace, "writing %d bytes of frame", len(b[i]),
+				ErrUnevenFixedLace, "lacing %d bytes of frame", len(b[i]),
 			)
 		}
 	}
@@ -121,7 +121,7 @@ func (l *ebmlLacer) Write(b [][]byte) error {
 		return nil
 	case nFrames > 0xFF:
 		return wrapErrorf(
-			ErrTooManyFrames, "writing %d frames", nFrames,
+			ErrTooManyFrames, "lacing %d frames", nFrames,
 		)
 	}
 	size := []byte{byte(nFrames - 1)}

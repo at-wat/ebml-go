@@ -392,7 +392,7 @@ func TestUnmarshal_Error(t *testing.T) {
 		for name, b := range TestBinaries {
 			t.Run(name, func(t *testing.T) {
 				var val TestEBML
-				if err := Unmarshal(bytes.NewBuffer(b), &val); err != io.ErrUnexpectedEOF {
+				if err := Unmarshal(bytes.NewBuffer(b), &val); !errs.Is(err, io.ErrUnexpectedEOF) {
 					t.Errorf("Unexpected error, expected: %v, got: %v\n", io.ErrUnexpectedEOF, err)
 				}
 			})
@@ -413,7 +413,7 @@ func TestUnmarshal_Error(t *testing.T) {
 				for i := 1; i < len(b)-1; i++ {
 					var val TestEBML
 					r := &delayedBrokenReader{b: b, limit: i}
-					if err := Unmarshal(r, &val); err != io.ErrClosedPipe {
+					if err := Unmarshal(r, &val); !errs.Is(err, io.ErrClosedPipe) {
 						t.Errorf("Error is not propagated from Reader, limit: %d, expected: %v, got: %v\n", i, io.ErrClosedPipe, err)
 					}
 				}

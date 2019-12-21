@@ -18,6 +18,8 @@ import (
 	"bytes"
 	"io"
 	"testing"
+
+	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestUnlacer(t *testing.T) {
@@ -163,8 +165,8 @@ func TestUnlacer(t *testing.T) {
 			}
 
 			ul, err := c.newUnlacer(bytes.NewReader(b), int64(len(b)))
-			if err != c.err {
-				t.Fatalf("Unexpected error, expected: %v, got: %v", c.err, err)
+			if !errs.Is(err, c.err) {
+				t.Fatalf("Expected error: %v, got: %v", c.err, err)
 			}
 			if err != nil {
 				return

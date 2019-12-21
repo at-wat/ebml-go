@@ -19,6 +19,8 @@ import (
 	"io"
 	"reflect"
 	"testing"
+
+	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestUnmarshalBlock(t *testing.T) {
@@ -95,7 +97,7 @@ func TestUnmarshalBlock_Error(t *testing.T) {
 	for n, c := range testCases {
 		t.Run(n, func(t *testing.T) {
 			_, err := UnmarshalBlock(bytes.NewBuffer(c.input), int64(len(c.input)))
-			if err != c.err {
+			if !errs.Is(err, c.err) {
 				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
 			}
 		})
