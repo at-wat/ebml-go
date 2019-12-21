@@ -247,7 +247,7 @@ func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 	m := make(map[string][]*Element)
 	hook := withElementMap(m)
 	if err := Unmarshal(r, &ret, WithElementReadHooks(hook)); err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Errorf("Unexpected error: '%v'", err)
 	}
 
 	// Verify positions of elements
@@ -311,7 +311,7 @@ func TestUnmarshal_Chan(t *testing.T) {
 		}
 	}()
 	if err := Unmarshal(bytes.NewReader(TestBinary), &ret); err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Errorf("Unexpected error: '%v'", err)
 	}
 	close(done)
 	if len(ch) != 2 {
@@ -336,10 +336,10 @@ func TestUnmarshal_Tag(t *testing.T) {
 	b := []byte{0x42, 0x82, 0x85, 0x68, 0x6F, 0x67, 0x65, 0x00}
 
 	if err := Unmarshal(bytes.NewBuffer(b), &tagged); err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: '%v'", err)
 	}
 	if err := Unmarshal(bytes.NewBuffer(b), &untagged); err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: '%v'", err)
 	}
 
 	if tagged.DocCustomNamedType != untagged.EBMLDocType {
@@ -514,7 +514,7 @@ func BenchmarkUnmarshal(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if err := Unmarshal(bytes.NewReader(TestBinary), &ret); err != nil {
-			b.Fatalf("Unexpected error: %v", err)
+			b.Fatalf("Unexpected error: '%v'", err)
 		}
 	}
 }
