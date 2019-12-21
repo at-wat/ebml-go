@@ -19,14 +19,6 @@ import (
 	"testing"
 )
 
-type dummyError struct {
-	Err error
-}
-
-func (e *dummyError) Error() string {
-	return "dummy: " + e.Err.Error()
-}
-
 type dummyError113 struct {
 	Err error
 }
@@ -39,15 +31,27 @@ func (e *dummyError113) Unwrap() error {
 	return e.Err
 }
 
+type dummyError113Is struct {
+	Err error
+}
+
+func (e *dummyError113Is) Error() string {
+	return "dummy: " + e.Err.Error()
+}
+
+func (e *dummyError113Is) Is(target error) bool {
+	return e.Err == target
+}
+
 func TestIs(t *testing.T) {
 	errBase := errors.New("an error")
 	errOther := errors.New("other error")
-	errChainedBase := &dummyError{errBase}
-	errChainedOther := &dummyError{errOther}
-	errChainedNil := &dummyError{}
 	errChained113Base := &dummyError113{errBase}
 	errChained113Other := &dummyError113{errOther}
 	errChained113Nil := &dummyError113{}
+	errChained113IsBase := &dummyError113Is{errBase}
+	errChained113IsOther := &dummyError113Is{errOther}
+	errChained113IsNil := &dummyError113Is{}
 
 	cases := []struct {
 		err    error
@@ -56,15 +60,15 @@ func TestIs(t *testing.T) {
 	}{
 		{nil, nil, true},
 		{errBase, errBase, true},
-		{errChainedBase, errBase, true},
 		{errChained113Base, errBase, true},
+		{errChained113IsBase, errBase, true},
 		{errOther, errBase, false},
 		{nil, errBase, false},
 		{errBase, nil, false},
-		{errChainedOther, errBase, false},
 		{errChained113Other, errBase, false},
-		{errChainedNil, errBase, false},
+		{errChained113IsOther, errBase, false},
 		{errChained113Nil, errBase, false},
+		{errChained113IsNil, errBase, false},
 	}
 
 	for _, c := range cases {
