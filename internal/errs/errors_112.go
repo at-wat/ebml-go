@@ -26,6 +26,9 @@ func Is(err, target error) bool {
 		return err == nil
 	}
 	for {
+		if err == nil {
+			return false
+		}
 		if err == target {
 			return true
 		}
@@ -41,9 +44,8 @@ func Is(err, target error) bool {
 					err = e2
 					continue
 				}
-			} else {
-				return false
 			}
+			return false
 		}
 		if err = x.Unwrap(); err == nil {
 			return false
