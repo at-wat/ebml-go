@@ -46,6 +46,9 @@ func TestError(t *testing.T) {
 	})
 
 	t.Run("Is", func(t *testing.T) {
+		if !errChained.(*Error).Is(errChained) {
+			t.Errorf("Wrapped error '%v' doesn't match its-self", errChained)
+		}
 		if !errChained.(*Error).Is(errBase) {
 			t.Errorf("Wrapped error '%v' doesn't match '%v'", errChained, errBase)
 		}
@@ -73,5 +76,8 @@ func TestError(t *testing.T) {
 
 	if errChained.Error() != errStr {
 		t.Errorf("Error string expected: %s, got: %s", errStr, errChained.Error())
+	}
+	if errChained.(*Error).Unwrap() != errBase {
+		t.Errorf("Unwrapped error expected: %s, got: %s", errBase, errChained.(*Error).Unwrap())
 	}
 }
