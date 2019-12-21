@@ -129,9 +129,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 		}
 		e, ok := table[t]
 		if !ok {
-			return pos, wrapErrorf(
-				ErrUnsupportedElement, "marshalling \"%s\"", t,
-			)
+			return pos, wrapErrorf(ErrUnsupportedElement, "marshalling \"%s\"", t)
 		}
 
 		unknown := tag.size == SizeUnknown

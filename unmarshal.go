@@ -100,9 +100,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 		}
 		v, ok := revTable[uint32(e)]
 		if !ok {
-			return nil, wrapErrorf(
-				ErrUnknownElement, "unmarshalling element 0x%x", e,
-			)
+			return nil, wrapErrorf(ErrUnknownElement, "unmarshalling element 0x%x", e)
 		}
 
 		size, nb, err := readDataSize(r)
