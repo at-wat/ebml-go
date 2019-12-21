@@ -15,33 +15,21 @@
 package ebml
 
 import (
-	"fmt"
+	"errors"
+	"testing"
+
+	"github.com/at-wat/ebml-go/internal/errs"
 )
 
-// Error records a failed parsing.
-type Error struct {
-	Err     error
-	Failure string
-}
+func TestError(t *testing.T) {
+	errChained := errors.New("an error")
+	err := wrapErrorf(errChained, "info")
+	errStr := "info: an error"
 
-func (e *Error) Error() string {
-	// TODO: migrate to fmt.Sprintf %w once Go1.12 reaches EOL.
-	return e.Failure + ": " + e.Err.Error()
-}
-
-// Unwrap returns the reason of the failure.
-// This is for Go1.13 error unwrapping.
-func (e *Error) Unwrap() error {
-	return e.Err
-}
-
-func wrapError(err error, failure string) error {
-	return &Error{
-		Failure: failure,
-		Err:     err,
+	if !errs.Is(err, errChained) {
+		t.Errorf("Wrapped error '%v' doesn't chain '%v'", err, errChained)
 	}
-}
-
-func wrapErrorf(err error, failureFmt string, v ...interface{}) error {
-	return wrapError(err, fmt.Sprintf(failureFmt, v...))
+	if err.Error() != errStr {
+		t.Errorf("Error string expected: %s, got: %s", errStr, err.Error())
+	}
 }
