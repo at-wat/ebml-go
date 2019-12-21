@@ -200,10 +200,10 @@ func TestValue(t *testing.T) {
 		t.Run("Read "+n, func(t *testing.T) {
 			v, err := perTypeReader[c.t](bytes.NewBuffer(c.b), uint64(len(c.b)))
 			if err != nil {
-				t.Fatalf("Failed to read %s: '%v'", n, err)
+				t.Fatalf("Failed to read%s: '%v'", n, err)
 			}
 			if !reflect.DeepEqual(v, c.v) {
-				t.Errorf("Reading %s expected: %v, got: %v", n, c.v, v)
+				t.Errorf("Expected read%s result: %v, got: %v", n, c.v, v)
 			}
 		})
 		t.Run("Encode "+n, func(t *testing.T) {
@@ -215,10 +215,10 @@ func TestValue(t *testing.T) {
 			}
 			b, err := perTypeEncoder[c.t](v, c.n)
 			if err != nil {
-				t.Fatalf("Failed to encode %s: '%v'", n, err)
+				t.Fatalf("Failed to encode%s: '%v'", n, err)
 			}
 			if !bytes.Equal(b, c.b) {
-				t.Errorf("Encoding %s expected: %v, got: %v", n, c.b, b)
+				t.Errorf("Expected encode%s result: %v, got: %v", n, c.b, b)
 			}
 		})
 	}
@@ -271,7 +271,7 @@ func TestEncodeValue_WrongInputType(t *testing.T) {
 			for _, v := range c.v {
 				_, err := perTypeEncoder[c.t](v, 0)
 				if !errs.Is(err, c.err) {
-					t.Fatalf("Encoding wrong input type %s expected: '%v, got: '%v'", c.t.String(), c.err, err)
+					t.Fatalf("Expected error against wrong input type %s: '%v, got: '%v'", c.t.String(), c.err, err)
 				}
 			}
 		})
@@ -302,7 +302,7 @@ func TestEncodeValue_WrongSize(t *testing.T) {
 		t.Run("Encode "+n, func(t *testing.T) {
 			_, err := perTypeEncoder[c.t](c.v, c.n)
 			if !errs.Is(err, c.err) {
-				t.Fatalf("Encoding wrong input type %s expected: '%v', got: '%v'", n, c.err, err)
+				t.Fatalf("Expected error against wrong input type %s: '%v', got: '%v'", n, c.err, err)
 			}
 		})
 	}
@@ -326,7 +326,7 @@ func TestReadValue_WrongSize(t *testing.T) {
 		t.Run("Read "+n, func(t *testing.T) {
 			_, err := perTypeReader[c.t](bytes.NewReader(c.b), c.n)
 			if !errs.Is(err, c.err) {
-				t.Fatalf("Read wrong data size %s expected: %v, got: %v", n, c.err, err)
+				t.Fatalf("Expected error against wrong data size of %s: %v, got: %v", n, c.err, err)
 			}
 		})
 	}
@@ -350,7 +350,7 @@ func TestReadValue_ReadUnexpectedEOF(t *testing.T) {
 				r := bytes.NewReader(c.b[:l])
 				_, err := perTypeReader[c.t](r, uint64(len(c.b)))
 				if !errs.Is(err, io.ErrUnexpectedEOF) {
-					t.Errorf("Reading short (%d bytes) %s expected: %v, got: %v",
+					t.Errorf("Expected error against short (%d bytes) %s: %v, got: %v",
 						l, c.t.String(), io.ErrUnexpectedEOF, err)
 				}
 			}

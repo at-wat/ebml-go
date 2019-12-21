@@ -144,7 +144,7 @@ func TestMarshalBlock_Error(t *testing.T) {
 			for l := 0; l < 7; l++ {
 				err := MarshalBlock(input, &limitedDummyWriter{limit: l})
 				if err != bytes.ErrTooLarge {
-					t.Errorf("Too large data (Writer size limit: %d) expected: '%v', got: '%v'", l, bytes.ErrTooLarge, err)
+					t.Errorf("Expected error against too large data (Writer size limit: %d): '%v', got: '%v'", l, bytes.ErrTooLarge, err)
 				}
 			}
 		},

@@ -243,7 +243,7 @@ func TestMarshal_OptionError(t *testing.T) {
 		},
 	)
 	if err != errExpected {
-		t.Errorf("Failing MarshalOption expected error: '%v', got: '%v'", errExpected, err)
+		t.Errorf("Expected error against failing MarshalOption: '%v', got: '%v'", errExpected, err)
 	}
 }
 
@@ -259,7 +259,7 @@ func TestMarshal_WriterError(t *testing.T) {
 	for l := 0; l < 25; l++ {
 		err := Marshal(&s, &limitedDummyWriter{limit: l})
 		if !errs.Is(err, bytes.ErrTooLarge) {
-			t.Errorf("Too large data (Writer size limit: %d) expected error: '%v', got '%v'", l, bytes.ErrTooLarge, err)
+			t.Errorf("Expected error against too large data (Writer size limit: %d): '%v', got '%v'", l, bytes.ErrTooLarge, err)
 		}
 	}
 }
