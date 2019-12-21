@@ -179,7 +179,7 @@ func TestLacer_WriterError(t *testing.T) {
 			for l := 0; l < c.n-1; l++ {
 				lacer := c.newLacer(&limitedDummyWriter{limit: l})
 				if err := lacer.Write(c.frames); !errs.Is(err, bytes.ErrTooLarge) {
-					t.Errorf("Lacer should fail with bytes.ErrTooLarge against too large data (Writer size limit: %d), but got %v", l, err)
+					t.Errorf("Too large data (Writer size limit: %d) expected error: %v, but got %v", l, bytes.ErrTooLarge, err)
 				}
 			}
 		})

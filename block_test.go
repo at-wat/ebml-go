@@ -79,9 +79,9 @@ func TestUnmarshalBlock_Error(t *testing.T) {
 	t.Run("EOF", func(t *testing.T) {
 		input := []byte{0x21, 0x23, 0x45, 0x00, 0x02, 0x00}
 		for l := 0; l < len(input); l++ {
-			if _, err := UnmarshalBlock(bytes.NewBuffer(input[:l]), int64(len(input))); err != io.ErrUnexpectedEOF {
-				t.Errorf("UnmarshalBlock should return %v against short data (%d bytes), but got %v",
-					io.ErrUnexpectedEOF, l, err)
+			if _, err := UnmarshalBlock(bytes.NewBuffer(input[:l]), int64(len(input))); !errs.Is(err, io.ErrUnexpectedEOF) {
+				t.Errorf("Short data (%d bytes) expected error: %v, but got: %v",
+					l, io.ErrUnexpectedEOF, err)
 			}
 		}
 	})
@@ -98,7 +98,7 @@ func TestUnmarshalBlock_Error(t *testing.T) {
 		t.Run(n, func(t *testing.T) {
 			_, err := UnmarshalBlock(bytes.NewBuffer(c.input), int64(len(c.input)))
 			if !errs.Is(err, c.err) {
-				t.Errorf("Unexpected error, expected: %v, got: %v", c.err, err)
+				t.Errorf("Expected error: %v, got: %v", c.err, err)
 			}
 		})
 	}
@@ -144,7 +144,7 @@ func TestMarshalBlock_Error(t *testing.T) {
 			for l := 0; l < 7; l++ {
 				err := MarshalBlock(input, &limitedDummyWriter{limit: l})
 				if err != bytes.ErrTooLarge {
-					t.Errorf("UnmarshalBlock should bytes.ErrTooLarge against too large data (Writer size limit: %d), but got %v", l, err)
+					t.Errorf("Too large data (Writer size limit: %d) expected: %v, but got: %v", l, bytes.ErrTooLarge, err)
 				}
 			}
 		},

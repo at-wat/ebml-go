@@ -60,7 +60,7 @@ func Marshal(val interface{}, w io.Writer, opts ...MarshalOption) error {
 	}
 	vo := reflect.ValueOf(val)
 	if vo.Kind() != reflect.Ptr {
-		return wrapErrorf(ErrInvalidType, "marshal to %T", val)
+		return wrapErrorf(ErrInvalidType, "marshalling to %T", val)
 	}
 
 	_, err := marshalImpl(vo.Elem(), w, 0, nil, options)
@@ -130,7 +130,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 		e, ok := table[t]
 		if !ok {
 			return pos, wrapErrorf(
-				ErrUnsupportedElement, "marshalling %s", t,
+				ErrUnsupportedElement, "marshalling \"%s\"", t,
 			)
 		}
 
@@ -146,9 +146,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 			var headerSize uint64
 			n, err := w.Write(e.b)
 			if err != nil {
-				return pos, wrapError(
-					err, "writing element ID",
-				)
+				return pos, err
 			}
 			headerSize += uint64(n)
 
@@ -158,9 +156,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 				bsz := encodeDataSize(uint64(SizeUnknown), 0)
 				n, err := w.Write(bsz)
 				if err != nil {
-					return pos, wrapError(
-						err, "writing data size",
-					)
+					return pos, err
 				}
 				headerSize += uint64(n)
 				bw = w
@@ -194,9 +190,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 				}
 				n, err := bw.Write(bc)
 				if err != nil {
-					return pos, wrapError(
-						err, "writing data contents",
-					)
+					return pos, err
 				}
 				size = uint64(n)
 			}
@@ -209,16 +203,12 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 				bsz := encodeDataSize(size, options.dataSizeLen)
 				n, err := w.Write(bsz)
 				if err != nil {
-					return pos, wrapError(
-						err, "writing data size",
-					)
+					return pos, err
 				}
 				headerSize += uint64(n)
 
 				if _, err := w.Write(bw.(*bytes.Buffer).Bytes()); err != nil {
-					return pos, wrapError(
-						err, "writing data contents",
-					)
+					return pos, err
 				}
 			}
 			for _, cb := range options.hooks {

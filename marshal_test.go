@@ -229,7 +229,7 @@ func TestMarshal_Error(t *testing.T) {
 		t.Run(n, func(t *testing.T) {
 			var b bytes.Buffer
 			if err := Marshal(c.input, &b); !errs.Is(err, c.err) {
-				t.Fatalf("Unexpected error, expected: %v, got: %v", c.err, err)
+				t.Fatalf("Expected error: %v, got: %v", c.err, err)
 			}
 		})
 	}
@@ -243,7 +243,7 @@ func TestMarshal_OptionError(t *testing.T) {
 		},
 	)
 	if err != errExpected {
-		t.Errorf("Unexpected error for failing MarshalOption, expected: %v, got: %v", errExpected, err)
+		t.Errorf("Failing MarshalOption expected error: %v, got: %v", errExpected, err)
 	}
 }
 
@@ -259,7 +259,7 @@ func TestMarshal_WriterError(t *testing.T) {
 	for l := 0; l < 25; l++ {
 		err := Marshal(&s, &limitedDummyWriter{limit: l})
 		if !errs.Is(err, bytes.ErrTooLarge) {
-			t.Errorf("UnmarshalBlock should fail with bytes.ErrTooLarge against too large data (Writer size limit: %d), but got %v", l, err)
+			t.Errorf("Too large data (Writer size limit: %d) expected error: %v, but got %v", l, bytes.ErrTooLarge, err)
 		}
 	}
 }
@@ -484,7 +484,7 @@ func TestMarshal_Chan(t *testing.T) {
 		close(ch)
 
 		if err := Marshal(input, &bytes.Buffer{}); !errs.Is(err, ErrIncompatibleType) {
-			t.Fatalf("Expected %v, got %v", ErrIncompatibleType, err)
+			t.Fatalf("Expected error: %v, got: %v", ErrIncompatibleType, err)
 		}
 	})
 }

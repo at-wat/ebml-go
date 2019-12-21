@@ -83,7 +83,7 @@ func TestUnmarshal_MultipleUnknownSize(t *testing.T) {
 		t.Fatalf("Unexpected error: %v\n", err)
 	}
 	if !reflect.DeepEqual(expected, ret) {
-		t.Errorf("Unexpected result, expected: %v, got: %v", expected, ret)
+		t.Errorf("Expected result: %v, got: %v", expected, ret)
 	}
 }
 
@@ -354,12 +354,12 @@ func TestUnmarshal_Error(t *testing.T) {
 	}
 	t.Run("NilValue", func(t *testing.T) {
 		if err := Unmarshal(bytes.NewBuffer([]byte{}), nil); !errs.Is(err, ErrIndefiniteType) {
-			t.Errorf("Unexpected error, expected %v, got %v\n", ErrIndefiniteType, err)
+			t.Errorf("Expected error: %v, got: %v\n", ErrIndefiniteType, err)
 		}
 	})
 	t.Run("NonPtr", func(t *testing.T) {
 		if err := Unmarshal(bytes.NewBuffer([]byte{}), struct{}{}); !errs.Is(err, ErrIncompatibleType) {
-			t.Errorf("Unexpected error, expected %v, got %v\n", ErrIncompatibleType, err)
+			t.Errorf("Expected error: %v, got: %v\n", ErrIncompatibleType, err)
 		}
 	})
 	t.Run("UnknownElementName", func(t *testing.T) {
@@ -368,14 +368,14 @@ func TestUnmarshal_Error(t *testing.T) {
 			} `ebml:"Unknown"`
 		}{}
 		if err := Unmarshal(bytes.NewBuffer([]byte{}), input); !errs.Is(err, ErrUnknownElementName) {
-			t.Errorf("Unexpected error, expected %v, got %v\n", ErrUnknownElementName, err)
+			t.Errorf("Expected error: %v, got: %v\n", ErrUnknownElementName, err)
 		}
 	})
 	t.Run("UnknownElement", func(t *testing.T) {
 		input := &TestEBML{}
 		b := []byte{0x80}
 		if err := Unmarshal(bytes.NewBuffer(b), input); !errs.Is(err, ErrUnknownElement) {
-			t.Errorf("Unexpected error, expected %v, got %v\n", ErrUnknownElement, err)
+			t.Errorf("Expected error: %v, got: %v\n", ErrUnknownElement, err)
 		}
 	})
 	t.Run("Short", func(t *testing.T) {
@@ -393,7 +393,7 @@ func TestUnmarshal_Error(t *testing.T) {
 			t.Run(name, func(t *testing.T) {
 				var val TestEBML
 				if err := Unmarshal(bytes.NewBuffer(b), &val); !errs.Is(err, io.ErrUnexpectedEOF) {
-					t.Errorf("Unexpected error, expected: %v, got: %v\n", io.ErrUnexpectedEOF, err)
+					t.Errorf("Expected error: %v, got: %v\n", io.ErrUnexpectedEOF, err)
 				}
 			})
 		}
@@ -486,7 +486,7 @@ func TestUnmarshal_Error(t *testing.T) {
 		for name, c := range cases {
 			t.Run(name, func(t *testing.T) {
 				if err := Unmarshal(bytes.NewBuffer(c.b), c.ret); !errs.Is(err, c.err) {
-					t.Errorf("Unexpected error, expected: %v, got: %v\n", c.err, err)
+					t.Errorf("Expected error: %v, got: %v\n", c.err, err)
 				}
 			})
 		}

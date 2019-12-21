@@ -99,7 +99,7 @@ func (l *fixedLacer) Write(b [][]byte) error {
 	for i := 1; i < nFrames; i++ {
 		if len(b[i]) != len(b[0]) {
 			return wrapErrorf(
-				ErrUnevenFixedLace, "lacing %d bytes of frame", len(b[i]),
+				ErrUnevenFixedLace, "lacing %d bytes on %d bytes frame", len(b[i]), len(b[0]),
 			)
 		}
 	}

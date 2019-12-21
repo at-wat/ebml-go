@@ -55,7 +55,7 @@ func parseTag(rawtag string) (*structTag, error) {
 					tag.size = SizeUnknown
 				default:
 					return nil, wrapErrorf(
-						ErrInvalidTag, "parsing %s", kv[0],
+						ErrInvalidTag, "parsing \"%s\"", t,
 					)
 				}
 			}
@@ -71,13 +71,13 @@ func parseTag(rawtag string) (*structTag, error) {
 			} else {
 				s, err := strconv.Atoi(kv[1])
 				if err != nil {
-					return nil, err
+					return nil, wrapErrorf(err, "parsing \"%s\"", t)
 				}
 				tag.size = uint64(s)
 			}
 		default:
 			return nil, wrapErrorf(
-				ErrInvalidTag, "parsing %s", kv[0],
+				ErrInvalidTag, "parsing \"%s\"", t,
 			)
 		}
 	}

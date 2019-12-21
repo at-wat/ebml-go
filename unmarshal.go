@@ -42,10 +42,10 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 
 	vo := reflect.ValueOf(val)
 	if !vo.IsValid() {
-		return wrapErrorf(ErrIndefiniteType, "unmarshal to %T", val)
+		return wrapErrorf(ErrIndefiniteType, "unmarshalling to %T", val)
 	}
 	if vo.Kind() != reflect.Ptr {
-		return wrapErrorf(ErrIncompatibleType, "unmarshal to %T", val)
+		return wrapErrorf(ErrIncompatibleType, "unmarshalling to %T", val)
 	}
 
 	voe := vo.Elem()
@@ -101,7 +101,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 		v, ok := revTable[uint32(e)]
 		if !ok {
 			return nil, wrapErrorf(
-				ErrUnknownElement, "parsing element 0x%x", e,
+				ErrUnknownElement, "unmarshalling element 0x%x", e,
 			)
 		}
 

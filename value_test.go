@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestDataSize(t *testing.T) {
@@ -268,7 +270,7 @@ func TestEncodeValue_WrongInputType(t *testing.T) {
 		t.Run("Encode "+c.t.String(), func(t *testing.T) {
 			for _, v := range c.v {
 				_, err := perTypeEncoder[c.t](v, 0)
-				if err != c.err {
+				if !errs.Is(err, c.err) {
 					t.Fatalf("encode%s returned unexpected error to wrong input type: %v", c.t.String(), err)
 				}
 			}
@@ -299,7 +301,7 @@ func TestEncodeValue_WrongSize(t *testing.T) {
 	for n, c := range testCases {
 		t.Run("Encode "+n, func(t *testing.T) {
 			_, err := perTypeEncoder[c.t](c.v, c.n)
-			if err != c.err {
+			if !errs.Is(err, c.err) {
 				t.Fatalf("encode%s returned unexpected error to wrong input type: %v", n, err)
 			}
 		})
@@ -323,7 +325,7 @@ func TestReadValue_WrongSize(t *testing.T) {
 	for n, c := range testCases {
 		t.Run("Read "+n, func(t *testing.T) {
 			_, err := perTypeReader[c.t](bytes.NewReader(c.b), c.n)
-			if err != c.err {
+			if !errs.Is(err, c.err) {
 				t.Fatalf("read%s returned unexpected error to wrong data size: %v", n, err)
 			}
 		})
@@ -347,7 +349,7 @@ func TestReadValue_ReadUnexpectedEOF(t *testing.T) {
 			for l := 0; l < len(c.b)-1; l++ {
 				r := bytes.NewReader(c.b[:l])
 				_, err := perTypeReader[c.t](r, uint64(len(c.b)))
-				if err != io.ErrUnexpectedEOF {
+				if !errs.Is(err, io.ErrUnexpectedEOF) {
 					t.Errorf("read%s returned unexpected error for %d byte(s) data, expected %v, got %v",
 						c.t.String(), l, io.ErrUnexpectedEOF, err)
 				}
