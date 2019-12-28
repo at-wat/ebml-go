@@ -33,27 +33,22 @@ const (
 	DataTypeBlock
 )
 
+var dataTypeName = map[DataType]string{
+	DataTypeMaster: "Master",
+	DataTypeInt:    "Int",
+	DataTypeUInt:   "UInt",
+	DataTypeDate:   "Date",
+	DataTypeFloat:  "Float",
+	DataTypeBinary: "Binary",
+	DataTypeString: "String",
+	DataTypeBlock:  "Block",
+}
+
 func (t DataType) String() string {
-	switch t {
-	case DataTypeMaster:
-		return "Master"
-	case DataTypeInt:
-		return "Int"
-	case DataTypeUInt:
-		return "UInt"
-	case DataTypeDate:
-		return "Date"
-	case DataTypeFloat:
-		return "Float"
-	case DataTypeBinary:
-		return "Binary"
-	case DataTypeString:
-		return "String"
-	case DataTypeBlock:
-		return "Block"
-	default:
-		return "Unknown type"
+	if name, ok := dataTypeName[t]; ok {
+		return name
 	}
+	return "unknown"
 }
 
 func isConvertible(src, dst reflect.Type) bool {
