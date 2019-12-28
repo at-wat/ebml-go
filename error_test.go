@@ -33,6 +33,7 @@ func TestError(t *testing.T) {
 	errBase := errors.New("an error")
 	errOther := errors.New("an another error")
 	errChained := wrapErrorf(errBase, "info")
+	errDoubleChained := wrapErrorf(errChained, "info")
 	errChainedNil := wrapErrorf(nil, "info")
 	errChainedOther := wrapErrorf(errOther, "info")
 	err112Chained := wrapErrorf(&dummyError{errBase}, "info")
@@ -51,6 +52,9 @@ func TestError(t *testing.T) {
 		}
 		if !errChained.(*Error).Is(errBase) {
 			t.Errorf("Wrapped error '%v' doesn't match '%v'", errChained, errBase)
+		}
+		if !errDoubleChained.(*Error).Is(errBase) {
+			t.Errorf("Wrapped error '%v' doesn't match '%v'", errDoubleChained, errBase)
 		}
 		if !err112Chained.(*Error).Is(errBase) {
 			t.Errorf("Wrapped error '%v' doesn't match '%v'",

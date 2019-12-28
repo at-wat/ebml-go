@@ -16,7 +16,10 @@ package ebml
 
 import (
 	"bytes"
+	"io"
 	"testing"
+
+	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestElementType_Roundtrip(t *testing.T) {
@@ -42,4 +45,24 @@ func TestElementType_Bytes(t *testing.T) {
 	if ElementSegment.DataType() != DataTypeMaster {
 		t.Errorf("Expected DataType: %s, got: %s", DataTypeMaster, ElementSegment.DataType())
 	}
+}
+
+func TestElementType_InitReverseLookupTable(t *testing.T) {
+	defer func() {
+		err := recover()
+		switch v := err.(type) {
+		case error:
+			if !errs.Is(v, io.ErrUnexpectedEOF) {
+				t.Errorf("Expected initReverseLookupTable panic: '%v', got: '%v'", io.ErrUnexpectedEOF, v)
+			}
+		default:
+			t.Errorf("initReverseLookupTable paniced with unexpected type %T", v)
+		}
+	}()
+
+	revTb := make(elementRevTable)
+	initReverseLookupTable(revTb, elementTable{
+		ElementType(0): elementDef{}, // empty bytes representation
+	})
+	t.Fatal("initReverseLookupTable must panic if elementTable is broken.")
 }

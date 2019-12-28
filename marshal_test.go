@@ -237,30 +237,46 @@ func TestMarshal_Error(t *testing.T) {
 
 func TestMarshal_OptionError(t *testing.T) {
 	errExpected := errors.New("an error")
-	err := Marshal(&struct{}{}, &bytes.Buffer{},
+	if err := Marshal(&struct{}{}, &bytes.Buffer{},
 		func(*MarshalOptions) error {
 			return errExpected
 		},
-	)
-	if err != errExpected {
+	); err != errExpected {
 		t.Errorf("Expected error against failing MarshalOption: '%v', got: '%v'", errExpected, err)
 	}
 }
 
 func TestMarshal_WriterError(t *testing.T) {
 	type EBMLHeader struct {
-		DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"` // 2 + 1 + 1 bytes
-	}
+		DocTypeVersion  uint64 `ebml:"EBMLDocTypeVersion"`              // 2 + 1 + 1 bytes
+		DocTypeVersion2 uint64 `ebml:"EBMLDocTypeVersion,size=unknown"` // 2 + 8 + 8 bytes
+	} // 22 bytes
 	s := struct {
-		Header  EBMLHeader `ebml:"EBML"`              // 4 + 1 + 4 bytes
-		Header2 EBMLHeader `ebml:"EBML,size=unknown"` // 4 + 8 + 4 bytes
-	}{}
+		Header  EBMLHeader `ebml:"EBML"`              // 4 + 1 + 22 bytes
+		Header2 EBMLHeader `ebml:"EBML,size=unknown"` // 4 + 8 + 22 bytes
+	}{} // 61 bytes
 
-	for l := 0; l < 25; l++ {
-		err := Marshal(&s, &limitedDummyWriter{limit: l})
-		if !errs.Is(err, bytes.ErrTooLarge) {
-			t.Errorf("Expected error against too large data (Writer size limit: %d): '%v', got '%v'", l, bytes.ErrTooLarge, err)
+	for l := 0; l < 61; l++ {
+		if err := Marshal(&s, &limitedDummyWriter{limit: l}); !errs.Is(err, bytes.ErrTooLarge) {
+			t.Errorf("Expected error against too large data (Writer size limit: %d): '%v', got '%v'",
+				l, bytes.ErrTooLarge, err,
+			)
 		}
+	}
+}
+
+func TestMarshal_EncodeError(t *testing.T) {
+	s := struct {
+		SimpleBlock Block
+	}{
+		SimpleBlock: Block{
+			Lacing: LacingFixed,
+			Data:   [][]byte{{0x01}, {0x01, 0x02}},
+		},
+	}
+	if err := Marshal(&s, &bytes.Buffer{}); !errs.Is(err, ErrUnevenFixedLace) {
+		t.Errorf("Expected error on encoding uneven fixed lace Block: '%v', got: '%v'",
+			ErrUnevenFixedLace, err)
 	}
 }
 
@@ -280,8 +296,7 @@ func TestMarshal_WithWriteHooks(t *testing.T) {
 
 	m := make(map[string][]*Element)
 	hook := withElementMap(m)
-	err := Marshal(&s, &bytes.Buffer{}, WithElementWriteHooks(hook))
-	if err != nil {
+	if err := Marshal(&s, &bytes.Buffer{}, WithElementWriteHooks(hook)); err != nil {
 		t.Errorf("Unexpected error: '%v'", err)
 	}
 
