@@ -357,3 +357,14 @@ func TestReadValue_ReadUnexpectedEOF(t *testing.T) {
 		})
 	}
 }
+
+func TestEncodeBlock_WriteError(t *testing.T) {
+	_, err := encodeBlock(Block{
+		Lacing: LacingFixed,
+		Data:   [][]byte{{0x01}, {0x01, 0x02}},
+	}, 100)
+	if !errs.Is(err, ErrUnevenFixedLace) {
+		t.Errorf("Expected error on encoding uneven fixed lace Block: '%v', got: '%v'",
+			ErrUnevenFixedLace, err)
+	}
+}
