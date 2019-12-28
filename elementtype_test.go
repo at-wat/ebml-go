@@ -14,6 +14,9 @@ func TestElementType_Roundtrip(t *testing.T) {
 			t.Errorf("Failed to roundtrip ElementType %d and string", e)
 		}
 	}
+	if elementMax.String() != "unknown" {
+		t.Errorf("Invalid ElementType string should be 'unknown', got '%s'", elementMax.String())
+	}
 }
 
 func TestElementType_Bytes(t *testing.T) {
