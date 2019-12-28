@@ -179,9 +179,6 @@ func readDate(r io.Reader, n uint64) (interface{}, error) {
 	return time.Unix(DateEpochInUnixtime, i.(int64)), nil
 }
 func readFloat(r io.Reader, n uint64) (interface{}, error) {
-	if n != 4 && n != 8 {
-		return 0.0, wrapErrorf(ErrInvalidFloatSize, "reading %d bytes float", n)
-	}
 	bs := make([]byte, n)
 
 	switch _, err := io.ReadFull(r, bs); err {
@@ -198,7 +195,7 @@ func readFloat(r io.Reader, n uint64) (interface{}, error) {
 	case 8:
 		return math.Float64frombits(binary.BigEndian.Uint64(bs)), nil
 	default:
-		panic("Invalid float size validation")
+		return 0.0, wrapErrorf(ErrInvalidFloatSize, "reading %d bytes float", n)
 	}
 }
 func readBlock(r io.Reader, n uint64) (interface{}, error) {
