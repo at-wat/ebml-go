@@ -137,16 +137,31 @@ func TestMarshalBlock(t *testing.T) {
 }
 
 func TestMarshalBlock_Error(t *testing.T) {
-	input := &Block{0x012345, 0x0002, false, false, LacingNo, false, [][]byte{{0x00}}} // 7 bytes
-
-	t.Run("EOF",
-		func(t *testing.T) {
-			for l := 0; l < 7; l++ {
-				err := MarshalBlock(input, &limitedDummyWriter{limit: l})
-				if err != bytes.ErrTooLarge {
-					t.Errorf("Expected error against too large data (Writer size limit: %d): '%v', got: '%v'", l, bytes.ErrTooLarge, err)
-				}
-			}
+	cases := map[string]struct {
+		input *Block
+		err   error
+	}{
+		"InvalidTrackNum": {
+			&Block{0xFFFFFFFFFFFFFFFF, 0x0000, false, false, LacingNo, false, [][]byte{{}}},
+			ErrUnsupportedElementID,
 		},
-	)
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			err := MarshalBlock(c.input, &bytes.Buffer{})
+			if !errs.Is(err, c.err) {
+				t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
+			}
+		})
+	}
+
+	t.Run("EOF", func(t *testing.T) {
+		input := &Block{0x012345, 0x0002, false, false, LacingNo, false, [][]byte{{0x00}}} // 7 bytes
+		for l := 0; l < 7; l++ {
+			err := MarshalBlock(input, &limitedDummyWriter{limit: l})
+			if !errs.Is(err, bytes.ErrTooLarge) {
+				t.Errorf("Expected error against too large data (Writer size limit: %d): '%v', got: '%v'", l, bytes.ErrTooLarge, err)
+			}
+		}
+	})
 }
