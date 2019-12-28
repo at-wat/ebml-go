@@ -16,6 +16,7 @@ package ebml
 
 import (
 	"bytes"
+	"fmt"
 )
 
 type elementDef struct {
@@ -102,12 +103,16 @@ var revTable elementRevTable
 
 func init() {
 	revTable = make(elementRevTable)
+	initReverseLookupTable(revTable, table)
+	fmt.Printf("%+v\n", revTable)
+}
 
-	for k, v := range table {
+func initReverseLookupTable(revTb elementRevTable, tb elementTable) {
+	for k, v := range tb {
 		e, _, err := readVInt(bytes.NewBuffer(v.b))
 		if err != nil {
 			panic(err)
 		}
-		revTable[uint32(e)] = element{e: k, t: v.t, top: v.top}
+		revTb[uint32(e)] = element{e: k, t: v.t, top: v.top}
 	}
 }
