@@ -250,14 +250,14 @@ func TestMarshal_OptionError(t *testing.T) {
 func TestMarshal_WriterError(t *testing.T) {
 	type EBMLHeader struct {
 		DocTypeVersion  uint64 `ebml:"EBMLDocTypeVersion"`              // 2 + 1 + 1 bytes
-		DocTypeVersion2 uint64 `ebml:"EBMLDocTypeVersion,size=unknown"` // 2 + 8 + 1 bytes
-	}
+		DocTypeVersion2 uint64 `ebml:"EBMLDocTypeVersion,size=unknown"` // 2 + 8 + 8 bytes
+	} // 22 bytes
 	s := struct {
-		Header  EBMLHeader `ebml:"EBML"`              // 4 + 1 + 15 bytes
-		Header2 EBMLHeader `ebml:"EBML,size=unknown"` // 4 + 8 + 15 bytes
-	}{}
+		Header  EBMLHeader `ebml:"EBML"`              // 4 + 1 + 22 bytes
+		Header2 EBMLHeader `ebml:"EBML,size=unknown"` // 4 + 8 + 22 bytes
+	}{} // 61 bytes
 
-	for l := 0; l < 47; l++ {
+	for l := 0; l < 61; l++ {
 		err := Marshal(&s, &limitedDummyWriter{limit: l})
 		if !errs.Is(err, bytes.ErrTooLarge) {
 			t.Errorf("Expected error against too large data (Writer size limit: %d): '%v', got '%v'", l, bytes.ErrTooLarge, err)
