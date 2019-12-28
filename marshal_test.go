@@ -264,6 +264,22 @@ func TestMarshal_WriterError(t *testing.T) {
 	}
 }
 
+func TestMarshal_EncodeError(t *testing.T) {
+	s := struct {
+		SimpleBlock Block
+	}{
+		SimpleBlock: Block{
+			Lacing: LacingFixed,
+			Data:   [][]byte{{0x01}, {0x01, 0x02}},
+		},
+	}
+	err := Marshal(&s, &bytes.Buffer{})
+	if !errs.Is(err, ErrUnevenFixedLace) {
+		t.Errorf("Expected error on encoding uneven fixed lace Block: '%v', got: '%v'",
+			ErrUnevenFixedLace, err)
+	}
+}
+
 func TestMarshal_WithWriteHooks(t *testing.T) {
 	type DummyCluster struct {
 		Timecode uint64 `ebml:"Timecode"` // 2 + 1 + 1 bytes
