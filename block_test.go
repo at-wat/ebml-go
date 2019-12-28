@@ -96,8 +96,7 @@ func TestUnmarshalBlock_Error(t *testing.T) {
 	}
 	for n, c := range testCases {
 		t.Run(n, func(t *testing.T) {
-			_, err := UnmarshalBlock(bytes.NewBuffer(c.input), int64(len(c.input)))
-			if !errs.Is(err, c.err) {
+			if _, err := UnmarshalBlock(bytes.NewBuffer(c.input), int64(len(c.input))); !errs.Is(err, c.err) {
 				t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
 			}
 		})
@@ -125,8 +124,7 @@ func TestMarshalBlock(t *testing.T) {
 	for n, c := range testCases {
 		t.Run(n, func(t *testing.T) {
 			var b bytes.Buffer
-			err := MarshalBlock(&c.input, &b)
-			if err != nil {
+			if err := MarshalBlock(&c.input, &b); err != nil {
 				t.Fatalf("Failed to marshal block: '%v'", err)
 			}
 			if !reflect.DeepEqual(c.expected, b.Bytes()) {
@@ -148,8 +146,7 @@ func TestMarshalBlock_Error(t *testing.T) {
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			err := MarshalBlock(c.input, &bytes.Buffer{})
-			if !errs.Is(err, c.err) {
+			if err := MarshalBlock(c.input, &bytes.Buffer{}); !errs.Is(err, c.err) {
 				t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
 			}
 		})
@@ -158,8 +155,7 @@ func TestMarshalBlock_Error(t *testing.T) {
 	t.Run("EOF", func(t *testing.T) {
 		input := &Block{0x012345, 0x0002, false, false, LacingNo, false, [][]byte{{0x00}}} // 7 bytes
 		for l := 0; l < 7; l++ {
-			err := MarshalBlock(input, &limitedDummyWriter{limit: l})
-			if !errs.Is(err, bytes.ErrTooLarge) {
+			if err := MarshalBlock(input, &limitedDummyWriter{limit: l}); !errs.Is(err, bytes.ErrTooLarge) {
 				t.Errorf("Expected error against too large data (Writer size limit: %d): '%v', got: '%v'", l, bytes.ErrTooLarge, err)
 			}
 		}

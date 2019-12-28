@@ -237,12 +237,11 @@ func TestMarshal_Error(t *testing.T) {
 
 func TestMarshal_OptionError(t *testing.T) {
 	errExpected := errors.New("an error")
-	err := Marshal(&struct{}{}, &bytes.Buffer{},
+	if err := Marshal(&struct{}{}, &bytes.Buffer{},
 		func(*MarshalOptions) error {
 			return errExpected
 		},
-	)
-	if err != errExpected {
+	); err != errExpected {
 		t.Errorf("Expected error against failing MarshalOption: '%v', got: '%v'", errExpected, err)
 	}
 }
@@ -258,9 +257,10 @@ func TestMarshal_WriterError(t *testing.T) {
 	}{} // 61 bytes
 
 	for l := 0; l < 61; l++ {
-		err := Marshal(&s, &limitedDummyWriter{limit: l})
-		if !errs.Is(err, bytes.ErrTooLarge) {
-			t.Errorf("Expected error against too large data (Writer size limit: %d): '%v', got '%v'", l, bytes.ErrTooLarge, err)
+		if err := Marshal(&s, &limitedDummyWriter{limit: l}); !errs.Is(err, bytes.ErrTooLarge) {
+			t.Errorf("Expected error against too large data (Writer size limit: %d): '%v', got '%v'",
+				l, bytes.ErrTooLarge, err,
+			)
 		}
 	}
 }
@@ -274,8 +274,7 @@ func TestMarshal_EncodeError(t *testing.T) {
 			Data:   [][]byte{{0x01}, {0x01, 0x02}},
 		},
 	}
-	err := Marshal(&s, &bytes.Buffer{})
-	if !errs.Is(err, ErrUnevenFixedLace) {
+	if err := Marshal(&s, &bytes.Buffer{}); !errs.Is(err, ErrUnevenFixedLace) {
 		t.Errorf("Expected error on encoding uneven fixed lace Block: '%v', got: '%v'",
 			ErrUnevenFixedLace, err)
 	}
@@ -297,8 +296,7 @@ func TestMarshal_WithWriteHooks(t *testing.T) {
 
 	m := make(map[string][]*Element)
 	hook := withElementMap(m)
-	err := Marshal(&s, &bytes.Buffer{}, WithElementWriteHooks(hook))
-	if err != nil {
+	if err := Marshal(&s, &bytes.Buffer{}, WithElementWriteHooks(hook)); err != nil {
 		t.Errorf("Unexpected error: '%v'", err)
 	}
 
