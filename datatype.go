@@ -48,7 +48,7 @@ func (t DataType) String() string {
 	if name, ok := dataTypeName[t]; ok {
 		return name
 	}
-	return "Unknown type"
+	return "unknown"
 }
 
 func isConvertible(src, dst reflect.Type) bool {
