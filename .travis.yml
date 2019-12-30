@@ -35,6 +35,8 @@ script:
     if [ ${TRAVIS_GO_VERSION} == ${REVIEWDOG_ON} ]; then
       golint ./...  | reviewdog -f=golint -reporter=github-pr-review
     fi
+  - go mod tidy  # mod/sum must be up-to-date and tidied
+  - git diff --exit-code --quiet $(find . -name "go.*")
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
