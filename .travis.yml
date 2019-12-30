@@ -36,7 +36,7 @@ script:
       golint ./...  | reviewdog -f=golint -reporter=github-pr-review
     fi
   - go mod tidy  # mod/sum must be up-to-date and tidied
-  - git diff --exit-code --quiet go.mod go.sum
+  - git diff --exit-code go.mod go.sum
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
