@@ -9,11 +9,12 @@ go:
   - "1.11"
   - "1.12"
   - "1.13"
+  - "1.14"
   - master
 env:
   global:
     - GO111MODULE=on
-    - REVIEWDOG_ON=1.13
+    - REVIEWDOG_ON=1.14
 
 install:
   - go mod download
