@@ -259,6 +259,10 @@ func TestMarshal_Error(t *testing.T) {
 			&map[int]interface{}{1: "test"},
 			ErrNonStringMapKey,
 		},
+		"InvalidType": {
+			&[]int{},
+			ErrIncompatibleType,
+		},
 	}
 	for n, c := range testCases {
 		t.Run(n, func(t *testing.T) {

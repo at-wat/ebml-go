@@ -141,6 +141,8 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 			}
 			return &structTag{name: name.String()}, vo.MapIndex(name), nil
 		}
+	default:
+		return pos, ErrIncompatibleType
 	}
 
 	for i := 0; i < l; i++ {
