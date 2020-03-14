@@ -24,6 +24,9 @@ import (
 // ErrUnsupportedElement means that a element name is known but unsupported in this version of ebml-go.
 var ErrUnsupportedElement = errors.New("unsupported element")
 
+// ErrNonStringMapKey is returned if input is  map and key is not a string.
+var ErrNonStringMapKey = errors.New("non-string map key")
+
 // Marshal struct to EBML bytes.
 //
 // Examples of struct field tags:
@@ -108,21 +111,46 @@ func deepIsZero(v reflect.Value) bool {
 }
 
 func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, options *MarshalOptions) (uint64, error) {
-	l := vo.NumField()
-	for i := 0; i < l; i++ {
-		vn := vo.Field(i)
-		tn := vo.Type().Field(i)
+	var l int
+	var tagFieldFunc func(int) (*structTag, reflect.Value, error)
 
-		tag := &structTag{}
-		if n, ok := tn.Tag.Lookup("ebml"); ok {
-			var err error
-			if tag, err = parseTag(n); err != nil {
-				return pos, err
+	switch vo.Kind() {
+	case reflect.Struct:
+		l = vo.NumField()
+		tagFieldFunc = func(i int) (*structTag, reflect.Value, error) {
+			tag := &structTag{}
+			tn := vo.Type().Field(i)
+			if n, ok := tn.Tag.Lookup("ebml"); ok {
+				var err error
+				if tag, err = parseTag(n); err != nil {
+					return nil, reflect.Value{}, err
+				}
 			}
+			if tag.name == "" {
+				tag.name = tn.Name
+			}
+			return tag, vo.Field(i), nil
 		}
-		if tag.name == "" {
-			tag.name = tn.Name
+	case reflect.Map:
+		l = vo.Len()
+		keys := vo.MapKeys()
+		tagFieldFunc = func(i int) (*structTag, reflect.Value, error) {
+			name := keys[i]
+			if name.Kind() != reflect.String {
+				return nil, reflect.Value{}, ErrNonStringMapKey
+			}
+			return &structTag{name: name.String()}, vo.MapIndex(name), nil
 		}
+	default:
+		return pos, ErrIncompatibleType
+	}
+
+	for i := 0; i < l; i++ {
+		tag, vn, err := tagFieldFunc(i)
+		if err != nil {
+			return pos, err
+		}
+
 		t, err := ElementTypeFromString(tag.name)
 		if err != nil {
 			return pos, err
