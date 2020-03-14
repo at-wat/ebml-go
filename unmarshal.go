@@ -67,8 +67,10 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 		r = r0
 	}
 
+	var mapOut bool
 	fieldMap := make(map[ElementType]reflect.Value)
-	if vo.IsValid() {
+	switch vo.Kind() {
+	case reflect.Struct:
 		for i := 0; i < vo.NumField(); i++ {
 			var nn []string
 			if n, ok := vo.Type().Field(i).Tag.Lookup("ebml"); ok {
@@ -86,6 +88,8 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			}
 			fieldMap[t] = vo.Field(i)
 		}
+	case reflect.Map:
+		mapOut = true
 	}
 
 	for {
@@ -109,8 +113,10 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			return nil, err
 		}
 		var vnext reflect.Value
-		if vn, ok := fieldMap[v.e]; ok {
-			vnext = vn
+		if !mapOut {
+			if vn, ok := fieldMap[v.e]; ok {
+				vnext = vn
+			}
 		}
 
 		var chanSend reflect.Value
@@ -136,16 +142,21 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 				return bytes.NewBuffer(b), io.EOF
 			}
 			var vn reflect.Value
-			if vnext.IsValid() && vnext.CanSet() {
-				switch vnext.Kind() {
-				case reflect.Ptr:
-					vnext.Set(reflect.New(vnext.Type().Elem()))
-					vn = vnext.Elem()
-				case reflect.Slice:
-					vnext.Set(reflect.Append(vnext, reflect.New(vnext.Type().Elem()).Elem()))
-					vn = vnext.Index(vnext.Len() - 1)
-				default:
-					vn = vnext
+			if mapOut {
+				vnext = reflect.ValueOf(make(map[string]interface{}))
+				vn = vnext
+			} else {
+				if vnext.IsValid() && vnext.CanSet() {
+					switch vnext.Kind() {
+					case reflect.Ptr:
+						vnext.Set(reflect.New(vnext.Type().Elem()))
+						vn = vnext.Elem()
+					case reflect.Slice:
+						vnext.Set(reflect.Append(vnext, reflect.New(vnext.Type().Elem()).Elem()))
+						vn = vnext.Index(vnext.Len() - 1)
+					default:
+						vn = vnext
+					}
 				}
 			}
 			if elem != nil {
@@ -164,33 +175,52 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 				return nil, err
 			}
 			vr := reflect.ValueOf(val)
-			if vnext.IsValid() && vnext.CanSet() {
-				switch {
-				case vr.Type() == vnext.Type():
-					vnext.Set(vr)
-				case isConvertible(vr.Type(), vnext.Type()):
-					vnext.Set(vr.Convert(vnext.Type()))
-				case vnext.Kind() == reflect.Slice:
-					t := vnext.Type().Elem()
+			if mapOut {
+				vnext = vr
+			} else {
+				if vnext.IsValid() && vnext.CanSet() {
 					switch {
-					case vr.Type() == t:
-						vnext.Set(reflect.Append(vnext, vr))
-					case isConvertible(vr.Type(), t):
-						vnext.Set(reflect.Append(vnext, vr.Convert(t)))
+					case vr.Type() == vnext.Type():
+						vnext.Set(vr)
+					case isConvertible(vr.Type(), vnext.Type()):
+						vnext.Set(vr.Convert(vnext.Type()))
+					case vnext.Kind() == reflect.Slice:
+						t := vnext.Type().Elem()
+						switch {
+						case vr.Type() == t:
+							vnext.Set(reflect.Append(vnext, vr))
+						case isConvertible(vr.Type(), t):
+							vnext.Set(reflect.Append(vnext, vr.Convert(t)))
+						default:
+							return nil, wrapErrorf(
+								ErrIncompatibleType, "unmarshalling %s to %s", vnext.Type(), vr.Type(),
+							)
+						}
 					default:
 						return nil, wrapErrorf(
 							ErrIncompatibleType, "unmarshalling %s to %s", vnext.Type(), vr.Type(),
 						)
 					}
-				default:
-					return nil, wrapErrorf(
-						ErrIncompatibleType, "unmarshalling %s to %s", vnext.Type(), vr.Type(),
-					)
 				}
 			}
 			if elem != nil {
 				elem.Value = vr.Interface()
 			}
+		}
+		if mapOut {
+			key := reflect.ValueOf(v.e.String())
+			if e := vo.MapIndex(key); e.IsValid() {
+				switch e.Elem().Kind() {
+				case reflect.Slice:
+					vnext = reflect.Append(e.Elem(), vnext)
+				default:
+					vnext = reflect.ValueOf([]interface{}{
+						e.Elem().Interface(),
+						vnext.Interface()},
+					)
+				}
+			}
+			vo.SetMapIndex(key, vnext)
 		}
 		if chanSend.IsValid() {
 			chanSend.Send(vnext)

@@ -347,6 +347,36 @@ func TestUnmarshal_Tag(t *testing.T) {
 	}
 }
 
+func TestUnmarshal_Map(t *testing.T) {
+	b := []byte{
+		0x1A, 0x45, 0xDF, 0xA3, 0x88,
+		0x42, 0x82, 0x85, 0x68, 0x6F, 0x67, 0x65, 0x00,
+		0x18, 0x53, 0x80, 0x67, 0xFF,
+		0x1F, 0x43, 0xB6, 0x75, 0x80,
+		0x1F, 0x43, 0xB6, 0x75, 0x80,
+	}
+	expected := map[string]interface{}{
+		"EBML": map[string]interface{}{
+			"EBMLDocType": "hoge",
+		},
+		"Segment": map[string]interface{}{
+			"Cluster": []interface{}{
+				map[string]interface{}{},
+				map[string]interface{}{},
+			},
+		},
+	}
+
+	ret := make(map[string]interface{})
+	if err := Unmarshal(bytes.NewBuffer(b), &ret); err != nil {
+		t.Fatalf("Unexpected error: '%v'", err)
+	}
+
+	if !reflect.DeepEqual(expected, ret) {
+		t.Errorf("Unmarshal to map differs from expected:\n%#+v\ngot:\n%#+v", expected, ret)
+	}
+}
+
 func TestUnmarshal_Error(t *testing.T) {
 	type TestEBML struct {
 		Header struct {
