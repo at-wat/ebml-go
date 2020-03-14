@@ -16,7 +16,6 @@ package ebml
 
 import (
 	"bytes"
-	"fmt"
 )
 
 type elementDef struct {
@@ -104,7 +103,6 @@ var revTable elementRevTable
 func init() {
 	revTable = make(elementRevTable)
 	initReverseLookupTable(revTable, table)
-	fmt.Printf("%+v\n", revTable)
 }
 
 func initReverseLookupTable(revTb elementRevTable, tb elementTable) {
