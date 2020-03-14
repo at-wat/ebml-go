@@ -354,6 +354,7 @@ func TestUnmarshal_Map(t *testing.T) {
 		0x18, 0x53, 0x80, 0x67, 0xFF,
 		0x1F, 0x43, 0xB6, 0x75, 0x80,
 		0x1F, 0x43, 0xB6, 0x75, 0x80,
+		0x1F, 0x43, 0xB6, 0x75, 0x80,
 	}
 	expected := map[string]interface{}{
 		"EBML": map[string]interface{}{
@@ -361,6 +362,7 @@ func TestUnmarshal_Map(t *testing.T) {
 		},
 		"Segment": map[string]interface{}{
 			"Cluster": []interface{}{
+				map[string]interface{}{},
 				map[string]interface{}{},
 				map[string]interface{}{},
 			},
