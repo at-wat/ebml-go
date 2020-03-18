@@ -266,6 +266,20 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 					}
 					pos, err = writeOne(lst[0])
 				}
+			case reflect.Func:
+				val := vn.Call(nil)[0]
+				lst, ok := pealElem(val, e.t == DataTypeBinary, tag.omitEmpty)
+				if !ok {
+					return pos, wrapErrorf(
+						ErrIncompatibleType, "marshalling %s from func", val.Type(),
+					)
+				}
+				if len(lst) != 1 {
+					return pos, wrapErrorf(
+						ErrIncompatibleType, "marshalling %s from func", val.Type(),
+					)
+				}
+				pos, err = writeOne(lst[0])
 			default:
 				pos, err = writeOne(vn)
 			}

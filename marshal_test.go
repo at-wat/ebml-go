@@ -543,6 +543,80 @@ func TestMarshal_Chan(t *testing.T) {
 	})
 }
 
+func TestMarshal_Func(t *testing.T) {
+	expected := []byte{
+		0x18, 0x53, 0x80, 0x67, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0x1F, 0x43, 0xB6, 0x75, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0xE7, 0x81, 0x01,
+	}
+	type Cluster struct {
+		Timecode uint64 `ebml:"Timecode"`
+	}
+
+	t.Run("FuncStruct", func(t *testing.T) {
+		input := &struct {
+			Segment struct {
+				Cluster func() Cluster `ebml:"Cluster,size=unknown"`
+			} `ebml:"Segment,size=unknown"`
+		}{}
+		input.Segment.Cluster = func() Cluster {
+			return Cluster{Timecode: 0x01}
+		}
+
+		var b bytes.Buffer
+		if err := Marshal(input, &b); err != nil {
+			t.Fatalf("Unexpected error: '%v'", err)
+		}
+		if !bytes.Equal(expected, b.Bytes()) {
+			t.Errorf("Marshaled binary doesn't match:\n expected: %v,\n      got: %v", expected, b.Bytes())
+		}
+	})
+	t.Run("FuncStructPtr", func(t *testing.T) {
+		input := &struct {
+			Segment struct {
+				Cluster func() *Cluster `ebml:"Cluster,size=unknown"`
+			} `ebml:"Segment,size=unknown"`
+		}{}
+
+		t.Run("Valid", func(t *testing.T) {
+			input.Segment.Cluster = func() *Cluster {
+				return &Cluster{Timecode: 0x01}
+			}
+
+			var b bytes.Buffer
+			if err := Marshal(input, &b); err != nil {
+				t.Fatalf("Unexpected error: '%v'", err)
+			}
+			if !bytes.Equal(expected, b.Bytes()) {
+				t.Errorf("Marshaled binary doesn't match:\n expected: %v,\n      got: %v", expected, b.Bytes())
+			}
+		})
+		t.Run("Nil", func(t *testing.T) {
+			input.Segment.Cluster = func() *Cluster {
+				return nil
+			}
+
+			if err := Marshal(input, &bytes.Buffer{}); !errs.Is(err, ErrIncompatibleType) {
+				t.Fatalf("Expected error: '%v', got: '%v'", ErrIncompatibleType, err)
+			}
+		})
+	})
+	t.Run("FuncStructSlice", func(t *testing.T) {
+		input := &struct {
+			Segment struct {
+				Cluster func() []Cluster `ebml:"Cluster,size=unknown"`
+			} `ebml:"Segment,size=unknown"`
+		}{}
+		input.Segment.Cluster = func() []Cluster {
+			return make([]Cluster, 2)
+		}
+
+		if err := Marshal(input, &bytes.Buffer{}); !errs.Is(err, ErrIncompatibleType) {
+			t.Fatalf("Expected error: '%v', got: '%v'", ErrIncompatibleType, err)
+		}
+	})
+}
+
 func BenchmarkMarshal(b *testing.B) {
 	type EBMLHeader struct {
 		DocType            string `ebml:"EBMLDocType"`
