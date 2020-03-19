@@ -274,12 +274,9 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 						ErrIncompatibleType, "marshalling %s from func", val.Type(),
 					)
 				}
-				if len(lst) != 1 {
-					return pos, wrapErrorf(
-						ErrIncompatibleType, "marshalling %s from func", val.Type(),
-					)
+				for _, l := range lst {
+					pos, err = writeOne(l)
 				}
-				pos, err = writeOne(lst[0])
 			default:
 				pos, err = writeOne(vn)
 			}

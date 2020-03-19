@@ -608,11 +608,25 @@ func TestMarshal_Func(t *testing.T) {
 			} `ebml:"Segment,size=unknown"`
 		}{}
 		input.Segment.Cluster = func() []Cluster {
-			return make([]Cluster, 2)
+			return []Cluster{
+				{Timecode: 0x01},
+				{Timecode: 0x02},
+			}
 		}
 
-		if err := Marshal(input, &bytes.Buffer{}); !errs.Is(err, ErrIncompatibleType) {
-			t.Fatalf("Expected error: '%v', got: '%v'", ErrIncompatibleType, err)
+		var b bytes.Buffer
+		if err := Marshal(input, &b); err != nil {
+			t.Fatalf("Unexpected error: '%v'", err)
+		}
+		expected := []byte{
+			0x18, 0x53, 0x80, 0x67, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0x1F, 0x43, 0xB6, 0x75, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0xE7, 0x81, 0x01,
+			0x1F, 0x43, 0xB6, 0x75, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0xE7, 0x81, 0x02,
+		}
+		if !bytes.Equal(expected, b.Bytes()) {
+			t.Errorf("Marshaled binary doesn't match:\n expected: %v,\n      got: %v", expected, b.Bytes())
 		}
 	})
 }
