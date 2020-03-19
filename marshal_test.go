@@ -674,6 +674,18 @@ func TestMarshal_Func(t *testing.T) {
 			}
 		})
 	})
+	t.Run("InvalidFunc", func(t *testing.T) {
+		input := &struct {
+			Segment struct {
+				Cluster func() `ebml:"Cluster,size=unknown"`
+			} `ebml:"Segment,size=unknown"`
+		}{}
+		input.Segment.Cluster = func() {}
+
+		if err := Marshal(input, &bytes.Buffer{}); !errs.Is(err, ErrIncompatibleType) {
+			t.Fatalf("Expected error: '%v', got: '%v'", ErrIncompatibleType, err)
+		}
+	})
 }
 
 func BenchmarkMarshal(b *testing.B) {

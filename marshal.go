@@ -268,8 +268,12 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 				}
 			case reflect.Func:
 				ret := vn.Call(nil)
+				lenRet := len(ret)
+				if lenRet != 1 && lenRet != 2 {
+					return pos, wrapErrorf(ErrIncompatibleType, "Number of return value must be 1 or 2 but %d", lenRet)
+				}
 				val := ret[0]
-				if len(ret) == 2 {
+				if lenRet == 2 {
 					errVal := ret[1]
 					if errVal.Type().String() != "error" {
 						return pos, wrapErrorf(ErrIncompatibleType, "2nd return value must be error but %s", errVal.Type())
