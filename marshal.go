@@ -267,7 +267,18 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 					pos, err = writeOne(lst[0])
 				}
 			case reflect.Func:
-				val := vn.Call(nil)[0]
+				ret := vn.Call(nil)
+				val := ret[0]
+				if len(ret) == 2 {
+					errVal := ret[1]
+					if errVal.Type().String() != "error" {
+						return pos, wrapErrorf(ErrIncompatibleType, "2nd return value must be error but %s", errVal.Type())
+					}
+					iFace := errVal.Interface()
+					if iFace != nil {
+						return pos, iFace.(error)
+					}
+				}
 				lst, ok := pealElem(val, e.t == DataTypeBinary, tag.omitEmpty)
 				if !ok {
 					return pos, wrapErrorf(

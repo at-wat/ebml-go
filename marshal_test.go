@@ -629,6 +629,51 @@ func TestMarshal_Func(t *testing.T) {
 			t.Errorf("Marshaled binary doesn't match:\n expected: %v,\n      got: %v", expected, b.Bytes())
 		}
 	})
+	t.Run("FuncWithError", func(t *testing.T) {
+		input := &struct {
+			Segment struct {
+				Cluster func() (Cluster, error) `ebml:"Cluster,size=unknown"`
+			} `ebml:"Segment,size=unknown"`
+		}{}
+
+		t.Run("Valid", func(t *testing.T) {
+			input.Segment.Cluster = func() (Cluster, error) {
+				return Cluster{Timecode: 0x01}, nil
+			}
+
+			var b bytes.Buffer
+			if err := Marshal(input, &b); err != nil {
+				t.Fatalf("Unexpected error: '%v'", err)
+			}
+			if !bytes.Equal(expected, b.Bytes()) {
+				t.Errorf("Marshaled binary doesn't match:\n expected: %v,\n      got: %v", expected, b.Bytes())
+			}
+		})
+		t.Run("Error", func(t *testing.T) {
+			expectedErr := errors.New("a error")
+			input.Segment.Cluster = func() (Cluster, error) {
+				return Cluster{Timecode: 0x01}, expectedErr
+			}
+
+			if err := Marshal(input, &bytes.Buffer{}); !errs.Is(err, expectedErr) {
+				t.Fatalf("Expected error: '%v', got: '%v'", expectedErr, err)
+			}
+		})
+		t.Run("NotError", func(t *testing.T) {
+			input := &struct {
+				Segment struct {
+					Cluster func() (*Cluster, int) `ebml:"Cluster,size=unknown"`
+				} `ebml:"Segment,size=unknown"`
+			}{}
+			input.Segment.Cluster = func() (*Cluster, int) {
+				return nil, 1
+			}
+
+			if err := Marshal(input, &bytes.Buffer{}); !errs.Is(err, ErrIncompatibleType) {
+				t.Fatalf("Expected error: '%v', got: '%v'", ErrIncompatibleType, err)
+			}
+		})
+	})
 }
 
 func BenchmarkMarshal(b *testing.B) {
