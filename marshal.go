@@ -278,8 +278,7 @@ func marshalImpl(vo reflect.Value, w io.Writer, pos uint64, parent *Element, opt
 					if errVal.Type().String() != "error" {
 						return pos, wrapErrorf(ErrIncompatibleType, "2nd return value must be error but %s", errVal.Type())
 					}
-					iFace := errVal.Interface()
-					if iFace != nil {
+					if iFace := errVal.Interface(); iFace != nil {
 						return pos, iFace.(error)
 					}
 				}
