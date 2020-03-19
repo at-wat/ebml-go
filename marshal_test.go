@@ -650,7 +650,7 @@ func TestMarshal_Func(t *testing.T) {
 			}
 		})
 		t.Run("Error", func(t *testing.T) {
-			expectedErr := errors.New("a error")
+			expectedErr := errors.New("an error")
 			input.Segment.Cluster = func() (Cluster, error) {
 				return Cluster{Timecode: 0x01}, expectedErr
 			}
@@ -659,7 +659,7 @@ func TestMarshal_Func(t *testing.T) {
 				t.Fatalf("Expected error: '%v', got: '%v'", expectedErr, err)
 			}
 		})
-		t.Run("NotError", func(t *testing.T) {
+		t.Run("NonErrorType", func(t *testing.T) {
 			input := &struct {
 				Segment struct {
 					Cluster func() (*Cluster, int) `ebml:"Cluster,size=unknown"`
