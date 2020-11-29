@@ -1,0 +1,51 @@
+name: ci
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go:
+          - '1.11'
+          - '1.12'
+          - '1.13'
+          - '1.14'
+          - '1.15'
+    env:
+      GO111MODULE: on
+      REVIEWDOG_ON: '1.15'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Install golint
+        if: env.REVIEWDOG_ON == matrix.go
+        run: |
+          go install golang.org/x/lint/golint
+          golint ./...
+      - name: Run go test
+        run: |
+          go vet ./...
+          go build ./...
+
+          go test $(go list ./... | grep -v examples) \
+            -v \
+            -race -coverprofile=coverage.txt -covermode=atomic
+
+          go mod tidy
+          git diff --exit-code go.mod go.sum  # mod/sum must be up-to-date and tidied
+      - uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./cover.out
