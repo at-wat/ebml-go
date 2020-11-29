@@ -41,7 +41,7 @@ jobs:
 
           go test $(go list ./... | grep -v examples) \
             -v \
-            -race -coverprofile=coverage.txt -covermode=atomic
+            -race -coverprofile=cover.out -covermode=atomic
 
           go mod tidy
           git diff --exit-code go.mod  # must be up-to-date and tidied
