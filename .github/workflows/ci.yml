@@ -47,5 +47,4 @@ jobs:
           git diff --exit-code go.mod  # must be up-to-date and tidied
       - uses: codecov/codecov-action@v1
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
           file: ./cover.out
