@@ -44,7 +44,7 @@ jobs:
             -race -coverprofile=coverage.txt -covermode=atomic
 
           go mod tidy
-          git diff --exit-code go.mod go.sum  # mod/sum must be up-to-date and tidied
+          git diff --exit-code go.mod  # must be up-to-date and tidied
       - uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
