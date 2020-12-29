@@ -37,6 +37,7 @@ const (
 	ElementEBMLDocTypeVersion
 	ElementEBMLDocTypeReadVersion
 
+	ElementCRC32
 	ElementVoid
 	ElementSegment
 
@@ -104,6 +105,13 @@ const (
 	ElementDisplayHeight
 	ElementDisplayUnit
 	ElementAspectRatioType
+	ElementColour
+	ElementMatrixCoefficients
+	ElementChromaSitingHorz
+	ElementChromaSitingVert
+	ElementRange
+	ElementTransferCharacteristics
+	ElementPrimaries
 	ElementAudio
 	ElementSamplingFrequency
 	ElementOutputSamplingFrequency
@@ -155,6 +163,7 @@ var elementTypeName = map[ElementType]string{
 	ElementEBMLDocType:             "EBMLDocType",
 	ElementEBMLDocTypeVersion:      "EBMLDocTypeVersion",
 	ElementEBMLDocTypeReadVersion:  "EBMLDocTypeReadVersion",
+	ElementCRC32:                   "CRC32",
 	ElementVoid:                    "Void",
 	ElementSegment:                 "Segment",
 	ElementSeekHead:                "SeekHead",
@@ -218,6 +227,13 @@ var elementTypeName = map[ElementType]string{
 	ElementDisplayHeight:           "DisplayHeight",
 	ElementDisplayUnit:             "DisplayUnit",
 	ElementAspectRatioType:         "AspectRatioType",
+	ElementColour:                  "Colour",
+	ElementMatrixCoefficients:      "MatrixCoefficients",
+	ElementChromaSitingHorz:        "ChromaSitingHorz",
+	ElementChromaSitingVert:        "ChromaSitingVert",
+	ElementRange:                   "Range",
+	ElementTransferCharacteristics: "TransferCharacteristics",
+	ElementPrimaries:               "Primaries",
 	ElementAudio:                   "Audio",
 	ElementSamplingFrequency:       "SamplingFrequency",
 	ElementOutputSamplingFrequency: "OutputSamplingFrequency",
