@@ -76,14 +76,18 @@ const (
 	ElementTrackUID
 	ElementTrackType
 	ElementFlagEnabled
+	ElementFlagDefault
 	ElementFlagForced
 	ElementFlagLacing
+	ElementMinCache
 	ElementDefaultDuration
+	ElementMaxBlockAdditionID
 	ElementName
 	ElementLanguage
 	ElementCodecID
 	ElementCodecPrivate
 	ElementCodecName
+	ElementCodecDecodeAll
 	ElementCodecDelay
 	ElementSeekPreRoll
 	ElementVideo
@@ -122,6 +126,8 @@ const (
 	ElementCueTrackPositions
 	ElementCueTrack
 	ElementCueClusterPosition
+	ElementCueRelativePosition
+	ElementCueDuration
 	ElementCueBlockNumber
 
 	ElementTags
@@ -184,14 +190,18 @@ var elementTypeName = map[ElementType]string{
 	ElementTrackUID:                "TrackUID",
 	ElementTrackType:               "TrackType",
 	ElementFlagEnabled:             "FlagEnabled",
+	ElementFlagDefault:             "FlagDefault",
 	ElementFlagForced:              "FlagForced",
 	ElementFlagLacing:              "FlagLacing",
+	ElementMinCache:                "MinCache",
 	ElementDefaultDuration:         "DefaultDuration",
+	ElementMaxBlockAdditionID:      "MaxBlockAdditionID",
 	ElementName:                    "Name",
 	ElementLanguage:                "Language",
 	ElementCodecID:                 "CodecID",
 	ElementCodecPrivate:            "CodecPrivate",
 	ElementCodecName:               "CodecName",
+	ElementCodecDecodeAll:          "CodecDecodeAll",
 	ElementCodecDelay:              "CodecDelay",
 	ElementSeekPreRoll:             "SeekPreRoll",
 	ElementVideo:                   "Video",
@@ -229,6 +239,8 @@ var elementTypeName = map[ElementType]string{
 	ElementCueTrackPositions:       "CueTrackPositions",
 	ElementCueTrack:                "CueTrack",
 	ElementCueClusterPosition:      "CueClusterPosition",
+	ElementCueRelativePosition:     "CueRelativePosition",
+	ElementCueDuration:             "CueDuration",
 	ElementCueBlockNumber:          "CueBlockNumber",
 	ElementTags:                    "Tags",
 	ElementTag:                     "Tag",
