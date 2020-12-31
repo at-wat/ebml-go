@@ -37,6 +37,7 @@ const (
 	ElementEBMLDocTypeVersion
 	ElementEBMLDocTypeReadVersion
 
+	ElementCRC32
 	ElementVoid
 	ElementSegment
 
@@ -76,14 +77,18 @@ const (
 	ElementTrackUID
 	ElementTrackType
 	ElementFlagEnabled
+	ElementFlagDefault
 	ElementFlagForced
 	ElementFlagLacing
+	ElementMinCache
 	ElementDefaultDuration
+	ElementMaxBlockAdditionID
 	ElementName
 	ElementLanguage
 	ElementCodecID
 	ElementCodecPrivate
 	ElementCodecName
+	ElementCodecDecodeAll
 	ElementCodecDelay
 	ElementSeekPreRoll
 	ElementVideo
@@ -100,6 +105,13 @@ const (
 	ElementDisplayHeight
 	ElementDisplayUnit
 	ElementAspectRatioType
+	ElementColour
+	ElementMatrixCoefficients
+	ElementChromaSitingHorz
+	ElementChromaSitingVert
+	ElementRange
+	ElementTransferCharacteristics
+	ElementPrimaries
 	ElementAudio
 	ElementSamplingFrequency
 	ElementOutputSamplingFrequency
@@ -122,6 +134,8 @@ const (
 	ElementCueTrackPositions
 	ElementCueTrack
 	ElementCueClusterPosition
+	ElementCueRelativePosition
+	ElementCueDuration
 	ElementCueBlockNumber
 
 	ElementTags
@@ -149,6 +163,7 @@ var elementTypeName = map[ElementType]string{
 	ElementEBMLDocType:             "EBMLDocType",
 	ElementEBMLDocTypeVersion:      "EBMLDocTypeVersion",
 	ElementEBMLDocTypeReadVersion:  "EBMLDocTypeReadVersion",
+	ElementCRC32:                   "CRC32",
 	ElementVoid:                    "Void",
 	ElementSegment:                 "Segment",
 	ElementSeekHead:                "SeekHead",
@@ -184,14 +199,18 @@ var elementTypeName = map[ElementType]string{
 	ElementTrackUID:                "TrackUID",
 	ElementTrackType:               "TrackType",
 	ElementFlagEnabled:             "FlagEnabled",
+	ElementFlagDefault:             "FlagDefault",
 	ElementFlagForced:              "FlagForced",
 	ElementFlagLacing:              "FlagLacing",
+	ElementMinCache:                "MinCache",
 	ElementDefaultDuration:         "DefaultDuration",
+	ElementMaxBlockAdditionID:      "MaxBlockAdditionID",
 	ElementName:                    "Name",
 	ElementLanguage:                "Language",
 	ElementCodecID:                 "CodecID",
 	ElementCodecPrivate:            "CodecPrivate",
 	ElementCodecName:               "CodecName",
+	ElementCodecDecodeAll:          "CodecDecodeAll",
 	ElementCodecDelay:              "CodecDelay",
 	ElementSeekPreRoll:             "SeekPreRoll",
 	ElementVideo:                   "Video",
@@ -208,6 +227,13 @@ var elementTypeName = map[ElementType]string{
 	ElementDisplayHeight:           "DisplayHeight",
 	ElementDisplayUnit:             "DisplayUnit",
 	ElementAspectRatioType:         "AspectRatioType",
+	ElementColour:                  "Colour",
+	ElementMatrixCoefficients:      "MatrixCoefficients",
+	ElementChromaSitingHorz:        "ChromaSitingHorz",
+	ElementChromaSitingVert:        "ChromaSitingVert",
+	ElementRange:                   "Range",
+	ElementTransferCharacteristics: "TransferCharacteristics",
+	ElementPrimaries:               "Primaries",
 	ElementAudio:                   "Audio",
 	ElementSamplingFrequency:       "SamplingFrequency",
 	ElementOutputSamplingFrequency: "OutputSamplingFrequency",
@@ -229,6 +255,8 @@ var elementTypeName = map[ElementType]string{
 	ElementCueTrackPositions:       "CueTrackPositions",
 	ElementCueTrack:                "CueTrack",
 	ElementCueClusterPosition:      "CueClusterPosition",
+	ElementCueRelativePosition:     "CueRelativePosition",
+	ElementCueDuration:             "CueDuration",
 	ElementCueBlockNumber:          "CueBlockNumber",
 	ElementTags:                    "Tags",
 	ElementTag:                     "Tag",
