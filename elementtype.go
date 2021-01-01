@@ -84,6 +84,8 @@ const (
 	ElementCodecState
 	ElementDiscardPadding
 	ElementSlices
+	ElementTimeSlice
+	ElementLaceNumber
 
 	ElementTracks
 	ElementTrackEntry
@@ -98,6 +100,7 @@ const (
 	ElementMaxCache
 	ElementDefaultDuration
 	ElementDefaultDecodedFieldDuration
+	ElementTrackTimestampScale
 	ElementMaxBlockAdditionID
 	ElementBlockAdditionMapping
 	ElementBlockAddIDValue
@@ -110,6 +113,7 @@ const (
 	ElementCodecID
 	ElementCodecPrivate
 	ElementCodecName
+	ElementAttachmentLink
 	ElementCodecDecodeAll
 	ElementTrackOverlay
 	ElementCodecDelay
@@ -325,6 +329,8 @@ var elementTypeName = map[ElementType]string{
 	ElementCodecState:              "CodecState",
 	ElementDiscardPadding:          "DiscardPadding",
 	ElementSlices:                  "Slices",
+	ElementTimeSlice:               "TimeSlice",
+	ElementLaceNumber:              "LaceNumber",
 	ElementTracks:                  "Tracks",
 	ElementTrackEntry:              "TrackEntry",
 	ElementTrackNumber:             "TrackNumber",
@@ -338,6 +344,7 @@ var elementTypeName = map[ElementType]string{
 	ElementMaxCache:                "MaxCache",
 	ElementDefaultDuration:         "DefaultDuration",
 	ElementDefaultDecodedFieldDuration: "DefaultDecodedFieldDuration",
+	ElementTrackTimestampScale:     "TrackTimestampScale",
 	ElementMaxBlockAdditionID:      "MaxBlockAdditionID",
 	ElementBlockAdditionMapping:    "BlockAdditionMapping",
 	ElementBlockAddIDValue:         "BlockAddIDValue",
@@ -350,6 +357,7 @@ var elementTypeName = map[ElementType]string{
 	ElementCodecID:                 "CodecID",
 	ElementCodecPrivate:            "CodecPrivate",
 	ElementCodecName:               "CodecName",
+	ElementAttachmentLink:          "AttachmentLink",
 	ElementCodecDecodeAll:          "CodecDecodeAll",
 	ElementTrackOverlay:            "TrackOverlay",
 	ElementCodecDelay:              "CodecDelay",
