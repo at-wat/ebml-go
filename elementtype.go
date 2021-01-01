@@ -49,6 +49,15 @@ const (
 	ElementInfo
 	ElementSegmentUID
 	ElementSegmentFilename
+	ElementPrevUID
+	ElementPrevFilename
+	ElementNextUID
+	ElementNextFilename
+	ElementSegmentFamily
+	ElementChapterTranslate
+	ElementChapterTranslateEditionUID
+	ElementChapterTranslateCodec
+	ElementChapterTranslateID
 	ElementTimestampScale
 	ElementDuration
 	ElementDateUTC
@@ -58,6 +67,8 @@ const (
 
 	ElementCluster
 	ElementTimestamp
+	ElementSilentTracks
+	ElementSilentTrackNumber
 	ElementPosition
 	ElementPrevSize
 	ElementSimpleBlock
@@ -68,8 +79,11 @@ const (
 	ElementBlockAddID
 	ElementBlockAdditional
 	ElementBlockDuration
+	ElementReferencePriority
 	ElementReferenceBlock
+	ElementCodecState
 	ElementDiscardPadding
+	ElementSlices
 
 	ElementTracks
 	ElementTrackEntry
@@ -81,18 +95,32 @@ const (
 	ElementFlagForced
 	ElementFlagLacing
 	ElementMinCache
+	ElementMaxCache
 	ElementDefaultDuration
+	ElementDefaultDecodedFieldDuration
 	ElementMaxBlockAdditionID
+	ElementBlockAdditionMapping
+	ElementBlockAddIDValue
+	ElementBlockAddIDName
+	ElementBlockAddIDType
+	ElementBlockAddIDExtraData
 	ElementName
 	ElementLanguage
+	ElementLanguageIETF
 	ElementCodecID
 	ElementCodecPrivate
 	ElementCodecName
 	ElementCodecDecodeAll
+	ElementTrackOverlay
 	ElementCodecDelay
 	ElementSeekPreRoll
+	ElementTrackTranslate
+	ElementTrackTranslateEditionUID
+	ElementTrackTranslateCodec
+	ElementTrackTranslateTrackID
 	ElementVideo
 	ElementFlagInterlaced
+	ElementFieldOrder
 	ElementStereoMode
 	ElementAlphaMode
 	ElementPixelWidth
@@ -105,28 +133,67 @@ const (
 	ElementDisplayHeight
 	ElementDisplayUnit
 	ElementAspectRatioType
+	ElementColourSpace
 	ElementColour
 	ElementMatrixCoefficients
+	ElementBitsPerChannel
+	ElementChromaSubsamplingHorz
+	ElementChromaSubsamplingVert
+	ElementCbSubsamplingHorz
+	ElementCbSubsamplingVert
 	ElementChromaSitingHorz
 	ElementChromaSitingVert
 	ElementRange
 	ElementTransferCharacteristics
 	ElementPrimaries
+	ElementMaxCLL
+	ElementMaxFALL
+	ElementMasteringMetadata
+	ElementPrimaryRChromaticityX
+	ElementPrimaryRChromaticityY
+	ElementPrimaryGChromaticityX
+	ElementPrimaryGChromaticityY
+	ElementPrimaryBChromaticityX
+	ElementPrimaryBChromaticityY
+	ElementWhitePointChromaticityX
+	ElementWhitePointChromaticityY
+	ElementLuminanceMax
+	ElementLuminanceMin
+	ElementProjection
+	ElementProjectionType
+	ElementProjectionPrivate
+	ElementProjectionPoseYaw
+	ElementProjectionPosePitch
+	ElementProjectionPoseRoll
 	ElementAudio
 	ElementSamplingFrequency
 	ElementOutputSamplingFrequency
 	ElementChannels
 	ElementBitDepth
+	ElementTrackOperation
+	ElementTrackCombinePlanes
+	ElementTrackPlane
+	ElementTrackPlaneUID
+	ElementTrackPlaneType
+	ElementTrackJoinBlocks
+	ElementTrackJoinUID
 	ElementContentEncodings
 	ElementContentEncoding
 	ElementContentEncodingOrder
 	ElementContentEncodingScope
 	ElementContentEncodingType
+	ElementContentCompression
+	ElementContentCompAlgo
+	ElementContentCompSettings
 	ElementContentEncryption
 	ElementContentEncAlgo
 	ElementContentEncKeyID
 	ElementContentEncAESSettings
 	ElementAESSettingsCipherMode
+	ElementContentSignature
+	ElementContentSigKeyID
+	ElementContentSigAlgo
+	ElementContentSigHashAlgo
 
 	ElementCues
 	ElementCuePoint
@@ -137,11 +204,62 @@ const (
 	ElementCueRelativePosition
 	ElementCueDuration
 	ElementCueBlockNumber
+	ElementCueCodecState
+	ElementCueReference
+	ElementCueRefTime
+
+	ElementAttachments
+	ElementAttachedFile
+	ElementFileDescription
+	ElementFileName
+	ElementFileMimeType
+	ElementFileData
+	ElementFileUID
+
+	ElementChapters
+	ElementEditionEntry
+	ElementEditionUID
+	ElementEditionFlagHidden
+	ElementEditionFlagDefault
+	ElementEditionFlagOrdered
+	ElementChapterAtom
+	ElementChapterUID
+	ElementChapterStringUID
+	ElementChapterTimeStart
+	ElementChapterTimeEnd
+	ElementChapterFlagHidden
+	ElementChapterFlagEnabled
+	ElementChapterSegmentUID
+	ElementChapterSegmentEditionUID
+	ElementChapterPhysicalEquiv
+	ElementChapterTrack
+	ElementChapterTrackUID
+	ElementChapterDisplay
+	ElementChapString
+	ElementChapLanguage
+	ElementChapLanguageIETF
+	ElementChapCountry
+	ElementChapProcess
+	ElementChapProcessCodecID
+	ElementChapProcessPrivate
+	ElementChapProcessCommand
+	ElementChapProcessTime
+	ElementChapProcessData
 
 	ElementTags
 	ElementTag
+	ElementTargets
+	ElementTargetTypeValue
+	ElementTargetType
+	ElementTagTrackUID
+	ElementTagEditionUID
+	ElementTagChapterUID
+	ElementTagAttachmentUID
 	ElementSimpleTag
 	ElementTagName
+	ElementTagLanguage
+	ElementTagLanguageIETF
+	ElementTagDefault
 	ElementTagString
 	ElementTagBinary
 
@@ -173,6 +291,15 @@ var elementTypeName = map[ElementType]string{
 	ElementInfo:                    "Info",
 	ElementSegmentUID:              "SegmentUID",
 	ElementSegmentFilename:         "SegmentFilename",
+	ElementPrevUID:                 "PrevUID",
+	ElementPrevFilename:            "PrevFilename",
+	ElementNextUID:                 "NextUID",
+	ElementNextFilename:            "NextFilename",
+	ElementSegmentFamily:           "SegmentFamily",
+	ElementChapterTranslate:        "ChapterTranslate",
+	ElementChapterTranslateEditionUID: "ChapterTranslateEditionUID",
+	ElementChapterTranslateCodec:   "ChapterTranslateCodec",
+	ElementChapterTranslateID:      "ChapterTranslateID",
 	ElementTimestampScale:          "TimestampScale",
 	ElementDuration:                "Duration",
 	ElementDateUTC:                 "DateUTC",
@@ -181,6 +308,8 @@ var elementTypeName = map[ElementType]string{
 	ElementWritingApp:              "WritingApp",
 	ElementCluster:                 "Cluster",
 	ElementTimestamp:               "Timestamp",
+	ElementSilentTracks:            "SilentTracks",
+	ElementSilentTrackNumber:       "SilentTrackNumber",
 	ElementPosition:                "Position",
 	ElementPrevSize:                "PrevSize",
 	ElementSimpleBlock:             "SimpleBlock",
@@ -191,8 +320,11 @@ var elementTypeName = map[ElementType]string{
 	ElementBlockAddID:              "BlockAddID",
 	ElementBlockAdditional:         "BlockAdditional",
 	ElementBlockDuration:           "BlockDuration",
+	ElementReferencePriority:       "ReferencePriority",
 	ElementReferenceBlock:          "ReferenceBlock",
+	ElementCodecState:              "CodecState",
 	ElementDiscardPadding:          "DiscardPadding",
+	ElementSlices:                  "Slices",
 	ElementTracks:                  "Tracks",
 	ElementTrackEntry:              "TrackEntry",
 	ElementTrackNumber:             "TrackNumber",
@@ -203,18 +335,32 @@ var elementTypeName = map[ElementType]string{
 	ElementFlagForced:              "FlagForced",
 	ElementFlagLacing:              "FlagLacing",
 	ElementMinCache:                "MinCache",
+	ElementMaxCache:                "MaxCache",
 	ElementDefaultDuration:         "DefaultDuration",
+	ElementDefaultDecodedFieldDuration: "DefaultDecodedFieldDuration",
 	ElementMaxBlockAdditionID:      "MaxBlockAdditionID",
+	ElementBlockAdditionMapping:    "BlockAdditionMapping",
+	ElementBlockAddIDValue:         "BlockAddIDValue",
+	ElementBlockAddIDName:          "BlockAddIDName",
+	ElementBlockAddIDType:          "BlockAddIDType",
+	ElementBlockAddIDExtraData:     "BlockAddIDExtraData",
 	ElementName:                    "Name",
 	ElementLanguage:                "Language",
+	ElementLanguageIETF:            "LanguageIETF",
 	ElementCodecID:                 "CodecID",
 	ElementCodecPrivate:            "CodecPrivate",
 	ElementCodecName:               "CodecName",
 	ElementCodecDecodeAll:          "CodecDecodeAll",
+	ElementTrackOverlay:            "TrackOverlay",
 	ElementCodecDelay:              "CodecDelay",
 	ElementSeekPreRoll:             "SeekPreRoll",
+	ElementTrackTranslate:          "TrackTranslate",
+	ElementTrackTranslateEditionUID: "TrackTranslateEditionUID",
+	ElementTrackTranslateCodec:     "TrackTranslateCodec",
+	ElementTrackTranslateTrackID:   "TrackTranslateTrackID",
 	ElementVideo:                   "Video",
 	ElementFlagInterlaced:          "FlagInterlaced",
+	ElementFieldOrder:              "FieldOrder",
 	ElementStereoMode:              "StereoMode",
 	ElementAlphaMode:               "AlphaMode",
 	ElementPixelWidth:              "PixelWidth",
@@ -227,28 +373,67 @@ var elementTypeName = map[ElementType]string{
 	ElementDisplayHeight:           "DisplayHeight",
 	ElementDisplayUnit:             "DisplayUnit",
 	ElementAspectRatioType:         "AspectRatioType",
+	ElementColourSpace:             "ColourSpace",
 	ElementColour:                  "Colour",
 	ElementMatrixCoefficients:      "MatrixCoefficients",
+	ElementBitsPerChannel:          "BitsPerChannel",
+	ElementChromaSubsamplingHorz:   "ChromaSubsamplingHorz",
+	ElementChromaSubsamplingVert:   "ChromaSubsamplingVert",
+	ElementCbSubsamplingHorz:       "CbSubsamplingHorz",
+	ElementCbSubsamplingVert:       "CbSubsamplingVert",
 	ElementChromaSitingHorz:        "ChromaSitingHorz",
 	ElementChromaSitingVert:        "ChromaSitingVert",
 	ElementRange:                   "Range",
 	ElementTransferCharacteristics: "TransferCharacteristics",
 	ElementPrimaries:               "Primaries",
+	ElementMaxCLL:                  "MaxCLL",
+	ElementMaxFALL:                 "MaxFALL",
+	ElementMasteringMetadata:       "MasteringMetadata",
+	ElementPrimaryRChromaticityX:   "PrimaryRChromaticityX",
+	ElementPrimaryRChromaticityY:   "PrimaryRChromaticityY",
+	ElementPrimaryGChromaticityX:   "PrimaryGChromaticityX",
+	ElementPrimaryGChromaticityY:   "PrimaryGChromaticityY",
+	ElementPrimaryBChromaticityX:   "PrimaryBChromaticityX",
+	ElementPrimaryBChromaticityY:   "PrimaryBChromaticityY",
+	ElementWhitePointChromaticityX: "WhitePointChromaticityX",
+	ElementWhitePointChromaticityY: "WhitePointChromaticityY",
+	ElementLuminanceMax:            "LuminanceMax",
+	ElementLuminanceMin:            "LuminanceMin",
+	ElementProjection:              "Projection",
+	ElementProjectionType:          "ProjectionType",
+	ElementProjectionPrivate:       "ProjectionPrivate",
+	ElementProjectionPoseYaw:       "ProjectionPoseYaw",
+	ElementProjectionPosePitch:     "ProjectionPosePitch",
+	ElementProjectionPoseRoll:      "ProjectionPoseRoll",
 	ElementAudio:                   "Audio",
 	ElementSamplingFrequency:       "SamplingFrequency",
 	ElementOutputSamplingFrequency: "OutputSamplingFrequency",
 	ElementChannels:                "Channels",
 	ElementBitDepth:                "BitDepth",
+	ElementTrackOperation:          "TrackOperation",
+	ElementTrackCombinePlanes:      "TrackCombinePlanes",
+	ElementTrackPlane:              "TrackPlane",
+	ElementTrackPlaneUID:           "TrackPlaneUID",
+	ElementTrackPlaneType:          "TrackPlaneType",
+	ElementTrackJoinBlocks:         "TrackJoinBlocks",
+	ElementTrackJoinUID:            "TrackJoinUID",
 	ElementContentEncodings:        "ContentEncodings",
 	ElementContentEncoding:         "ContentEncoding",
 	ElementContentEncodingOrder:    "ContentEncodingOrder",
 	ElementContentEncodingScope:    "ContentEncodingScope",
 	ElementContentEncodingType:     "ContentEncodingType",
+	ElementContentCompression:      "ContentCompression",
+	ElementContentCompAlgo:         "ContentCompAlgo",
+	ElementContentCompSettings:     "ContentCompSettings",
 	ElementContentEncryption:       "ContentEncryption",
 	ElementContentEncAlgo:          "ContentEncAlgo",
 	ElementContentEncKeyID:         "ContentEncKeyID",
 	ElementContentEncAESSettings:   "ContentEncAESSettings",
 	ElementAESSettingsCipherMode:   "AESSettingsCipherMode",
+	ElementContentSignature:        "ContentSignature",
+	ElementContentSigKeyID:         "ContentSigKeyID",
+	ElementContentSigAlgo:          "ContentSigAlgo",
+	ElementContentSigHashAlgo:      "ContentSigHashAlgo",
 	ElementCues:                    "Cues",
 	ElementCuePoint:                "CuePoint",
 	ElementCueTime:                 "CueTime",
@@ -258,6 +443,45 @@ var elementTypeName = map[ElementType]string{
 	ElementCueRelativePosition:     "CueRelativePosition",
 	ElementCueDuration:             "CueDuration",
 	ElementCueBlockNumber:          "CueBlockNumber",
+	ElementCueCodecState:           "CueCodecState",
+	ElementCueReference:            "CueReference",
+	ElementCueRefTime:              "CueRefTime",
+	ElementAttachments:             "Attachments",
+	ElementAttachedFile:            "AttachedFile",
+	ElementFileDescription:         "FileDescription",
+	ElementFileName:                "FileName",
+	ElementFileMimeType:            "FileMimeType",
+	ElementFileData:                "FileData",
+	ElementFileUID:                 "FileUID",
+	ElementChapters:                "Chapters",
+	ElementEditionEntry:            "EditionEntry",
+	ElementEditionUID:              "EditionUID",
+	ElementEditionFlagHidden:       "EditionFlagHidden",
+	ElementEditionFlagDefault:      "EditionFlagDefault",
+	ElementEditionFlagOrdered:      "EditionFlagOrdered",
+	ElementChapterAtom:             "ChapterAtom",
+	ElementChapterUID:              "ChapterUID",
+	ElementChapterStringUID:        "ChapterStringUID",
+	ElementChapterTimeStart:        "ChapterTimeStart",
+	ElementChapterTimeEnd:          "ChapterTimeEnd",
+	ElementChapterFlagHidden:       "ChapterFlagHidden",
+	ElementChapterFlagEnabled:      "ChapterFlagEnabled",
+	ElementChapterSegmentUID:       "ChapterSegmentUID",
+	ElementChapterSegmentEditionUID: "ChapterSegmentEditionUID",
+	ElementChapterPhysicalEquiv:    "ChapterPhysicalEquiv",
+	ElementChapterTrack:            "ChapterTrack",
+	ElementChapterTrackUID:         "ChapterTrackUID",
+	ElementChapterDisplay:          "ChapterDisplay",
+	ElementChapString:              "ChapString",
+	ElementChapLanguage:            "ChapLanguage",
+	ElementChapLanguageIETF:        "ChapLanguageIETF",
+	ElementChapCountry:             "ChapCountry",
+	ElementChapProcess:             "ChapProcess",
+	ElementChapProcessCodecID:      "ChapProcessCodecID",
+	ElementChapProcessPrivate:      "ChapProcessPrivate",
+	ElementChapProcessCommand:      "ChapProcessCommand",
+	ElementChapProcessTime:         "ChapProcessTime",
+	ElementChapProcessData:         "ChapProcessData",
 	ElementTags:                    "Tags",
 	ElementTag:                     "Tag",
 	ElementSimpleTag:               "SimpleTag",
