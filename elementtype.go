@@ -84,7 +84,9 @@ const (
 	ElementCodecState
 	ElementDiscardPadding
 	ElementSlices
+	// Deprecated: Dropped in v2
 	ElementTimeSlice
+	// Deprecated: Dropped in v2
 	ElementLaceNumber
 
 	ElementTracks
@@ -100,6 +102,7 @@ const (
 	ElementMaxCache
 	ElementDefaultDuration
 	ElementDefaultDecodedFieldDuration
+	// Deprecated: Dropped in v4
 	ElementTrackTimestampScale
 	ElementMaxBlockAdditionID
 	ElementBlockAdditionMapping
@@ -113,6 +116,7 @@ const (
 	ElementCodecID
 	ElementCodecPrivate
 	ElementCodecName
+	// Deprecated: Dropped in v4
 	ElementAttachmentLink
 	ElementCodecDecodeAll
 	ElementTrackOverlay
