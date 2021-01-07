@@ -405,7 +405,7 @@ func TestUnmarshal_Error(t *testing.T) {
 	})
 	t.Run("UnknownElement", func(t *testing.T) {
 		input := &TestEBML{}
-		b := []byte{0x80}
+		b := []byte{0x81}
 		if err := Unmarshal(bytes.NewBuffer(b), input); !errs.Is(err, ErrUnknownElement) {
 			t.Errorf("Expected error: '%v', got: '%v'\n", ErrUnknownElement, err)
 		}
