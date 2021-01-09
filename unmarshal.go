@@ -103,7 +103,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			return nil, err
 		}
 		v, ok := revTable[uint32(e)]
-		if !ok {
+		if !ok && !options.ignoreUnknown {
 			return nil, wrapErrorf(ErrUnknownElement, "unmarshalling element 0x%x", e)
 		}
 
@@ -112,6 +112,18 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 		if err != nil {
 			return nil, err
 		}
+
+		if !ok {
+			if size == SizeUnknown {
+				return nil, wrapErrorf(ErrUnknownElement, "unmarshalling unknown size element 0x%x", e)
+			}
+			if _, err := readBinary(r, size); err != nil {
+				return nil, err
+			}
+			pos += headerSize + size
+			continue
+		}
+
 		var vnext reflect.Value
 		if !mapOut {
 			if vn, ok := fieldMap[v.e]; ok {
@@ -240,13 +252,22 @@ type UnmarshalOption func(*UnmarshalOptions) error
 
 // UnmarshalOptions stores options for unmarshalling.
 type UnmarshalOptions struct {
-	hooks []func(elem *Element)
+	hooks         []func(elem *Element)
+	ignoreUnknown bool
 }
 
 // WithElementReadHooks returns an UnmarshalOption which registers element hooks.
 func WithElementReadHooks(hooks ...func(*Element)) UnmarshalOption {
 	return func(opts *UnmarshalOptions) error {
 		opts.hooks = hooks
+		return nil
+	}
+}
+
+// WithIgnoreUnknown returns an UnmarshalOption which makes Unmarshal ignoring unknown element with static length.
+func WithIgnoreUnknown(ignore bool) UnmarshalOption {
+	return func(opts *UnmarshalOptions) error {
+		opts.ignoreUnknown = ignore
 		return nil
 	}
 }
