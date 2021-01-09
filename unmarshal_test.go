@@ -379,6 +379,37 @@ func TestUnmarshal_Map(t *testing.T) {
 	}
 }
 
+func TestUnmarshal_IgnoreUnknown(t *testing.T) {
+	b := []byte{
+		0x1A, 0x45, 0xDF, 0xA3, 0x8C,
+		0x81, 0x82, 0x00, 0x00, // 0x81 is not defined in Matroska v4
+		0x42, 0x82, 0x85, 0x68, 0x6F, 0x67, 0x65, 0x00,
+		0x18, 0x53, 0x80, 0x67, 0xFF,
+		0x1F, 0x43, 0xB6, 0x75, 0x80,
+		0x1F, 0x43, 0xB6, 0x75, 0x80,
+	}
+	expected := map[string]interface{}{
+		"EBML": map[string]interface{}{
+			"EBMLDocType": "hoge",
+		},
+		"Segment": map[string]interface{}{
+			"Cluster": []interface{}{
+				map[string]interface{}{},
+				map[string]interface{}{},
+			},
+		},
+	}
+
+	ret := make(map[string]interface{})
+	if err := Unmarshal(bytes.NewBuffer(b), &ret, WithIgnoreUnknown(true)); err != nil {
+		t.Fatalf("Unexpected error: '%v'", err)
+	}
+
+	if !reflect.DeepEqual(expected, ret) {
+		t.Errorf("Unmarshal to map differs from expected:\n%#+v\ngot:\n%#+v", expected, ret)
+	}
+}
+
 func TestUnmarshal_Error(t *testing.T) {
 	type TestEBML struct {
 		Header struct {
@@ -408,6 +439,24 @@ func TestUnmarshal_Error(t *testing.T) {
 		b := []byte{0x81}
 		if err := Unmarshal(bytes.NewBuffer(b), input); !errs.Is(err, ErrUnknownElement) {
 			t.Errorf("Expected error: '%v', got: '%v'\n", ErrUnknownElement, err)
+		}
+	})
+	t.Run("NonStaticUnknownElementWithIgnoreUnknown", func(t *testing.T) {
+		input := &TestEBML{}
+		b := []byte{0x81, 0xFF}
+		if err := Unmarshal(
+			bytes.NewBuffer(b), input, WithIgnoreUnknown(true),
+		); !errs.Is(err, ErrUnknownElement) {
+			t.Errorf("Expected error: '%v', got: '%v'\n", ErrUnknownElement, err)
+		}
+	})
+	t.Run("ShortUnknownElementWithIgnoreUnknown", func(t *testing.T) {
+		input := &TestEBML{}
+		b := []byte{0x81, 0x85, 0x00}
+		if err := Unmarshal(
+			bytes.NewBuffer(b), input, WithIgnoreUnknown(true),
+		); !errs.Is(err, io.ErrUnexpectedEOF) {
+			t.Errorf("Expected error: '%v', got: '%v'\n", io.ErrUnexpectedEOF, err)
 		}
 	})
 	t.Run("Short", func(t *testing.T) {
