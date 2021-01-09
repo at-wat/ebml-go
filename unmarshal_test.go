@@ -450,6 +450,15 @@ func TestUnmarshal_Error(t *testing.T) {
 			t.Errorf("Expected error: '%v', got: '%v'\n", ErrUnknownElement, err)
 		}
 	})
+	t.Run("ShortUnknownElementWithIgnoreUnknown", func(t *testing.T) {
+		input := &TestEBML{}
+		b := []byte{0x81, 0x85, 0x00}
+		if err := Unmarshal(
+			bytes.NewBuffer(b), input, WithIgnoreUnknown(true),
+		); !errs.Is(err, io.ErrUnexpectedEOF) {
+			t.Errorf("Expected error: '%v', got: '%v'\n", io.ErrUnexpectedEOF, err)
+		}
+	})
 	t.Run("Short", func(t *testing.T) {
 		TestBinaries := map[string][]byte{
 			"ElementID": {0x1a, 0x45, 0xdf},
