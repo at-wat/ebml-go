@@ -94,7 +94,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 
 	for {
 		var headerSize uint64
-		e, nb, err := readVInt(r)
+		e, nb, err := readVUInt(r)
 		headerSize += uint64(nb)
 		if err != nil {
 			if nb == 0 && err == io.ErrUnexpectedEOF {
@@ -133,7 +133,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 
 		var chanSend reflect.Value
 		var elem *Element
-		if len(options.hooks) > 0 && vnext.IsValid() {
+		if len(options.hooks) > 0 {
 			elem = &Element{
 				Name:     v.e.String(),
 				Type:     v.e,

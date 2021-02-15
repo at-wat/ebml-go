@@ -141,10 +141,23 @@ func NewEBMLUnlacer(r io.Reader, n int64) (Unlacer, error) {
 		r:    r,
 		size: make([]int, nFrame),
 	}
-	for i := 0; i < nFrame-1; i++ {
-		n64, nRead, err := readVInt(ul.r)
+	un64, nRead, err := readVUInt(ul.r)
+	if err != nil {
+		return nil, err
+	}
+	n64 := int64(un64)
+	n -= int64(nRead)
+	ul.size[0] = int(n64)
+	ul.size[nFrame-1] -= int(n64)
+
+	for i := 1; i < nFrame-1; i++ {
+		n64Diff, nRead, err := readVInt(ul.r)
+		n64 += int64(n64Diff)
 		if err != nil {
 			return nil, err
+		}
+		if n64 < 0 {
+			return nil, io.ErrUnexpectedEOF
 		}
 		n -= int64(nRead)
 		ul.size[i] = int(n64)

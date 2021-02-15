@@ -35,12 +35,12 @@ func TestDataSize(t *testing.T) {
 
 	for n, c := range testCases {
 		t.Run("DecodeVInt "+n, func(t *testing.T) {
-			r, _, err := readVInt(bytes.NewBuffer(c.b))
+			r, _, err := readVUInt(bytes.NewBuffer(c.b))
 			if err != nil {
-				t.Fatalf("Failed to readVInt: '%v'", err)
+				t.Fatalf("Failed to readVUInt: '%v'", err)
 			}
 			if r != c.i {
-				t.Errorf("Expected readVInt result: %d, got: %d", c.i, r)
+				t.Errorf("Expected readVUInt result: %d, got: %d", c.i, r)
 			}
 		})
 	}
@@ -51,7 +51,7 @@ func TestDataSize(t *testing.T) {
 				t.Fatalf("Failed to readDataSize: '%v'", err)
 			}
 			if r != c.i {
-				t.Errorf("Expected readVInt result: %d, got: %d", c.i, r)
+				t.Errorf("Expected readVUInt result: %d, got: %d", c.i, r)
 			}
 		})
 	}
@@ -112,12 +112,12 @@ func TestElementID(t *testing.T) {
 
 	for n, c := range testCases {
 		t.Run("Decode "+n, func(t *testing.T) {
-			r, _, err := readVInt(bytes.NewBuffer(c.b))
+			r, _, err := readVUInt(bytes.NewBuffer(c.b))
 			if err != nil {
-				t.Fatalf("Failed to readVInt: '%v'", err)
+				t.Fatalf("Failed to readVUInt: '%v'", err)
 			}
 			if r != c.i {
-				t.Errorf("Expected readVInt result: %d, got: %d", c.i, r)
+				t.Errorf("Expected readVUInt result: %d, got: %d", c.i, r)
 			}
 		})
 	}

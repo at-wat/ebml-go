@@ -51,13 +51,13 @@ var perTypeReader = map[DataType]func(io.Reader, uint64) (interface{}, error){
 }
 
 func readDataSize(r io.Reader) (uint64, int, error) {
-	v, n, err := readVInt(r)
+	v, n, err := readVUInt(r)
 	if v == (uint64(0xFFFFFFFFFFFFFFFF) >> uint(64-n*7)) {
 		return SizeUnknown, n, err
 	}
 	return v, n, err
 }
-func readVInt(r io.Reader) (uint64, int, error) {
+func readVUInt(r io.Reader) (uint64, int, error) {
 	var bs [1]byte
 	bytesRead, err := io.ReadFull(r, bs[:])
 	switch err {
@@ -117,6 +117,32 @@ func readVInt(r io.Reader) (uint64, int, error) {
 		value = value<<8 | uint64(bs[0])
 		vc--
 	}
+}
+func readVInt(r io.Reader) (int64, int, error) {
+	u, n, err := readVUInt(r)
+	if err != nil {
+		return 0, n, err
+	}
+	v := int64(u)
+	switch n {
+	case 1:
+		v -= 0x3F
+	case 2:
+		v -= 0x1FFF
+	case 3:
+		v -= 0x0FFFFF
+	case 4:
+		v -= 0x07FFFFFF
+	case 5:
+		v -= 0x03FFFFFFFF
+	case 6:
+		v -= 0x01FFFFFFFFFF
+	case 7:
+		v -= 0x00FFFFFFFFFFFF
+	default:
+		v -= 0x007FFFFFFFFFFFFF
+	}
+	return v, n, nil
 }
 func readBinary(r io.Reader, n uint64) (interface{}, error) {
 	bs := make([]byte, n)
