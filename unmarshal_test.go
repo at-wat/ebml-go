@@ -369,14 +369,27 @@ func TestUnmarshal_Map(t *testing.T) {
 		},
 	}
 
-	ret := make(map[string]interface{})
-	if err := Unmarshal(bytes.NewBuffer(b), &ret); err != nil {
-		t.Fatalf("Unexpected error: '%v'", err)
-	}
+	t.Run("AllocatedMap", func(t *testing.T) {
+		ret := make(map[string]interface{})
+		if err := Unmarshal(bytes.NewBuffer(b), &ret); err != nil {
+			t.Fatalf("Unexpected error: '%v'", err)
+		}
 
-	if !reflect.DeepEqual(expected, ret) {
-		t.Errorf("Unmarshal to map differs from expected:\n%#+v\ngot:\n%#+v", expected, ret)
-	}
+		if !reflect.DeepEqual(expected, ret) {
+			t.Errorf("Unmarshal to map differs from expected:\n%#+v\ngot:\n%#+v", expected, ret)
+		}
+	})
+
+	t.Run("NilMap", func(t *testing.T) {
+		var ret map[string]interface{}
+		if err := Unmarshal(bytes.NewBuffer(b), &ret); err != nil {
+			t.Fatalf("Unexpected error: '%v'", err)
+		}
+
+		if !reflect.DeepEqual(expected, ret) {
+			t.Errorf("Unmarshal to map differs from expected:\n%#+v\ngot:\n%#+v", expected, ret)
+		}
+	})
 }
 
 func TestUnmarshal_IgnoreUnknown(t *testing.T) {

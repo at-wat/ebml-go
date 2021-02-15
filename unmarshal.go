@@ -220,6 +220,10 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			}
 		}
 		if mapOut {
+			t := vo.Type()
+			if vo.IsNil() && t.Kind() == reflect.Map {
+				vo.Set(reflect.MakeMap(t))
+			}
 			key := reflect.ValueOf(v.e.String())
 			if e := vo.MapIndex(key); e.IsValid() {
 				switch e.Elem().Kind() {
