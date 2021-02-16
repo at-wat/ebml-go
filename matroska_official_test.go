@@ -82,10 +82,10 @@ func TestMatroskaOfficial(t *testing.T) {
 		"DifferentEBMLHeadSizesAndCueLessSeeking": {
 			filename: "test6.mkv",
 		},
-		// "ExtraUnknownJunkElementsDamaged": {
-		// 	filename: "test7.mkv",
-		// 	opts:     []UnmarshalOption{WithIgnoreUnknown(true)},
-		// },
+		"ExtraUnknownJunkElementsDamaged": {
+			filename: "test7.mkv",
+			opts:     []UnmarshalOption{WithIgnoreUnknown(true)},
+		},
 		"AudioGap": {
 			filename: "test8.mkv",
 		},
