@@ -283,6 +283,28 @@ func encodeElementID(v uint64) ([]byte, error) {
 	}
 	return nil, ErrUnsupportedElementID
 }
+func encodeVInt(v int64) ([]byte, error) {
+	switch {
+	case -0x3F <= v && v <= 0x3F:
+		v += 0x3F
+	case -0x1FFF <= v && v <= 0x1FFF:
+		v += 0x1FFF
+	case -0x0FFFFF <= v && v <= 0x0FFFFF:
+		v += 0x0FFFFF
+	case -0x07FFFFFF <= v && v <= 0x07FFFFFF:
+		v += 0x07FFFFFF
+	case -0x03FFFFFFFF <= v && v <= 0x03FFFFFFFF:
+		v += 0x03FFFFFFFF
+	case -0x01FFFFFFFFFF <= v && v <= 0x01FFFFFFFFFF:
+		v += 0x01FFFFFFFFFF
+	case -0x00FFFFFFFFFFFF <= v && v <= 0x00FFFFFFFFFFFF:
+		v += 0x00FFFFFFFFFFFF
+	default:
+		v += 0x007FFFFFFFFFFFFF
+	}
+	return encodeElementID(uint64(v))
+}
+
 func encodeBinary(i interface{}, n uint64) ([]byte, error) {
 	v, ok := i.([]byte)
 	if !ok {

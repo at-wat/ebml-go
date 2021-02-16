@@ -117,21 +117,21 @@ func TestLacer(t *testing.T) {
 		"EBML": {
 			newLacer: NewEBMLLacer,
 			frames: [][]byte{
-				bytes.Repeat([]byte{0xAA}, 256),
-				bytes.Repeat([]byte{0xCC}, 16),
-				bytes.Repeat([]byte{0x55}, 8),
+				bytes.Repeat([]byte{0xAA}, 800),
+				bytes.Repeat([]byte{0xCC}, 500),
+				bytes.Repeat([]byte{0x55}, 100),
 			},
 			b: append(
 				[]byte{
 					0x02,
-					0x41, 0x00, // 256 bytes
-					0x90, // 16 bytes
+					0x43, 0x20, // 800 bytes
+					0x5E, 0xD3, // 500 bytes
 				},
 				bytes.Join(
 					[][]byte{
-						bytes.Repeat([]byte{0xAA}, 256),
-						bytes.Repeat([]byte{0xCC}, 16),
-						bytes.Repeat([]byte{0x55}, 8),
+						bytes.Repeat([]byte{0xAA}, 800),
+						bytes.Repeat([]byte{0xCC}, 500),
+						bytes.Repeat([]byte{0x55}, 100),
 					}, []byte{})...),
 			err: nil,
 		},
