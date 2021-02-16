@@ -100,28 +100,29 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			if nb == 0 && err == io.ErrUnexpectedEOF {
 				return nil, io.EOF
 			}
-			return nil, err
+			if !options.ignoreUnknown {
+				return nil, err
+			}
+			return nil, nil
 		}
 		v, ok := revTable[uint32(e)]
-		if !ok && !options.ignoreUnknown {
-			return nil, wrapErrorf(ErrUnknownElement, "unmarshalling element 0x%x", e)
+		if !ok {
+			if !options.ignoreUnknown {
+				return nil, wrapErrorf(ErrUnknownElement, "unmarshalling element 0x%x", e)
+			}
+			remain, _ := encodeElementID(e)
+			r = io.MultiReader(
+				bytes.NewReader(remain[1:]),
+				r,
+			)
+			pos++
+			continue
 		}
 
 		size, nb, err := readDataSize(r)
 		headerSize += uint64(nb)
 		if err != nil {
 			return nil, err
-		}
-
-		if !ok {
-			if size == SizeUnknown {
-				return nil, wrapErrorf(ErrUnknownElement, "unmarshalling unknown size element 0x%x", e)
-			}
-			if _, err := readBinary(r, size); err != nil {
-				return nil, err
-			}
-			pos += headerSize + size
-			continue
 		}
 
 		var vnext reflect.Value
