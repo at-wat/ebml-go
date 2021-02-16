@@ -133,7 +133,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 
 		var chanSend reflect.Value
 		var elem *Element
-		if len(options.hooks) > 0 {
+		if len(options.hooks) > 0 && vnext.IsValid() {
 			elem = &Element{
 				Name:     v.e.String(),
 				Type:     v.e,
