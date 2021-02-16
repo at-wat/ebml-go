@@ -74,7 +74,6 @@ func TestMatroskaOfficial(t *testing.T) {
 		},
 		// "LiveStreamRecording": {
 		// 	filename: "test4.mkv",
-		// 	opts:     []UnmarshalOption{WithIgnoreUnknown(true)},
 		// },
 		"MultipleAudioSubtitles": {
 			filename: "test5.mkv",
