@@ -67,7 +67,7 @@ func UnmarshalBlock(r io.Reader, n int64) (*Block, error) {
 	var b Block
 	var err error
 	var nRead int
-	if b.TrackNumber, nRead, err = readVInt(r); err != nil {
+	if b.TrackNumber, nRead, err = readVUInt(r); err != nil {
 		return nil, err
 	}
 	n -= int64(nRead)

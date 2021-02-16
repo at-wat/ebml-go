@@ -94,7 +94,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 
 	for {
 		var headerSize uint64
-		e, nb, err := readVInt(r)
+		e, nb, err := readVUInt(r)
 		headerSize += uint64(nb)
 		if err != nil {
 			if nb == 0 && err == io.ErrUnexpectedEOF {

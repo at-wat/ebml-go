@@ -117,8 +117,18 @@ func (l *ebmlLacer) Write(b [][]byte) error {
 		return wrapErrorf(ErrTooManyFrames, "lacing %d frames", nFrames)
 	}
 	size := []byte{byte(nFrames - 1)}
-	for i := 0; i < nFrames-1; i++ {
-		n, err := encodeElementID(uint64(len(b[i])))
+
+	n, err := encodeElementID(uint64(len(b[0])))
+	if err != nil {
+		return err
+	}
+	size = append(size, n...)
+
+	frameSizePrev := int64(len(b[0]))
+	for i := 1; i < nFrames-1; i++ {
+		frameSize := int64(len(b[i]))
+		n, err := encodeVInt(frameSize - frameSizePrev)
+		frameSizePrev = frameSize
 		if err != nil {
 			return err
 		}

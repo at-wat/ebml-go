@@ -111,13 +111,13 @@ func TestUnlacer(t *testing.T) {
 			newUnlacer: NewEBMLUnlacer,
 			header: []byte{
 				0x02,
-				0x41, 0x00, // 256 bytes
-				0x90, // 16 bytes
+				0x43, 0x20, // 800 bytes
+				0x5E, 0xD3, // 500 bytes
 			},
 			frames: [][]byte{
-				bytes.Repeat([]byte{0xAA}, 256),
-				bytes.Repeat([]byte{0xCC}, 16),
-				bytes.Repeat([]byte{0x55}, 8),
+				bytes.Repeat([]byte{0xAA}, 800),
+				bytes.Repeat([]byte{0xCC}, 500),
+				bytes.Repeat([]byte{0x55}, 100),
 			},
 			err: nil,
 		},
@@ -136,12 +136,31 @@ func TestUnlacer(t *testing.T) {
 			frames: [][]byte{},
 			err:    io.ErrUnexpectedEOF,
 		},
+		"EBMLInvalidSize2": {
+			newUnlacer: NewEBMLUnlacer,
+			header: []byte{
+				0x03,
+				0x81,
+			},
+			frames: [][]byte{},
+			err:    io.ErrUnexpectedEOF,
+		},
+		"EBMLNegativeSize": {
+			newUnlacer: NewEBMLUnlacer,
+			header: []byte{
+				0x03,
+				0x81, // 1 byte
+				0x80, // -62 bytes
+			},
+			frames: [][]byte{},
+			err:    io.ErrUnexpectedEOF,
+		},
 		"EBMLMissingFrame": {
 			newUnlacer: NewEBMLUnlacer,
 			header: []byte{
 				0x02,
-				0x82,
-				0x81,
+				0x82, // 2 bytes
+				0x9F, // 2 bytes
 			},
 			frames: [][]byte{{0x00, 0x01}},
 			err:    io.ErrUnexpectedEOF,
@@ -150,8 +169,8 @@ func TestUnlacer(t *testing.T) {
 			newUnlacer: NewEBMLUnlacer,
 			header: []byte{
 				0x02,
-				0x82,
-				0x81,
+				0x82, // 2 bytes
+				0x9E, // 1 byte
 			},
 			frames: [][]byte{{0x00, 0x01}, {0x02}},
 			err:    io.ErrUnexpectedEOF,

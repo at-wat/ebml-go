@@ -40,6 +40,9 @@ var ErrInvalidType = errors.New("invalid type")
 // ErrUnsupportedElementID means that a value is out of range of EBML encoding.
 var ErrUnsupportedElementID = errors.New("unsupported Element ID")
 
+// ErrOutOfRange means that a value is out of range of the data type.
+var ErrOutOfRange = errors.New("out of range")
+
 var perTypeReader = map[DataType]func(io.Reader, uint64) (interface{}, error){
 	DataTypeInt:    readInt,
 	DataTypeUInt:   readUInt,
@@ -51,13 +54,13 @@ var perTypeReader = map[DataType]func(io.Reader, uint64) (interface{}, error){
 }
 
 func readDataSize(r io.Reader) (uint64, int, error) {
-	v, n, err := readVInt(r)
+	v, n, err := readVUInt(r)
 	if v == (uint64(0xFFFFFFFFFFFFFFFF) >> uint(64-n*7)) {
 		return SizeUnknown, n, err
 	}
 	return v, n, err
 }
-func readVInt(r io.Reader) (uint64, int, error) {
+func readVUInt(r io.Reader) (uint64, int, error) {
 	var bs [1]byte
 	bytesRead, err := io.ReadFull(r, bs[:])
 	switch err {
@@ -117,6 +120,32 @@ func readVInt(r io.Reader) (uint64, int, error) {
 		value = value<<8 | uint64(bs[0])
 		vc--
 	}
+}
+func readVInt(r io.Reader) (int64, int, error) {
+	u, n, err := readVUInt(r)
+	if err != nil {
+		return 0, n, err
+	}
+	v := int64(u)
+	switch n {
+	case 1:
+		v -= 0x3F
+	case 2:
+		v -= 0x1FFF
+	case 3:
+		v -= 0x0FFFFF
+	case 4:
+		v -= 0x07FFFFFF
+	case 5:
+		v -= 0x03FFFFFFFF
+	case 6:
+		v -= 0x01FFFFFFFFFF
+	case 7:
+		v -= 0x00FFFFFFFFFFFF
+	default:
+		v -= 0x007FFFFFFFFFFFFF
+	}
+	return v, n, nil
 }
 func readBinary(r io.Reader, n uint64) (interface{}, error) {
 	bs := make([]byte, n)
@@ -257,6 +286,37 @@ func encodeElementID(v uint64) ([]byte, error) {
 	}
 	return nil, ErrUnsupportedElementID
 }
+func encodeVInt(v int64) ([]byte, error) {
+	switch {
+	case -0x3F <= v && v <= 0x3F:
+		v += 0x3F
+		return encodeDataSize(uint64(v), 1), nil
+	case -0x1FFF <= v && v <= 0x1FFF:
+		v += 0x1FFF
+		return encodeDataSize(uint64(v), 2), nil
+	case -0xFFFFF <= v && v <= 0xFFFFF:
+		v += 0xFFFFF
+		return encodeDataSize(uint64(v), 3), nil
+	case -0x7FFFFFF <= v && v <= 0x7FFFFFF:
+		v += 0x7FFFFFF
+		return encodeDataSize(uint64(v), 4), nil
+	case -0x3FFFFFFFF <= v && v <= 0x3FFFFFFFF:
+		v += 0x3FFFFFFFF
+		return encodeDataSize(uint64(v), 5), nil
+	case -0x1FFFFFFFFFF <= v && v <= 0x1FFFFFFFFFF:
+		v += 0x1FFFFFFFFFF
+		return encodeDataSize(uint64(v), 6), nil
+	case -0xFFFFFFFFFFFF <= v && v <= 0xFFFFFFFFFFFF:
+		v += 0xFFFFFFFFFFFF
+		return encodeDataSize(uint64(v), 7), nil
+	case -0x7FFFFFFFFFFFFF <= v && v <= 0x7FFFFFFFFFFFFF:
+		v += 0x7FFFFFFFFFFFFF
+		return encodeDataSize(uint64(v), 8), nil
+	default:
+		return nil, ErrOutOfRange
+	}
+}
+
 func encodeBinary(i interface{}, n uint64) ([]byte, error) {
 	v, ok := i.([]byte)
 	if !ok {
