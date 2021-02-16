@@ -64,11 +64,16 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 
 func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64, parent *Element, options *UnmarshalOptions) (io.Reader, error) {
 	pos0 := pos
-	r := &rollbackReader{}
-	if n != SizeUnknown {
-		r.Reader = io.LimitReader(r0, n)
+	var r rollbackReader
+	if options.ignoreUnknown {
+		r = &rollbackReaderImpl{}
 	} else {
-		r.Reader = r0
+		r = &rollbackReaderNop{}
+	}
+	if n != SizeUnknown {
+		r.Set(io.LimitReader(r0, n))
+	} else {
+		r.Set(r0)
 	}
 
 	var mapOut bool
@@ -192,7 +197,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 				return r0, err
 			}
 			if r0 != nil {
-				r.Reader = io.MultiReader(r0, r.Reader)
+				r.Set(io.MultiReader(r0, r.Get()))
 			}
 		default:
 			val, err := perTypeReader[v.t](r, size)

@@ -19,26 +19,61 @@ import (
 	"io"
 )
 
-type rollbackReader struct {
+type rollbackReader interface {
+	Set(io.Reader)
+	Get() io.Reader
+	Read([]byte) (int, error)
+	Reset()
+	RollbackTo(int)
+}
+
+type rollbackReaderImpl struct {
 	io.Reader
 	buf []byte
 }
 
-func (r *rollbackReader) Read(b []byte) (int, error) {
+func (r *rollbackReaderImpl) Set(v io.Reader) {
+	r.Reader = v
+}
+
+func (r *rollbackReaderImpl) Get() io.Reader {
+	return r.Reader
+}
+
+func (r *rollbackReaderImpl) Read(b []byte) (int, error) {
 	n, err := r.Reader.Read(b)
 	r.buf = append(r.buf, b[:n]...)
 	return n, err
 }
 
-func (r *rollbackReader) Reset() {
+func (r *rollbackReaderImpl) Reset() {
 	r.buf = r.buf[0:0]
 }
 
-func (r *rollbackReader) RollbackTo(i int) {
+func (r *rollbackReaderImpl) RollbackTo(i int) {
 	buf := r.buf
 	r.Reader = io.MultiReader(
 		bytes.NewReader(buf[i:]),
 		r.Reader,
 	)
 	r.buf = nil
+}
+
+type rollbackReaderNop struct {
+	io.Reader
+}
+
+func (r *rollbackReaderNop) Set(v io.Reader) {
+	r.Reader = v
+}
+
+func (r *rollbackReaderNop) Get() io.Reader {
+	return r.Reader
+}
+
+func (r *rollbackReaderNop) Reset() {
+}
+
+func (r *rollbackReaderNop) RollbackTo(i int) {
+	panic("can't rollback nop rollback reader")
 }
