@@ -226,8 +226,8 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			}
 			key := reflect.ValueOf(v.e.String())
 			if e := vo.MapIndex(key); e.IsValid() {
-				switch e.Elem().Kind() {
-				case reflect.Slice:
+				switch {
+				case e.Elem().Kind() == reflect.Slice && v.t != DataTypeBinary:
 					vnext = reflect.Append(e.Elem(), vnext)
 				default:
 					vnext = reflect.ValueOf([]interface{}{
