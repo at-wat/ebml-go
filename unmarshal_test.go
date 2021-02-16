@@ -396,9 +396,9 @@ func TestUnmarshal_Map(t *testing.T) {
 
 func TestUnmarshal_IgnoreUnknown(t *testing.T) {
 	b := []byte{
-		0x1A, 0x45, 0xDF, 0xA3, 0x8C,
-		0x81, 0x82, 0x00, 0x00, // 0x81 is not defined in Matroska v4
+		0x1A, 0x45, 0xDF, 0xA3, 0x8A,
 		0x42, 0x82, 0x85, 0x68, 0x6F, 0x67, 0x65, 0x00,
+		0x81, 0x81, // 0x81 is not defined in Matroska v4
 		0x18, 0x53, 0x80, 0x67, 0xFF,
 		0x1F, 0x43, 0xB6, 0x75, 0x80,
 		0x1F, 0x43, 0xB6, 0x75, 0x80,
@@ -421,7 +421,7 @@ func TestUnmarshal_IgnoreUnknown(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(expected, ret) {
-		t.Errorf("Unmarshal to map differs from expected:\n%#+v\ngot:\n%#+v", expected, ret)
+		t.Errorf("Unmarshal with IgnoreUnknown differs from expected:\n%#+v\ngot:\n%#+v", expected, ret)
 	}
 }
 
@@ -432,12 +432,12 @@ func TestUnmarshal_Error(t *testing.T) {
 	}
 	t.Run("NilValue", func(t *testing.T) {
 		if err := Unmarshal(bytes.NewBuffer([]byte{}), nil); !errs.Is(err, ErrIndefiniteType) {
-			t.Errorf("Expected error: '%v', got: '%v'\n", ErrIndefiniteType, err)
+			t.Errorf("Expected error: '%v', got: '%v'", ErrIndefiniteType, err)
 		}
 	})
 	t.Run("NonPtr", func(t *testing.T) {
 		if err := Unmarshal(bytes.NewBuffer([]byte{}), struct{}{}); !errs.Is(err, ErrIncompatibleType) {
-			t.Errorf("Expected error: '%v', got: '%v'\n", ErrIncompatibleType, err)
+			t.Errorf("Expected error: '%v', got: '%v'", ErrIncompatibleType, err)
 		}
 	})
 	t.Run("UnknownElementName", func(t *testing.T) {
@@ -446,14 +446,14 @@ func TestUnmarshal_Error(t *testing.T) {
 			} `ebml:"Unknown"`
 		}{}
 		if err := Unmarshal(bytes.NewBuffer([]byte{}), input); !errs.Is(err, ErrUnknownElementName) {
-			t.Errorf("Expected error: '%v', got: '%v'\n", ErrUnknownElementName, err)
+			t.Errorf("Expected error: '%v', got: '%v'", ErrUnknownElementName, err)
 		}
 	})
 	t.Run("UnknownElement", func(t *testing.T) {
 		input := &TestEBML{}
 		b := []byte{0x81}
 		if err := Unmarshal(bytes.NewBuffer(b), input); !errs.Is(err, ErrUnknownElement) {
-			t.Errorf("Expected error: '%v', got: '%v'\n", ErrUnknownElement, err)
+			t.Errorf("Expected error: '%v', got: '%v'", ErrUnknownElement, err)
 		}
 	})
 	t.Run("NonStaticUnknownElementWithIgnoreUnknown", func(t *testing.T) {
@@ -461,8 +461,8 @@ func TestUnmarshal_Error(t *testing.T) {
 		b := []byte{0x81, 0xFF}
 		if err := Unmarshal(
 			bytes.NewBuffer(b), input, WithIgnoreUnknown(true),
-		); !errs.Is(err, ErrUnknownElement) {
-			t.Errorf("Expected error: '%v', got: '%v'\n", ErrUnknownElement, err)
+		); err != nil {
+			t.Errorf("Unexpected error: '%v'", err)
 		}
 	})
 	t.Run("ShortUnknownElementWithIgnoreUnknown", func(t *testing.T) {
@@ -470,8 +470,8 @@ func TestUnmarshal_Error(t *testing.T) {
 		b := []byte{0x81, 0x85, 0x00}
 		if err := Unmarshal(
 			bytes.NewBuffer(b), input, WithIgnoreUnknown(true),
-		); !errs.Is(err, io.ErrUnexpectedEOF) {
-			t.Errorf("Expected error: '%v', got: '%v'\n", io.ErrUnexpectedEOF, err)
+		); err != nil {
+			t.Errorf("Unexpected error: '%v'", err)
 		}
 	})
 	t.Run("Short", func(t *testing.T) {
@@ -489,7 +489,7 @@ func TestUnmarshal_Error(t *testing.T) {
 			t.Run(name, func(t *testing.T) {
 				var val TestEBML
 				if err := Unmarshal(bytes.NewBuffer(b), &val); !errs.Is(err, io.ErrUnexpectedEOF) {
-					t.Errorf("Expected error: '%v', got: '%v'\n", io.ErrUnexpectedEOF, err)
+					t.Errorf("Expected error: '%v', got: '%v'", io.ErrUnexpectedEOF, err)
 				}
 			})
 		}
@@ -510,7 +510,7 @@ func TestUnmarshal_Error(t *testing.T) {
 					var val TestEBML
 					r := &delayedBrokenReader{b: b, limit: i}
 					if err := Unmarshal(r, &val); !errs.Is(err, io.ErrClosedPipe) {
-						t.Errorf("Error is not propagated from Reader, limit: %d, expected: '%v', got: '%v'\n", i, io.ErrClosedPipe, err)
+						t.Errorf("Error is not propagated from Reader, limit: %d, expected: '%v', got: '%v'", i, io.ErrClosedPipe, err)
 					}
 				}
 			})
@@ -582,12 +582,11 @@ func TestUnmarshal_Error(t *testing.T) {
 		for name, c := range cases {
 			t.Run(name, func(t *testing.T) {
 				if err := Unmarshal(bytes.NewBuffer(c.b), c.ret); !errs.Is(err, c.err) {
-					t.Errorf("Expected error: '%v', got: '%v'\n", c.err, err)
+					t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
 				}
 			})
 		}
 	})
-
 }
 
 func BenchmarkUnmarshal(b *testing.B) {
