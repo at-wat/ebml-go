@@ -103,8 +103,17 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			return nil, err
 		}
 		v, ok := revTable[uint32(e)]
-		if !ok && !options.ignoreUnknown {
-			return nil, wrapErrorf(ErrUnknownElement, "unmarshalling element 0x%x", e)
+		if !ok {
+			if !options.ignoreUnknown {
+				return nil, wrapErrorf(ErrUnknownElement, "unmarshalling element 0x%x", e)
+			}
+			remain, _ := encodeElementID(e)
+			r = io.MultiReader(
+				bytes.NewReader(remain[1:]),
+				r,
+			)
+			pos++
+			continue
 		}
 
 		size, nb, err := readDataSize(r)

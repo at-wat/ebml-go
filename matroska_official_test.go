@@ -72,9 +72,10 @@ func TestMatroskaOfficial(t *testing.T) {
 		"HeaderStrippingAndStandardBlock": {
 			filename: "test3.mkv",
 		},
-		// "LiveStreamRecording": {
-		// 	filename: "test4.mkv",
-		// },
+		"LiveStreamRecording": {
+			filename: "test4.mkv",
+			opts:     []UnmarshalOption{WithIgnoreUnknown(true)},
+		},
 		"MultipleAudioSubtitles": {
 			filename: "test5.mkv",
 		},
@@ -82,7 +83,8 @@ func TestMatroskaOfficial(t *testing.T) {
 			filename: "test6.mkv",
 		},
 		// "ExtraUnknownJunkElementsDamaged": {
-		// 	 filename: "test7.mkv",
+		// 	filename: "test7.mkv",
+		// 	opts:     []UnmarshalOption{WithIgnoreUnknown(true)},
 		// },
 		"AudioGap": {
 			filename: "test8.mkv",
