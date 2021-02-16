@@ -287,22 +287,31 @@ func encodeVInt(v int64) ([]byte, error) {
 	switch {
 	case -0x3F <= v && v <= 0x3F:
 		v += 0x3F
+		return encodeDataSize(uint64(v), 1), nil
 	case -0x1FFF <= v && v <= 0x1FFF:
 		v += 0x1FFF
-	case -0x0FFFFF <= v && v <= 0x0FFFFF:
-		v += 0x0FFFFF
-	case -0x07FFFFFF <= v && v <= 0x07FFFFFF:
-		v += 0x07FFFFFF
-	case -0x03FFFFFFFF <= v && v <= 0x03FFFFFFFF:
-		v += 0x03FFFFFFFF
-	case -0x01FFFFFFFFFF <= v && v <= 0x01FFFFFFFFFF:
-		v += 0x01FFFFFFFFFF
-	case -0x00FFFFFFFFFFFF <= v && v <= 0x00FFFFFFFFFFFF:
-		v += 0x00FFFFFFFFFFFF
+		return encodeDataSize(uint64(v), 2), nil
+	case -0xFFFFF <= v && v <= 0xFFFFF:
+		v += 0xFFFFF
+		return encodeDataSize(uint64(v), 3), nil
+	case -0x7FFFFFF <= v && v <= 0x7FFFFFF:
+		v += 0x7FFFFFF
+		return encodeDataSize(uint64(v), 4), nil
+	case -0x3FFFFFFFF <= v && v <= 0x3FFFFFFFF:
+		v += 0x3FFFFFFFF
+		return encodeDataSize(uint64(v), 5), nil
+	case -0x1FFFFFFFFFF <= v && v <= 0x1FFFFFFFFFF:
+		v += 0x1FFFFFFFFFF
+		return encodeDataSize(uint64(v), 6), nil
+	case -0xFFFFFFFFFFFF <= v && v <= 0xFFFFFFFFFFFF:
+		v += 0xFFFFFFFFFFFF
+		return encodeDataSize(uint64(v), 7), nil
+	case -0x7FFFFFFFFFFFFF <= v && v <= 0x7FFFFFFFFFFFFF:
+		v += 0x7FFFFFFFFFFFFF
+		return encodeDataSize(uint64(v), 8), nil
 	default:
-		v += 0x007FFFFFFFFFFFFF
+		return nil, ErrUnsupportedElementID
 	}
-	return encodeElementID(uint64(v))
 }
 
 func encodeBinary(i interface{}, n uint64) ([]byte, error) {
