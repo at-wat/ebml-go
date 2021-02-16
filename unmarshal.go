@@ -128,17 +128,6 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			return nil, err
 		}
 
-		if !ok {
-			if size == SizeUnknown {
-				return nil, wrapErrorf(ErrUnknownElement, "unmarshalling unknown size element 0x%x", e)
-			}
-			if _, err := readBinary(r, size); err != nil {
-				return nil, err
-			}
-			pos += headerSize + size
-			continue
-		}
-
 		var vnext reflect.Value
 		if !mapOut {
 			if vn, ok := fieldMap[v.e]; ok {
