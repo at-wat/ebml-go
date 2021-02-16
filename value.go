@@ -40,6 +40,9 @@ var ErrInvalidType = errors.New("invalid type")
 // ErrUnsupportedElementID means that a value is out of range of EBML encoding.
 var ErrUnsupportedElementID = errors.New("unsupported Element ID")
 
+// ErrOutOfRange means that a value is out of range of the data type.
+var ErrOutOfRange = errors.New("out of range")
+
 var perTypeReader = map[DataType]func(io.Reader, uint64) (interface{}, error){
 	DataTypeInt:    readInt,
 	DataTypeUInt:   readUInt,
@@ -310,7 +313,7 @@ func encodeVInt(v int64) ([]byte, error) {
 		v += 0x7FFFFFFFFFFFFF
 		return encodeDataSize(uint64(v), 8), nil
 	default:
-		return nil, ErrUnsupportedElementID
+		return nil, ErrOutOfRange
 	}
 }
 

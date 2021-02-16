@@ -354,6 +354,13 @@ func TestEncodeValue_WrongSize(t *testing.T) {
 	}
 }
 
+func TestEncodeValue_OutOfRange(t *testing.T) {
+	_, err := encodeVInt(1<<63 - 1)
+	if err != ErrOutOfRange {
+		t.Fatalf("Expected error: '%v', got: '%v'", ErrOutOfRange, err)
+	}
+}
+
 func TestReadValue_WrongSize(t *testing.T) {
 	testCases := map[string]struct {
 		t   DataType
