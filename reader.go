@@ -71,9 +71,9 @@ func (r *rollbackReaderNop) Get() io.Reader {
 	return r.Reader
 }
 
-func (r *rollbackReaderNop) Reset() {
+func (*rollbackReaderNop) Reset() {
 }
 
-func (r *rollbackReaderNop) RollbackTo(i int) {
+func (*rollbackReaderNop) RollbackTo(i int) {
 	panic("can't rollback nop rollback reader")
 }
