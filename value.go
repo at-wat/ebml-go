@@ -43,6 +43,8 @@ var ErrUnsupportedElementID = errors.New("unsupported Element ID")
 // ErrOutOfRange means that a value is out of range of the data type.
 var ErrOutOfRange = errors.New("out of range")
 
+// valueDecoder is a value decoder sharing internal buffer.
+// Member functions must not called concurrently.
 type valueDecoder struct {
 	bs [1]byte
 }
