@@ -136,11 +136,13 @@ func NewEBMLUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	}
 	n--
 
+	vd := &valueDecoder{}
+
 	ul := &unlacer{
 		r:    r,
 		size: make([]int, nFrame),
 	}
-	un64, nRead, err := readVUInt(ul.r)
+	un64, nRead, err := vd.readVUInt(ul.r)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +152,7 @@ func NewEBMLUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	ul.size[nFrame-1] -= int(n64)
 
 	for i := 1; i < nFrame-1; i++ {
-		n64Diff, nRead, err := readVInt(ul.r)
+		n64Diff, nRead, err := vd.readVInt(ul.r)
 		n64 += int64(n64Diff)
 		if err != nil {
 			return nil, err

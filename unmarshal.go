@@ -51,9 +51,11 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 		return wrapErrorf(ErrIncompatibleType, "unmarshalling to %T", val)
 	}
 
+	vd := &valueDecoder{}
+
 	voe := vo.Elem()
 	for {
-		if _, err := readElement(r, SizeUnknown, voe, 0, 0, nil, options); err != nil {
+		if _, err := vd.readElement(r, SizeUnknown, voe, 0, 0, nil, options); err != nil {
 			if err == io.EOF {
 				return nil
 			}
@@ -62,7 +64,7 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 	}
 }
 
-func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64, parent *Element, options *UnmarshalOptions) (io.Reader, error) {
+func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64, parent *Element, options *UnmarshalOptions) (io.Reader, error) {
 	pos0 := pos
 	var r rollbackReader
 	if options.ignoreUnknown {
@@ -105,7 +107,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 		r.Reset()
 
 		var headerSize uint64
-		e, nb, err := readVUInt(r)
+		e, nb, err := vd.readVUInt(r)
 		headerSize += uint64(nb)
 		if err != nil {
 			if nb == 0 && err == io.ErrUnexpectedEOF {
@@ -126,7 +128,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			return nil, wrapErrorf(ErrUnknownElement, "unmarshalling element 0x%x", e)
 		}
 
-		size, nb, err := readDataSize(r)
+		size, nb, err := vd.readDataSize(r)
 		headerSize += uint64(nb)
 
 		if n != SizeUnknown && pos+headerSize+size > pos0+uint64(n) {
@@ -192,7 +194,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			if elem != nil {
 				elem.Value = vn.Interface()
 			}
-			r0, err := readElement(r, int64(size), vn, depth+1, pos+headerSize, elem, options)
+			r0, err := vd.readElement(r, int64(size), vn, depth+1, pos+headerSize, elem, options)
 			if err != nil && err != io.EOF {
 				return r0, err
 			}
@@ -200,7 +202,7 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 				r.Set(io.MultiReader(r0, r.Get()))
 			}
 		default:
-			val, err := perTypeReader[v.t](r, size)
+			val, err := vd.decode(v.t, r, size)
 			if err != nil {
 				if options.ignoreUnknown {
 					r.RollbackTo(1)

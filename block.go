@@ -67,19 +67,21 @@ func UnmarshalBlock(r io.Reader, n int64) (*Block, error) {
 	var b Block
 	var err error
 	var nRead int
-	if b.TrackNumber, nRead, err = readVUInt(r); err != nil {
+
+	vd := &valueDecoder{}
+
+	if b.TrackNumber, nRead, err = vd.readVUInt(r); err != nil {
 		return nil, err
 	}
 	n -= int64(nRead)
-	if v, err := readInt(r, 2); err == nil {
+	if v, err := vd.readInt(r, 2); err == nil {
 		b.Timecode = int16(v.(int64))
 	} else {
 		return nil, err
 	}
 	n -= 2
 
-	var bs [1]byte
-	switch _, err := r.Read(bs[:]); err {
+	switch _, err := r.Read(vd.bs[:]); err {
 	case nil:
 	case io.EOF:
 		return nil, io.ErrUnexpectedEOF
@@ -92,7 +94,7 @@ func UnmarshalBlock(r io.Reader, n int64) (*Block, error) {
 		return nil, io.ErrUnexpectedEOF
 	}
 
-	f := bs[0]
+	f := vd.bs[0]
 	if f&blockFlagMaskKeyframe != 0 {
 		b.Keyframe = true
 	}

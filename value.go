@@ -43,26 +43,40 @@ var ErrUnsupportedElementID = errors.New("unsupported Element ID")
 // ErrOutOfRange means that a value is out of range of the data type.
 var ErrOutOfRange = errors.New("out of range")
 
-var perTypeReader = map[DataType]func(io.Reader, uint64) (interface{}, error){
-	DataTypeInt:    readInt,
-	DataTypeUInt:   readUInt,
-	DataTypeDate:   readDate,
-	DataTypeFloat:  readFloat,
-	DataTypeBinary: readBinary,
-	DataTypeString: readString,
-	DataTypeBlock:  readBlock,
+type valueDecoder struct {
+	bs [1]byte
 }
 
-func readDataSize(r io.Reader) (uint64, int, error) {
-	v, n, err := readVUInt(r)
+func (d *valueDecoder) decode(t DataType, r io.Reader, n uint64) (interface{}, error) {
+	switch t {
+	case DataTypeInt:
+		return d.readInt(r, n)
+	case DataTypeUInt:
+		return d.readUInt(r, n)
+	case DataTypeDate:
+		return d.readDate(r, n)
+	case DataTypeFloat:
+		return d.readFloat(r, n)
+	case DataTypeBinary:
+		return d.readBinary(r, n)
+	case DataTypeString:
+		return d.readString(r, n)
+	case DataTypeBlock:
+		return d.readBlock(r, n)
+	}
+	panic("invalid data type")
+}
+
+func (d *valueDecoder) readDataSize(r io.Reader) (uint64, int, error) {
+	v, n, err := d.readVUInt(r)
 	if v == (uint64(0xFFFFFFFFFFFFFFFF) >> uint(64-n*7)) {
 		return SizeUnknown, n, err
 	}
 	return v, n, err
 }
-func readVUInt(r io.Reader) (uint64, int, error) {
-	var bs [1]byte
-	bytesRead, err := r.Read(bs[:])
+
+func (d *valueDecoder) readVUInt(r io.Reader) (uint64, int, error) {
+	bytesRead, err := r.Read(d.bs[:])
 	switch err {
 	case nil:
 	case io.EOF:
@@ -74,7 +88,7 @@ func readVUInt(r io.Reader) (uint64, int, error) {
 	var vc int
 	var value uint64
 
-	b := bs[0]
+	b := d.bs[0]
 	switch {
 	case b&0x80 == 0x80:
 		vc = 0
@@ -107,7 +121,7 @@ func readVUInt(r io.Reader) (uint64, int, error) {
 			return value, bytesRead, nil
 		}
 
-		n, err := r.Read(bs[:])
+		n, err := r.Read(d.bs[:])
 		switch err {
 		case nil:
 		case io.EOF:
@@ -116,12 +130,13 @@ func readVUInt(r io.Reader) (uint64, int, error) {
 			return 0, bytesRead, err
 		}
 		bytesRead += n
-		value = value<<8 | uint64(bs[0])
+		value = value<<8 | uint64(d.bs[0])
 		vc--
 	}
 }
-func readVInt(r io.Reader) (int64, int, error) {
-	u, n, err := readVUInt(r)
+
+func (d *valueDecoder) readVInt(r io.Reader) (int64, int, error) {
+	u, n, err := d.readVUInt(r)
 	if err != nil {
 		return 0, n, err
 	}
@@ -146,7 +161,8 @@ func readVInt(r io.Reader) (int64, int, error) {
 	}
 	return v, n, nil
 }
-func readBinary(r io.Reader, n uint64) (interface{}, error) {
+
+func (d *valueDecoder) readBinary(r io.Reader, n uint64) (interface{}, error) {
 	bs := make([]byte, n)
 
 	switch _, err := io.ReadFull(r, bs); err {
@@ -158,8 +174,9 @@ func readBinary(r io.Reader, n uint64) (interface{}, error) {
 		return []byte{}, err
 	}
 }
-func readString(r io.Reader, n uint64) (interface{}, error) {
-	bs, err := readBinary(r, n)
+
+func (d *valueDecoder) readString(r io.Reader, n uint64) (interface{}, error) {
+	bs, err := d.readBinary(r, n)
 	if err != nil {
 		return "", err
 	}
@@ -168,8 +185,9 @@ func readString(r io.Reader, n uint64) (interface{}, error) {
 	ss := strings.Split(s, "\x00")
 	return ss[0], nil
 }
-func readInt(r io.Reader, n uint64) (interface{}, error) {
-	v, err := readUInt(r, n)
+
+func (d *valueDecoder) readInt(r io.Reader, n uint64) (interface{}, error) {
+	v, err := d.readUInt(r, n)
 	if err != nil {
 		return 0, err
 	}
@@ -182,7 +200,8 @@ func readInt(r io.Reader, n uint64) (interface{}, error) {
 	}
 	return int64(v64), nil
 }
-func readUInt(r io.Reader, n uint64) (interface{}, error) {
+
+func (d *valueDecoder) readUInt(r io.Reader, n uint64) (interface{}, error) {
 	bs := make([]byte, n)
 
 	switch _, err := io.ReadFull(r, bs); err {
@@ -199,14 +218,16 @@ func readUInt(r io.Reader, n uint64) (interface{}, error) {
 	}
 	return v, nil
 }
-func readDate(r io.Reader, n uint64) (interface{}, error) {
-	i, err := readInt(r, n)
+
+func (d *valueDecoder) readDate(r io.Reader, n uint64) (interface{}, error) {
+	i, err := d.readInt(r, n)
 	if err != nil {
 		return time.Unix(0, 0), err
 	}
 	return time.Unix(DateEpochInUnixtime, i.(int64)), nil
 }
-func readFloat(r io.Reader, n uint64) (interface{}, error) {
+
+func (d *valueDecoder) readFloat(r io.Reader, n uint64) (interface{}, error) {
 	bs := make([]byte, n)
 
 	switch _, err := io.ReadFull(r, bs); err {
@@ -226,7 +247,8 @@ func readFloat(r io.Reader, n uint64) (interface{}, error) {
 		return 0.0, wrapErrorf(ErrInvalidFloatSize, "reading %d bytes float", n)
 	}
 }
-func readBlock(r io.Reader, n uint64) (interface{}, error) {
+
+func (d *valueDecoder) readBlock(r io.Reader, n uint64) (interface{}, error) {
 	b, err := UnmarshalBlock(r, int64(n))
 	if err != nil {
 		return nil, err
