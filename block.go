@@ -88,6 +88,10 @@ func UnmarshalBlock(r io.Reader, n int64) (*Block, error) {
 	}
 	n--
 
+	if n < 0 {
+		return nil, io.ErrUnexpectedEOF
+	}
+
 	if bs[0]&blockFlagMaskKeyframe != 0 {
 		b.Keyframe = true
 	}
@@ -113,6 +117,7 @@ func UnmarshalBlock(r io.Reader, n int64) (*Block, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for {
 		frame, err := ul.Read()
 		if err == io.EOF {

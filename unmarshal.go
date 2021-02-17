@@ -31,6 +31,9 @@ var ErrIndefiniteType = errors.New("marshal/unmarshal to indefinite type")
 // ErrIncompatibleType means that an element is not convertible to a corresponding struct field.
 var ErrIncompatibleType = errors.New("marshal/unmarshal to incompatible type")
 
+// ErrInvalidElementSize means that an element has inconsistent size. e.g. element size is larger than its parent element size.
+var ErrInvalidElementSize = errors.New("invalid element size")
+
 // Unmarshal EBML stream.
 func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 	options := &UnmarshalOptions{}
@@ -60,11 +63,17 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 }
 
 func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64, parent *Element, options *UnmarshalOptions) (io.Reader, error) {
-	var r io.Reader
-	if n != SizeUnknown {
-		r = io.LimitReader(r0, n)
+	pos0 := pos
+	var r rollbackReader
+	if options.ignoreUnknown {
+		r = &rollbackReaderImpl{}
 	} else {
-		r = r0
+		r = &rollbackReaderNop{}
+	}
+	if n != SizeUnknown {
+		r.Set(io.LimitReader(r0, n))
+	} else {
+		r.Set(r0)
 	}
 
 	var mapOut bool
@@ -93,6 +102,8 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 	}
 
 	for {
+		r.Reset()
+
 		var headerSize uint64
 		e, nb, err := readVUInt(r)
 		headerSize += uint64(nb)
@@ -100,28 +111,34 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 			if nb == 0 && err == io.ErrUnexpectedEOF {
 				return nil, io.EOF
 			}
-			if !options.ignoreUnknown {
-				return nil, err
+			if options.ignoreUnknown {
+				return nil, nil
 			}
-			return nil, nil
+			return nil, err
 		}
 		v, ok := revTable[uint32(e)]
 		if !ok {
-			if !options.ignoreUnknown {
-				return nil, wrapErrorf(ErrUnknownElement, "unmarshalling element 0x%x", e)
+			if options.ignoreUnknown {
+				r.RollbackTo(1)
+				pos++
+				continue
 			}
-			remain, _ := encodeElementID(e)
-			r = io.MultiReader(
-				bytes.NewReader(remain[1:]),
-				r,
-			)
-			pos++
-			continue
+			return nil, wrapErrorf(ErrUnknownElement, "unmarshalling element 0x%x", e)
 		}
 
 		size, nb, err := readDataSize(r)
 		headerSize += uint64(nb)
+
+		if n != SizeUnknown && pos+headerSize+size > pos0+uint64(n) {
+			err = ErrInvalidElementSize
+		}
+
 		if err != nil {
+			if options.ignoreUnknown {
+				r.RollbackTo(1)
+				pos++
+				continue
+			}
 			return nil, err
 		}
 
@@ -180,11 +197,16 @@ func readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64,
 				return r0, err
 			}
 			if r0 != nil {
-				r = io.MultiReader(r0, r)
+				r.Set(io.MultiReader(r0, r.Get()))
 			}
 		default:
 			val, err := perTypeReader[v.t](r, size)
 			if err != nil {
+				if options.ignoreUnknown {
+					r.RollbackTo(1)
+					pos++
+					continue
+				}
 				return nil, err
 			}
 			vr := reflect.ValueOf(val)
