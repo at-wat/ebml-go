@@ -290,6 +290,7 @@ func encodeDataSize(v, n uint64) []byte {
 		return []byte{0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 	}
 }
+
 func encodeElementID(v uint64) ([]byte, error) {
 	switch {
 	case v < 0x80:
@@ -309,6 +310,7 @@ func encodeElementID(v uint64) ([]byte, error) {
 	}
 	return nil, ErrUnsupportedElementID
 }
+
 func encodeVInt(v int64) ([]byte, error) {
 	switch {
 	case -0x3F <= v && v <= 0x3F:
@@ -350,6 +352,7 @@ func encodeBinary(i interface{}, n uint64) ([]byte, error) {
 	}
 	return append(v, bytes.Repeat([]byte{0x00}, int(n)-len(v))...), nil
 }
+
 func encodeString(i interface{}, n uint64) ([]byte, error) {
 	v, ok := i.(string)
 	if !ok {
@@ -360,6 +363,7 @@ func encodeString(i interface{}, n uint64) ([]byte, error) {
 	}
 	return append([]byte(v), bytes.Repeat([]byte{0x00}, int(n)-len(v))...), nil
 }
+
 func encodeInt(i interface{}, n uint64) ([]byte, error) {
 	var v int64
 	switch v2 := i.(type) {
@@ -378,6 +382,7 @@ func encodeInt(i interface{}, n uint64) ([]byte, error) {
 	}
 	return encodeUInt(uint64(v), n)
 }
+
 func encodeUInt(i interface{}, n uint64) ([]byte, error) {
 	var v uint64
 	switch v2 := i.(type) {
@@ -413,6 +418,7 @@ func encodeUInt(i interface{}, n uint64) ([]byte, error) {
 		return []byte{byte(v >> 56), byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
 	}
 }
+
 func encodeDate(i interface{}, n uint64) ([]byte, error) {
 	v, ok := i.(time.Time)
 	if !ok {
@@ -421,16 +427,19 @@ func encodeDate(i interface{}, n uint64) ([]byte, error) {
 	dtns := v.Sub(time.Unix(DateEpochInUnixtime, 0)).Nanoseconds()
 	return encodeInt(int64(dtns), n)
 }
+
 func encodeFloat32(i float32) ([]byte, error) {
 	b := make([]byte, 4)
 	binary.BigEndian.PutUint32(b, math.Float32bits(i))
 	return b, nil
 }
+
 func encodeFloat64(i float64) ([]byte, error) {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, math.Float64bits(i))
 	return b, nil
 }
+
 func encodeFloat(i interface{}, n uint64) ([]byte, error) {
 	switch v := i.(type) {
 	case float64:
@@ -459,6 +468,7 @@ func encodeFloat(i interface{}, n uint64) ([]byte, error) {
 		return []byte{}, wrapErrorf(ErrInvalidType, "writing %T as float", i)
 	}
 }
+
 func encodeBlock(i interface{}, n uint64) ([]byte, error) {
 	v, ok := i.(Block)
 	if !ok {
