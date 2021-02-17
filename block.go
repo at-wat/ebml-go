@@ -79,7 +79,7 @@ func UnmarshalBlock(r io.Reader, n int64) (*Block, error) {
 	n -= 2
 
 	var bs [1]byte
-	switch _, err := io.ReadFull(r, bs[:]); err {
+	switch _, err := r.Read(bs[:]); err {
 	case nil:
 	case io.EOF:
 		return nil, io.ErrUnexpectedEOF
@@ -92,16 +92,17 @@ func UnmarshalBlock(r io.Reader, n int64) (*Block, error) {
 		return nil, io.ErrUnexpectedEOF
 	}
 
-	if bs[0]&blockFlagMaskKeyframe != 0 {
+	f := bs[0]
+	if f&blockFlagMaskKeyframe != 0 {
 		b.Keyframe = true
 	}
-	if bs[0]&blockFlagMaskInvisible != 0 {
+	if f&blockFlagMaskInvisible != 0 {
 		b.Invisible = true
 	}
-	if bs[0]&blockFlagMaskDiscardable != 0 {
+	if f&blockFlagMaskDiscardable != 0 {
 		b.Discardable = true
 	}
-	b.Lacing = LacingMode((bs[0] & blockFlagMaskLacing) >> 1)
+	b.Lacing = LacingMode((f & blockFlagMaskLacing) >> 1)
 
 	var ul Unlacer
 	switch b.Lacing {

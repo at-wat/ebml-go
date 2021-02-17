@@ -62,7 +62,7 @@ func readDataSize(r io.Reader) (uint64, int, error) {
 }
 func readVUInt(r io.Reader) (uint64, int, error) {
 	var bs [1]byte
-	bytesRead, err := io.ReadFull(r, bs[:])
+	bytesRead, err := r.Read(bs[:])
 	switch err {
 	case nil:
 	case io.EOF:
@@ -107,8 +107,7 @@ func readVUInt(r io.Reader) (uint64, int, error) {
 			return value, bytesRead, nil
 		}
 
-		var bs [1]byte
-		n, err := io.ReadFull(r, bs[:])
+		n, err := r.Read(bs[:])
 		switch err {
 		case nil:
 		case io.EOF:
