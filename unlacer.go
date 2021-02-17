@@ -54,7 +54,7 @@ func NewNoUnlacer(r io.Reader, n int64) (Unlacer, error) {
 func NewXiphUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	var nFrame int
 	var b [1]byte
-	switch _, err := io.ReadFull(r, b[:]); err {
+	switch _, err := r.Read(b[:]); err {
 	case nil:
 		nFrame = int(b[0]) + 1
 	case io.EOF:
@@ -70,8 +70,7 @@ func NewXiphUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	}
 	for i := 0; i < nFrame-1; i++ {
 		for {
-			var b [1]byte
-			switch _, err := io.ReadFull(ul.r, b[:]); err {
+			switch _, err := ul.r.Read(b[:]); err {
 			case nil:
 			case io.EOF:
 				return nil, io.ErrUnexpectedEOF
@@ -98,7 +97,7 @@ func NewXiphUnlacer(r io.Reader, n int64) (Unlacer, error) {
 func NewFixedUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	var nFrame int
 	var b [1]byte
-	switch _, err := io.ReadFull(r, b[:]); err {
+	switch _, err := r.Read(b[:]); err {
 	case nil:
 		nFrame = int(b[0]) + 1
 	case io.EOF:
@@ -127,7 +126,7 @@ func NewFixedUnlacer(r io.Reader, n int64) (Unlacer, error) {
 func NewEBMLUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	var nFrame int
 	var b [1]byte
-	switch _, err := io.ReadFull(r, b[:]); err {
+	switch _, err := r.Read(b[:]); err {
 	case nil:
 		nFrame = int(b[0]) + 1
 	case io.EOF:
@@ -137,11 +136,13 @@ func NewEBMLUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	}
 	n--
 
+	vd := &valueDecoder{}
+
 	ul := &unlacer{
 		r:    r,
 		size: make([]int, nFrame),
 	}
-	un64, nRead, err := readVUInt(ul.r)
+	un64, nRead, err := vd.readVUInt(ul.r)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +152,7 @@ func NewEBMLUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	ul.size[nFrame-1] -= int(n64)
 
 	for i := 1; i < nFrame-1; i++ {
-		n64Diff, nRead, err := readVInt(ul.r)
+		n64Diff, nRead, err := vd.readVInt(ul.r)
 		n64 += int64(n64Diff)
 		if err != nil {
 			return nil, err

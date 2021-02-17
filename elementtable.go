@@ -272,8 +272,9 @@ func init() {
 }
 
 func initReverseLookupTable(revTb elementRevTable, tb elementTable) {
+	vd := &valueDecoder{}
 	for k, v := range tb {
-		e, _, err := readVUInt(bytes.NewBuffer(v.b))
+		e, _, err := vd.readVUInt(bytes.NewBuffer(v.b))
 		if err != nil {
 			panic(err)
 		}
