@@ -61,7 +61,7 @@ func (w *blockWriter) Close() error {
 // TrackDescription stores track number and its TrackEntry struct.
 type TrackDescription struct {
 	TrackNumber uint64
-	TrackEntry  interface{}
+	TrackEntry  flexTrackEntry
 }
 
 // NewSimpleBlockWriter creates BlockWriteCloser for each track specified as tracks argument.

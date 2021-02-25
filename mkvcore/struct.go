@@ -33,13 +33,19 @@ type seekHeadFixed struct {
 	Seek []seekFixed `ebml:"Seek"`
 }
 
+type flexTrackEntry struct {
+	TrackNumber uint64 `ebml:"TrackNumber"`
+}
+
+type flexTracks struct {
+	TrackEntry []flexTrackEntry `ebml:"TrackEntry"`
+}
+
 type flexSegment struct {
-	SeekHead *seekHeadFixed `ebml:"SeekHead,omitempty"`
-	Info     interface{}    `ebml:"Info"`
-	Tracks   struct {
-		TrackEntry []interface{} `ebml:"TrackEntry"`
-	} `ebml:"Tracks"`
-	Cluster []simpleBlockCluster `ebml:"Cluster,size=unknown"`
+	SeekHead *seekHeadFixed       `ebml:"SeekHead,omitempty"`
+	Info     interface{}          `ebml:"Info"`
+	Tracks   flexTracks           `ebml:"Tracks"`
+	Cluster  []simpleBlockCluster `ebml:"Cluster,size=unknown"`
 }
 
 type flexHeader struct {

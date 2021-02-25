@@ -39,6 +39,13 @@ type BlockWriterOptions struct {
 	maxKeyframeInterval int64
 }
 
+// BlockReaderOptions stores options for BlockReader.
+type BlockReaderOptions struct {
+	unmarshalOpts []ebml.UnmarshalOption
+	onError       func(error)
+	onFatal       func(error)
+}
+
 // WithEBMLHeader sets EBML header.
 func WithEBMLHeader(h interface{}) BlockWriterOption {
 	return func(o *BlockWriterOptions) error {
