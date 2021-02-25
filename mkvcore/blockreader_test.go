@@ -16,6 +16,7 @@ package mkvcore
 
 import (
 	"bytes"
+	"sync"
 	"testing"
 
 	"github.com/at-wat/ebml-go"
@@ -27,7 +28,10 @@ func TestBlockReader(t *testing.T) {
 		Segment flexSegment `ebml:"Segment"`
 	}{
 		Segment: flexSegment{
-			Tracks: flexTracks{TrackEntry: []flexTrackEntry{{TrackNumber: 1}, {TrackNumber: 2}}},
+			Tracks: flexTracks{TrackEntry: []interface{}{
+				map[string]interface{}{"TrackNumber": uint(1)},
+				map[string]interface{}{"TrackNumber": uint(2)},
+			}},
 			Cluster: []simpleBlockCluster{
 				{
 					Timecode: uint64(0),
@@ -63,8 +67,9 @@ func TestBlockReader(t *testing.T) {
 	if err := ebml.Marshal(&s, buf); err != nil {
 		t.Fatalf("Failed to marshal test data: '%v'", err)
 	}
+	buf.Close()
 
-	ws, err := NewSimpleBlockReader(bytes.NewReader(buf.Bytes()), BlockReaderOptions{})
+	ws, err := NewSimpleBlockReader(bytes.NewReader(buf.Bytes()))
 	if err != nil {
 		t.Fatalf("Failed to create BlockReader: '%v'", err)
 	}
@@ -73,33 +78,47 @@ func TestBlockReader(t *testing.T) {
 		t.Fatalf("Number of the returned writer (%d) must be same as the number of TrackEntry (%d)", len(ws), 2)
 	}
 
-	if buf, keyframe, timestamp, err := ws[0].Read(); err != nil {
-		t.Fatalf("Failed to Read: '%v'", err)
-	} else if keyframe {
-		t.Fatalf("Expected keyframe: false, got: %v", keyframe)
-	} else if timestamp != 0 {
-		t.Fatalf("Expected timestamp: 0, got: %v", timestamp)
-	} else if bytes.Compare(buf, []byte{0x01, 0x02}) != 0 {
-		t.Fatalf("Expected bytes: [0x01, 0x02], got: %v", buf)
-	}
+	var wg sync.WaitGroup
+	wg.Add(2)
 
-	if buf, keyframe, timestamp, err := ws[0].Read(); err != nil {
-		t.Fatalf("Failed to Read: '%v'", err)
-	} else if !keyframe {
-		t.Fatalf("Expected keyframe: true, got: %v", keyframe)
-	} else if timestamp != 30 {
-		t.Fatalf("Expected timestamp: 30, got: %v", timestamp)
-	} else if bytes.Compare(buf, []byte{0x06}) != 0 {
-		t.Fatalf("Expected bytes: [0x06], got: %v", buf)
-	}
+	// TODO: store test data as array.
+	go func() {
+		defer wg.Done()
 
-	if buf, keyframe, timestamp, err := ws[1].Read(); err != nil {
-		t.Fatalf("Failed to Read: '%v'", err)
-	} else if !keyframe {
-		t.Fatalf("Expected keyframe: true, got: %v", keyframe)
-	} else if timestamp != 10 {
-		t.Fatalf("Expected timestamp: 10, got: %v", timestamp)
-	} else if bytes.Compare(buf, []byte{0x03, 0x04, 0x05}) != 0 {
-		t.Fatalf("Expected bytes: [0x03, 0x04, 0x05], got: %v", buf)
-	}
+		if buf, keyframe, timestamp, err := ws[0].Read(); err != nil {
+			t.Errorf("Failed to Read: '%v'", err)
+		} else if keyframe {
+			t.Errorf("Expected keyframe: false, got: %v", keyframe)
+		} else if timestamp != 0 {
+			t.Errorf("Expected timestamp: 0, got: %v", timestamp)
+		} else if bytes.Compare(buf, []byte{0x01, 0x02}) != 0 {
+			t.Errorf("Expected bytes: [0x01, 0x02], got: %v", buf)
+		}
+
+		if buf, keyframe, timestamp, err := ws[0].Read(); err != nil {
+			t.Errorf("Failed to Read: '%v'", err)
+		} else if !keyframe {
+			t.Errorf("Expected keyframe: true, got: %v", keyframe)
+		} else if timestamp != 30 {
+			t.Errorf("Expected timestamp: 30, got: %v", timestamp)
+		} else if bytes.Compare(buf, []byte{0x06}) != 0 {
+			t.Errorf("Expected bytes: [0x06], got: %v", buf)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		if buf, keyframe, timestamp, err := ws[1].Read(); err != nil {
+			t.Errorf("Failed to Read: '%v'", err)
+		} else if !keyframe {
+			t.Errorf("Expected keyframe: true, got: %v", keyframe)
+		} else if timestamp != 10 {
+			t.Errorf("Expected timestamp: 10, got: %v", timestamp)
+		} else if bytes.Compare(buf, []byte{0x03, 0x04, 0x05}) != 0 {
+			t.Errorf("Expected bytes: [0x03, 0x04, 0x05], got: %v", buf)
+		}
+	}()
+
+	wg.Wait()
 }

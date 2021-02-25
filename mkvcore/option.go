@@ -39,6 +39,11 @@ type BlockWriterOptions struct {
 	maxKeyframeInterval int64
 }
 
+// BlockReaderOption configures a BlockReaderOptions.
+type BlockReaderOption func(*BlockReaderOptions) error
+
+// TODO: add BlockReaderOption implementations.
+
 // BlockReaderOptions stores options for BlockReader.
 type BlockReaderOptions struct {
 	unmarshalOpts []ebml.UnmarshalOption

@@ -34,6 +34,9 @@ var ErrIncompatibleType = errors.New("marshal/unmarshal to incompatible type")
 // ErrInvalidElementSize means that an element has inconsistent size. e.g. element size is larger than its parent element size.
 var ErrInvalidElementSize = errors.New("invalid element size")
 
+// ErrReadStopped is returned if unmarshaler finished to read element which has stop tag.
+var ErrReadStopped = errors.New("read stopped")
+
 // Unmarshal EBML stream.
 func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 	options := &UnmarshalOptions{}
@@ -79,7 +82,11 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 	}
 
 	var mapOut bool
-	fieldMap := make(map[ElementType]reflect.Value)
+	type fieldDef struct {
+		v    reflect.Value
+		stop bool
+	}
+	fieldMap := make(map[ElementType]fieldDef)
 	switch vo.Kind() {
 	case reflect.Struct:
 		for i := 0; i < vo.NumField(); i++ {
@@ -97,7 +104,16 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 			if err != nil {
 				return nil, err
 			}
-			fieldMap[t] = vo.Field(i)
+			f := fieldDef{
+				v: vo.Field(i),
+			}
+			for i := 1; i < len(nn); i++ {
+				switch nn[i] {
+				case "stop":
+					f.stop = true
+				}
+			}
+			fieldMap[t] = f
 		}
 	case reflect.Map:
 		mapOut = true
@@ -145,10 +161,12 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 		}
 
 		var vnext reflect.Value
-		if !mapOut {
-			if vn, ok := fieldMap[v.e]; ok {
-				vnext = vn
+		var stopHere bool
+		if vn, ok := fieldMap[v.e]; ok {
+			if !mapOut {
+				vnext = vn.v
 			}
+			stopHere = vn.stop
 		}
 
 		var chanSend reflect.Value
@@ -273,6 +291,9 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 		}
 
 		pos += headerSize + size
+		if stopHere {
+			return nil, ErrReadStopped
+		}
 	}
 }
 

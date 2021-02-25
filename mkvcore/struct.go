@@ -33,12 +33,8 @@ type seekHeadFixed struct {
 	Seek []seekFixed `ebml:"Seek"`
 }
 
-type flexTrackEntry struct {
-	TrackNumber uint64 `ebml:"TrackNumber"`
-}
-
 type flexTracks struct {
-	TrackEntry []flexTrackEntry `ebml:"TrackEntry"`
+	TrackEntry []interface{} `ebml:"TrackEntry"`
 }
 
 type flexSegment struct {

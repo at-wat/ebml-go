@@ -15,117 +15,105 @@
 package mkvcore
 
 import (
-	"fmt"
 	"io"
-	"reflect"
-	"sync"
 
 	"github.com/at-wat/ebml-go"
 )
 
-type ReadableBlock struct {
-	Header      interface{}
-	trackNumber uint64
-	f           chan *frame
-	wg          *sync.WaitGroup
+type blockReader struct {
+	f      chan *frame
+	closed chan struct{}
 }
 
-func (r *ReadableBlock) Read() (b []byte, keyframe bool, timestamp int64, err error) {
-	frame := <-r.f
+func (r *blockReader) Read() (b []byte, keyframe bool, timestamp int64, err error) {
+	frame, ok := <-r.f
+	if !ok {
+		return nil, false, 0, io.EOF
+	}
 	return frame.b, frame.keyframe, frame.timestamp, nil
 }
 
-func (r *ReadableBlock) Close() error {
-	r.wg.Done()
-
+func (r *blockReader) Close() error {
+	close(r.closed)
 	return nil
 }
 
 // NewSimpleBlockReader creates BlockReadCloser for each track specified as tracks argument.
-func NewSimpleBlockReader(r0 io.Reader, options BlockReaderOptions) ([]ReadableBlock, error) {
-	if options.onFatal == nil {
-		options.onFatal = func(err error) {
+func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCloser, error) {
+	options := &BlockReaderOptions{
+		onFatal: func(err error) {
 			panic(err)
+		},
+	}
+	for _, o := range opts {
+		if err := o(options); err != nil {
+			return nil, err
 		}
 	}
 
-	r := &readerWithSizeCount{r: r0}
-
-	var header flexHeader
-	if err := ebml.Unmarshal(r, &header, options.unmarshalOpts...); err != nil {
+	var header struct {
+		Segment struct {
+			Tracks struct {
+				TrackEntry []struct {
+					TrackNumber uint64
+				}
+			} `ebml:"Tracks,stop"`
+		}
+	}
+	switch err := ebml.Unmarshal(r, &header, options.unmarshalOpts...); err {
+	case nil:
+		// No clusters
+	case ebml.ErrReadStopped:
+	default:
 		return nil, err
 	}
 
-	r.Clear()
+	var ws []BlockReadCloser
+	br := make(map[uint64]*blockReader)
 
-	ch := make(chan *frame)
-	wg := sync.WaitGroup{}
-	var ws []ReadableBlock
-	var fw []BlockWriter
-	var fr []BlockReader
-
-	fmt.Printf("track entry %+v\n", header)
 	for _, t := range header.Segment.Tracks.TrackEntry {
-		wg.Add(1)
-		var chSrc chan *frame
-		chSrc = make(chan *frame)
-		fr = append(fr, &filterReader{chSrc})
-		trackNumber := reflect.ValueOf(t).FieldByName("TrackNumber").Uint()
-		fw = append(fw, &filterWriter{trackNumber, ch})
-		ws = append(ws, ReadableBlock{
-			Header:      t,
-			trackNumber: trackNumber,
-			f:           chSrc,
-			wg:          &wg,
-		})
+		r := &blockReader{
+			f:      make(chan *frame),
+			closed: make(chan struct{}),
+		}
+		ws = append(ws, r)
+		br[t.TrackNumber] = r
 	}
 
-	closed := make(chan struct{})
+	type clusterReader struct {
+		Timecode    uint64
+		SimpleBlock chan ebml.Block
+	}
+	c := struct {
+		Cluster clusterReader
+	}{
+		Cluster: clusterReader{
+			SimpleBlock: make(chan ebml.Block),
+		},
+	}
 	go func() {
-		wg.Wait()
-		for _, c := range fr {
-			c.(*filterReader).close()
+		for b := range c.Cluster.SimpleBlock {
+			frame := &frame{
+				trackNumber: b.TrackNumber,
+				keyframe:    b.Keyframe,
+				timestamp:   int64(c.Cluster.Timecode) + int64(b.Timecode),
+				b:           b.Data[0], // TODO: lace should be handled
+			}
+			r := br[b.TrackNumber]
+			select {
+			case r.f <- frame:
+			case <-r.closed:
+			}
 		}
-		close(closed)
+		for k := range br {
+			close(br[k].f)
+		}
 	}()
-
 	go func() {
-		for {
-			var b struct {
-				Block ebml.Block `ebml:"SimpleBlock"`
-			}
-			// Read SimpleBlock from the file
-			err := ebml.Unmarshal(r, &b, options.unmarshalOpts...)
-			if err == nil {
-				fmt.Printf("block %+v\n", b)
-				frame := &frame{
-					trackNumber: b.Block.TrackNumber,
-					keyframe:    b.Block.Keyframe,
-					// This is not exactly the original timestamp, but the encoding process loses the initial offset.
-					timestamp: int64(b.Block.Timecode),
-					b:         b.Block.Data[0],
-				}
-				for _, track := range ws {
-					if track.trackNumber == b.Block.TrackNumber {
-						track.f <- frame
-					}
-				}
-				continue
-			}
-			// Maybe it's a cluster.
-			var cluster struct {
-				Cluster simpleBlockCluster `ebml:"Cluster,size=unknown"`
-			}
-			err = ebml.Unmarshal(r, &cluster, options.unmarshalOpts...)
-			if err == nil {
-				// Ignore this, no useful information.
-				continue
-			}
-			// Give up.
+		if err := ebml.Unmarshal(r, &c, options.unmarshalOpts...); err != nil {
 			if options.onFatal != nil {
 				options.onFatal(err)
 			}
-			return
 		}
 	}()
 
