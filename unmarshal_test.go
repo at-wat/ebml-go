@@ -590,6 +590,80 @@ func TestUnmarshal_Error(t *testing.T) {
 	})
 }
 
+func TestUnmarshal_Partial(t *testing.T) {
+	TestBinary := []byte{
+		0x1a, 0x45, 0xdf, 0xa3, 0x84, // EBML
+		0x42, 0x87, 0x81, 0x02, // DocTypeVersion = 2
+		0x18, 0x53, 0x80, 0x67, 0xFF, // Segment
+		0x16, 0x54, 0xae, 0x6b, 0x85, // Tracks
+		0xae, 0x83, // TrackEntry[0]
+		0xd7, 0x81, 0x01, // TrackNumber=1
+		0x1F, 0x43, 0xB6, 0x75, 0xFF, // Cluster
+		0xE7, 0x81, 0x00, // Timecode
+		0xA3, 0x86, 0x81, 0x00, 0x00, 0x88, 0xAA, 0xCC, // SimpleBlock
+	}
+
+	type TestSegment struct {
+		Tracks map[string]interface{} `ebml:"Tracks,stop"`
+	}
+	type TestHeader struct {
+		Header  map[string]interface{} `ebml:"EBML"`
+		Segment TestSegment
+	}
+	type TestCluster struct {
+		Timecode    uint64
+		SimpleBlock []Block
+	}
+	type TestClusters struct {
+		Cluster []TestCluster
+	}
+
+	r := bytes.NewReader(TestBinary)
+
+	headerExpected := TestHeader{
+		Header: map[string]interface{}{
+			"EBMLDocTypeVersion": uint64(2),
+		},
+		Segment: TestSegment{
+			Tracks: map[string]interface{}{
+				"TrackEntry": map[string]interface{}{
+					"TrackNumber": uint64(1),
+				},
+			},
+		},
+	}
+	var header TestHeader
+	if err := Unmarshal(r, &header); !errs.Is(err, ErrReadStopped) {
+		t.Fatalf("Expected error: '%v', got: '%v'", ErrReadStopped, err)
+	}
+	if !reflect.DeepEqual(headerExpected, header) {
+		t.Fatalf("Expected:\n%v\ngot:\n%v", headerExpected, header)
+	}
+
+	clustersExpected := TestClusters{
+		Cluster: []TestCluster{
+			{
+				Timecode: 0,
+				SimpleBlock: []Block{
+					{
+						TrackNumber: 1,
+						Keyframe:    true,
+						Invisible:   true,
+						Data:        [][]byte{{0xAA, 0xCC}},
+					},
+				},
+			},
+		},
+	}
+	var clusters TestClusters
+	if err := Unmarshal(r, &clusters); err != nil {
+		t.Fatalf("Unexpected error: '%v'", err)
+	}
+	if !reflect.DeepEqual(clustersExpected, clusters) {
+		t.Fatalf("Expected:\n%v\ngot:\n%v", clustersExpected, clusters)
+	}
+}
+
 func BenchmarkUnmarshal(b *testing.B) {
 	TestBinary := []byte{
 		0x1a, 0x45, 0xdf, 0xa3, // EBML
