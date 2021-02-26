@@ -27,104 +27,139 @@ import (
 )
 
 func TestBlockReader(t *testing.T) {
-	s := struct {
+	type testMkvHeader struct {
 		Segment flexSegment `ebml:"Segment"`
+	}
+	testCases := map[string]struct {
+		input    testMkvHeader
+		expected [][]frame
 	}{
-		Segment: flexSegment{
-			Tracks: flexTracks{TrackEntry: []interface{}{
-				map[string]interface{}{"TrackNumber": uint(1)},
-				map[string]interface{}{"TrackNumber": uint(2)},
-			}},
-			Cluster: []simpleBlockCluster{
-				{
-					Timecode: uint64(100),
-					SimpleBlock: []ebml.Block{
+		"TwoTracks": {
+			input: testMkvHeader{
+				Segment: flexSegment{
+					Tracks: flexTracks{TrackEntry: []interface{}{
+						map[string]interface{}{"TrackNumber": uint(1)},
+						map[string]interface{}{"TrackNumber": uint(2)},
+					}},
+					Cluster: []simpleBlockCluster{
 						{
-							TrackNumber: 1,
-							Timecode:    int16(-10),
-							Keyframe:    false,
-							Data:        [][]byte{{0x01, 0x02}},
+							Timecode: uint64(100),
+							SimpleBlock: []ebml.Block{
+								{
+									TrackNumber: 1,
+									Timecode:    int16(-10),
+									Keyframe:    false,
+									Data:        [][]byte{{0x01, 0x02}},
+								},
+								{
+									TrackNumber: 2,
+									Timecode:    int16(10),
+									Keyframe:    true,
+									Data:        [][]byte{{0x03, 0x04, 0x05}},
+								},
+								{
+									TrackNumber: 1,
+									Timecode:    int16(30),
+									Keyframe:    true,
+									Data:        [][]byte{{0x06}},
+								},
+							},
 						},
 						{
-							TrackNumber: 2,
-							Timecode:    int16(10),
-							Keyframe:    true,
-							Data:        [][]byte{{0x03, 0x04, 0x05}},
-						},
-						{
-							TrackNumber: 1,
-							Timecode:    int16(30),
-							Keyframe:    true,
-							Data:        [][]byte{{0x06}},
+							Timecode: uint64(30),
+							PrevSize: uint64(39),
 						},
 					},
 				},
+			},
+			expected: [][]frame{
 				{
-					Timecode: uint64(30),
-					PrevSize: uint64(39),
+					{keyframe: false, timestamp: 90, b: []byte{0x01, 0x02}},
+					{keyframe: true, timestamp: 130, b: []byte{0x06}},
+				},
+				{
+					{keyframe: true, timestamp: 110, b: []byte{0x03, 0x04, 0x05}},
 				},
 			},
 		},
-	}
-	buf := buffercloser.New()
-	if err := ebml.Marshal(&s, buf); err != nil {
-		t.Fatalf("Failed to marshal test data: '%v'", err)
-	}
-	buf.Close()
-
-	ws, err := NewSimpleBlockReader(bytes.NewReader(buf.Bytes()))
-	if err != nil {
-		t.Fatalf("Failed to create BlockReader: '%v'", err)
-	}
-
-	if len(ws) != 2 {
-		t.Fatalf("Number of the returned writer (%d) must be same as the number of TrackEntry (%d)", len(ws), 2)
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	expected := [][]frame{
-		{
-			{keyframe: false, timestamp: 90, b: []byte{0x01, 0x02}},
-			{keyframe: true, timestamp: 130, b: []byte{0x06}},
+		"NoBlock": {
+			input: testMkvHeader{
+				Segment: flexSegment{
+					Tracks: flexTracks{TrackEntry: []interface{}{
+						map[string]interface{}{"TrackNumber": uint(1)},
+						map[string]interface{}{"TrackNumber": uint(2)},
+					}},
+					Cluster: []simpleBlockCluster{},
+				},
+			},
+			expected: [][]frame{{}, {}},
 		},
-		{
-			{keyframe: true, timestamp: 110, b: []byte{0x03, 0x04, 0x05}},
+		"NoCluster": {
+			input: testMkvHeader{
+				Segment: flexSegment{
+					Tracks: flexTracks{TrackEntry: []interface{}{
+						map[string]interface{}{"TrackNumber": uint(1)},
+						map[string]interface{}{"TrackNumber": uint(2)},
+					}},
+				},
+			},
+			expected: [][]frame{{}, {}},
 		},
 	}
 
-	// TODO: store test data as array.
-	for i, dd := range expected {
-		i, dd := i, dd
-		go func() {
-			defer wg.Done()
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			buf := buffercloser.New()
+			if err := ebml.Marshal(&testCase.input, buf); err != nil {
+				t.Fatalf("Failed to marshal test data: '%v'", err)
+			}
+			buf.Close()
 
-			for _, d := range dd {
-				buf, keyframe, timestamp, err := ws[i].Read()
-				if err != nil {
-					t.Errorf("Failed to Read: '%v'", err)
-				}
-				if keyframe != d.keyframe {
-					t.Errorf("Expected keyframe: %v, got: %v", d.keyframe, keyframe)
-				}
-				if timestamp != d.timestamp {
-					t.Errorf("Expected timestamp: %v, got: %v", d.timestamp, timestamp)
-				}
-				if !bytes.Equal(buf, d.b) {
-					t.Errorf("Expected bytes: %v, got: %v", d.b, buf)
-				}
+			ws, err := NewSimpleBlockReader(bytes.NewReader(buf.Bytes()))
+			if err != nil {
+				t.Fatalf("Failed to create BlockReader: '%v'", err)
 			}
-			if _, _, _, err := ws[i].Read(); err != io.EOF {
-				t.Errorf("Expected: EOF, got: %v", err)
+
+			if len(ws) != len(testCase.expected) {
+				t.Fatalf("Number of the returned writer (%d) must be same as the number of TrackEntry (%d)", len(ws), len(testCase.expected))
 			}
-			if err := ws[i].Close(); err != nil {
-				t.Errorf("Unexpected error: %v", err)
+
+			var wg sync.WaitGroup
+			wg.Add(len(testCase.expected))
+
+			for i, dd := range testCase.expected {
+				i, dd := i, dd
+				go func() {
+					defer wg.Done()
+
+					for _, d := range dd {
+						buf, keyframe, timestamp, err := ws[i].Read()
+						if err != nil {
+							t.Errorf("Failed to Read: '%v'", err)
+						}
+						if keyframe != d.keyframe {
+							t.Errorf("Expected keyframe: %v, got: %v", d.keyframe, keyframe)
+						}
+						if timestamp != d.timestamp {
+							t.Errorf("Expected timestamp: %v, got: %v", d.timestamp, timestamp)
+						}
+						if !bytes.Equal(buf, d.b) {
+							t.Errorf("Expected bytes: %v, got: %v", d.b, buf)
+						}
+					}
+					if _, _, _, err := ws[i].Read(); err != io.EOF {
+						t.Errorf("Expected: EOF, got: %v", err)
+					}
+					if err := ws[i].Close(); err != nil {
+						t.Errorf("Unexpected error: %v", err)
+					}
+				}()
 			}
-		}()
+
+			wg.Wait()
+		})
 	}
-
-	wg.Wait()
 }
 
 func TestBlockReader_FailingOptions(t *testing.T) {
