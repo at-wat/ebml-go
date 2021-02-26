@@ -117,13 +117,13 @@ func TestBlockReader(t *testing.T) {
 			}
 			buf.Close()
 
-			ws, err := NewSimpleBlockReader(bytes.NewReader(buf.Bytes()))
+			rs, err := NewSimpleBlockReader(bytes.NewReader(buf.Bytes()))
 			if err != nil {
 				t.Fatalf("Failed to create BlockReader: '%v'", err)
 			}
 
-			if len(ws) != len(testCase.expected) {
-				t.Fatalf("Number of the returned writer (%d) must be same as the number of TrackEntry (%d)", len(ws), len(testCase.expected))
+			if len(rs) != len(testCase.expected) {
+				t.Fatalf("Number of the returned writer (%d) must be same as the number of TrackEntry (%d)", len(rs), len(testCase.expected))
 			}
 
 			var wg sync.WaitGroup
@@ -135,7 +135,7 @@ func TestBlockReader(t *testing.T) {
 					defer wg.Done()
 
 					for _, d := range dd {
-						buf, keyframe, timestamp, err := ws[i].Read()
+						buf, keyframe, timestamp, err := rs[i].Read()
 						if err != nil {
 							t.Errorf("Failed to Read: '%v'", err)
 						}
@@ -149,10 +149,10 @@ func TestBlockReader(t *testing.T) {
 							t.Errorf("Expected bytes: %v, got: %v", d.b, buf)
 						}
 					}
-					if _, _, _, err := ws[i].Read(); err != io.EOF {
+					if _, _, _, err := rs[i].Read(); err != io.EOF {
 						t.Errorf("Expected: EOF, got: %v", err)
 					}
-					if err := ws[i].Close(); err != nil {
+					if err := rs[i].Close(); err != nil {
 						t.Errorf("Unexpected error: %v", err)
 					}
 				}()
@@ -191,16 +191,16 @@ func TestBlockReader_Close(t *testing.T) {
 	}
 	buf.Close()
 
-	ws, err := NewSimpleBlockReader(bytes.NewReader(buf.Bytes()))
+	rs, err := NewSimpleBlockReader(bytes.NewReader(buf.Bytes()))
 	if err != nil {
 		t.Fatalf("Failed to create BlockReader: '%v'", err)
 	}
 
-	if len(ws) != 2 {
-		t.Fatalf("Number of the returned writer (%d) must be same as the number of TrackEntry (%d)", len(ws), 2)
+	if len(rs) != 2 {
+		t.Fatalf("Number of the returned writer (%d) must be same as the number of TrackEntry (%d)", len(rs), 2)
 	}
 
-	if err := ws[0].Close(); err != nil {
+	if err := rs[0].Close(); err != nil {
 		t.Fatalf("Unexpected Close error: '%v'", err)
 	}
 
@@ -208,7 +208,7 @@ func TestBlockReader_Close(t *testing.T) {
 	readWithTimeout := func(i int) error {
 		errCh := make(chan error)
 		go func() {
-			_, _, _, err := ws[i].Read()
+			_, _, _, err := rs[i].Read()
 			errCh <- err
 		}()
 
@@ -255,6 +255,56 @@ func TestBlockReader_FailingOptions(t *testing.T) {
 			_, err := NewSimpleBlockReader(buf, c.opts...)
 			if !errs.Is(err, c.err) {
 				t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
+			}
+		})
+	}
+}
+
+func TestBlockReader_WithUnmarshalOptions(t *testing.T) {
+	testCases := map[string]struct {
+		opts     []BlockReaderOption
+		err      error
+		nReaders int
+	}{
+		"Default": {
+			err: ebml.ErrUnknownElement,
+		},
+		"IgnoreUnknown": {
+			opts: []BlockReaderOption{
+				WithUnmarshalOptions(ebml.WithIgnoreUnknown(true)),
+			},
+			nReaders: 1,
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			testBinary := []byte{
+				0x18, 0x53, 0x80, 0x67, 0xFF, // Segment
+				0x16, 0x54, 0xae, 0x6b, 0x95, // Tracks
+				0x81, 0x81, // 0x81 is not defined in Matroska v4
+				0xae, 0x83, // TrackEntry[0]
+				0xd7, 0x81, 0x01, // TrackNumber=1
+				0x1F, 0x43, 0xB6, 0x75, 0xFF, // Cluster
+				0xE7, 0x81, 0x00, // Timecode
+				0xA3, 0x86, 0x81, 0x00, 0x00, 0x88, 0xAA, 0xCC, // SimpleBlock
+			}
+
+			rs, err := NewSimpleBlockReader(
+				bytes.NewReader(testBinary),
+				testCase.opts...,
+			)
+			if !errs.Is(err, testCase.err) {
+				if testCase.err != nil {
+					t.Fatalf("Expected error: '%v', got: '%v'", testCase.err, err)
+				} else {
+					t.Fatalf("Unexpected error: '%v'", err)
+				}
+			}
+
+			if len(rs) != testCase.nReaders {
+				t.Fatalf("Number of the returned writer (%d) must be same as the number of TrackEntry (%d)", len(rs), 1)
 			}
 		})
 	}
