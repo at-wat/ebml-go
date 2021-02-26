@@ -93,16 +93,18 @@ func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCl
 	}
 	go func() {
 		for b := range c.Cluster.SimpleBlock {
-			frame := &frame{
-				trackNumber: b.TrackNumber,
-				keyframe:    b.Keyframe,
-				timestamp:   int64(c.Cluster.Timecode) + int64(b.Timecode),
-				b:           b.Data[0], // TODO: lace should be handled
-			}
 			r := br[b.TrackNumber]
-			select {
-			case r.f <- frame:
-			case <-r.closed:
+			for l := range b.Data {
+				frame := &frame{
+					trackNumber: b.TrackNumber,
+					keyframe:    b.Keyframe,
+					timestamp:   int64(c.Cluster.Timecode) + int64(b.Timecode),
+					b:           b.Data[l],
+				}
+				select {
+				case r.f <- frame:
+				case <-r.closed:
+				}
 			}
 		}
 		for k := range br {
