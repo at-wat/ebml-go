@@ -16,12 +16,14 @@ package mkvcore
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"sync"
 	"testing"
 
 	"github.com/at-wat/ebml-go"
 	"github.com/at-wat/ebml-go/internal/buffercloser"
+	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestBlockReader(t *testing.T) {
@@ -123,4 +125,39 @@ func TestBlockReader(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestBlockReader_FailingOptions(t *testing.T) {
+	errDummy0 := errors.New("an error 0")
+	errDummy1 := errors.New("an error 1")
+
+	cases := map[string]struct {
+		opts []BlockReaderOption
+		err  error
+	}{
+		"ReaderOptionError": {
+			opts: []BlockReaderOption{
+				BlockReaderOptionFn(func(*BlockReaderOptions) error { return errDummy0 }),
+			},
+			err: errDummy0,
+		},
+		"UnmarshalOptionError": {
+			opts: []BlockReaderOption{
+				WithUnmarshalOptions(
+					func(*ebml.UnmarshalOptions) error { return errDummy1 },
+				),
+			},
+			err: errDummy1,
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			buf := bytes.NewReader([]byte{})
+			_, err := NewSimpleBlockReader(buf, c.opts...)
+			if !errs.Is(err, c.err) {
+				t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
+			}
+		})
+	}
 }

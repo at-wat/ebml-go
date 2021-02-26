@@ -41,12 +41,14 @@ func (r *blockReader) Close() error {
 // NewSimpleBlockReader creates BlockReadCloser for each track specified as tracks argument.
 func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCloser, error) {
 	options := &BlockReaderOptions{
-		onFatal: func(err error) {
-			panic(err)
+		BlockReadWriterOptions: BlockReadWriterOptions{
+			onFatal: func(err error) {
+				panic(err)
+			},
 		},
 	}
 	for _, o := range opts {
-		if err := o(options); err != nil {
+		if err := o.ApplyToBlockReaderOptions(options); err != nil {
 			return nil, err
 		}
 	}
