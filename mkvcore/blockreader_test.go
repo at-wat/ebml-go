@@ -163,6 +163,23 @@ func TestBlockReader(t *testing.T) {
 	}
 }
 
+var errTimeout = errors.New("timeout")
+
+func readWithTimeout(r BlockReader) error {
+	errCh := make(chan error)
+	go func() {
+		_, _, _, err := r.Read()
+		errCh <- err
+	}()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-time.After(time.Second):
+		return errTimeout
+	}
+}
+
 func TestBlockReader_Close(t *testing.T) {
 	type testMkvHeader struct {
 		Segment flexSegment `ebml:"Segment"`
@@ -204,23 +221,7 @@ func TestBlockReader_Close(t *testing.T) {
 		t.Fatalf("Unexpected Close error: '%v'", err)
 	}
 
-	errTimeout := errors.New("timeout")
-	readWithTimeout := func(i int) error {
-		errCh := make(chan error)
-		go func() {
-			_, _, _, err := rs[i].Read()
-			errCh <- err
-		}()
-
-		select {
-		case err := <-errCh:
-			return err
-		case <-time.After(time.Second):
-			return errTimeout
-		}
-	}
-
-	if err := readWithTimeout(1); err != nil {
+	if err := readWithTimeout(rs[1]); err != nil {
 		t.Fatalf("Unexpected Read error: '%v'", err)
 	}
 }
@@ -282,7 +283,7 @@ func TestBlockReader_WithUnmarshalOptions(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			testBinary := []byte{
 				0x18, 0x53, 0x80, 0x67, 0xFF, // Segment
-				0x16, 0x54, 0xae, 0x6b, 0x95, // Tracks
+				0x16, 0x54, 0xae, 0x6b, 0x87, // Tracks
 				0x81, 0x81, // 0x81 is not defined in Matroska v4
 				0xae, 0x83, // TrackEntry[0]
 				0xd7, 0x81, 0x01, // TrackNumber=1
@@ -304,8 +305,52 @@ func TestBlockReader_WithUnmarshalOptions(t *testing.T) {
 			}
 
 			if len(rs) != testCase.nReaders {
-				t.Fatalf("Number of the returned writer (%d) must be same as the number of TrackEntry (%d)", len(rs), 1)
+				t.Fatalf("Number of the returned writer (%d) must be same as the number of TrackEntry (%d)", len(rs), testCase.nReaders)
 			}
 		})
+	}
+}
+
+func TestBlockReader_WithOnFatalHandler(t *testing.T) {
+	testBinary := []byte{
+		0x18, 0x53, 0x80, 0x67, 0xFF, // Segment
+		0x16, 0x54, 0xae, 0x6b, 0x85, // Tracks
+		0xae, 0x83, // TrackEntry[0]
+		0xd7, 0x81, 0x01, // TrackNumber=1
+		0x1F, 0x43, 0xB6, 0x75, 0xFF, // Cluster
+		0x81,             // 0x81 is not defined in Matroska v4
+		0xE7, 0x81, 0x00, // Timecode
+	}
+
+	chFatal := make(chan error)
+	rs, err := NewSimpleBlockReader(
+		bytes.NewReader(testBinary),
+		WithOnFatalHandler(func(err error) {
+			chFatal <- err
+		}),
+	)
+	if err != nil {
+		t.Fatalf("Unexpected error: '%v'", err)
+	}
+
+	if len(rs) != 1 {
+		t.Fatalf("Number of the returned writer (%d) must be same as the number of TrackEntry (%d)", len(rs), 1)
+	}
+
+	go func() {
+		if err := readWithTimeout(rs[0]); err != io.EOF {
+			t.Errorf("Unexpected Read error: '%v'", err)
+		}
+		close(chFatal)
+	}()
+
+	select {
+	case err := <-chFatal:
+		// Expected error
+		if !errs.Is(err, ebml.ErrUnknownElement) {
+			t.Errorf("Expected error: '%v', got: '%v'", ebml.ErrUnknownElement, err)
+		}
+	case <-time.After(time.Second):
+		t.Error("Timeout")
 	}
 }
