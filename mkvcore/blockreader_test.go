@@ -83,6 +83,66 @@ func TestBlockReader(t *testing.T) {
 				},
 			},
 		},
+		"SimpleBlockAndBlock": {
+			input: testMkvHeader{
+				Segment: flexSegment{
+					Tracks: flexTracks{TrackEntry: []interface{}{
+						map[string]interface{}{"TrackNumber": uint(1)},
+						map[string]interface{}{"TrackNumber": uint(2)},
+					}},
+					Cluster: []simpleBlockCluster{
+						{
+							Timecode: uint64(100),
+							SimpleBlock: []ebml.Block{
+								{
+									TrackNumber: 1,
+									Timecode:    int16(-10),
+									Keyframe:    false,
+									Data:        [][]byte{{0x01, 0x02}},
+								},
+								{
+									TrackNumber: 2,
+									Timecode:    int16(10),
+									Keyframe:    true,
+									Data:        [][]byte{{0x03, 0x04, 0x05}},
+								},
+							},
+							BlockGroup: []simpleBlockGroup{
+								{
+									Block: []ebml.Block{
+										{
+											TrackNumber: 1,
+											Timecode:    int16(30),
+											Data:        [][]byte{{0x06}},
+										},
+									},
+									ReferencePriority: 1,
+								},
+								{
+									Block: []ebml.Block{
+										{
+											TrackNumber: 2,
+											Timecode:    int16(40),
+											Data:        [][]byte{{0x07}},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: [][]frame{
+				{
+					{keyframe: false, timestamp: 90, b: []byte{0x01, 0x02}},
+					{keyframe: true, timestamp: 130, b: []byte{0x06}},
+				},
+				{
+					{keyframe: true, timestamp: 110, b: []byte{0x03, 0x04, 0x05}},
+					{keyframe: false, timestamp: 140, b: []byte{0x07}},
+				},
+			},
+		},
 		"NoBlock": {
 			input: testMkvHeader{
 				Segment: flexSegment{

@@ -80,19 +80,52 @@ func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCl
 		br[t.TrackNumber] = r
 	}
 
+	type blockGroup struct {
+		Block             ebml.Block
+		ReferencePriority uint64
+	}
 	type clusterReader struct {
 		Timecode    uint64
 		SimpleBlock chan ebml.Block
+		BlockGroup  chan blockGroup
 	}
+	blockCh := make(chan ebml.Block)
+	blockGroupCh := make(chan blockGroup)
 	c := struct {
 		Cluster clusterReader
 	}{
 		Cluster: clusterReader{
-			SimpleBlock: make(chan ebml.Block),
+			SimpleBlock: blockCh,
+			BlockGroup:  blockGroupCh,
 		},
 	}
 	go func() {
-		for b := range c.Cluster.SimpleBlock {
+		blockCh := blockCh
+		blockGroupCh := blockGroupCh
+	L_READ:
+		for {
+			var b *ebml.Block
+			select {
+			case block, ok := <-blockCh:
+				if !ok {
+					blockCh = nil
+					if blockGroupCh == nil {
+						break L_READ
+					}
+					continue
+				}
+				b = &block
+			case bg, ok := <-blockGroupCh:
+				if !ok {
+					blockGroupCh = nil
+					if blockCh == nil {
+						break L_READ
+					}
+					continue
+				}
+				b = &bg.Block
+				b.Keyframe = bg.ReferencePriority != 0
+			}
 			r := br[b.TrackNumber]
 			for l := range b.Data {
 				frame := &frame{
@@ -113,7 +146,8 @@ func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCl
 	}()
 	go func() {
 		defer func() {
-			close(c.Cluster.SimpleBlock)
+			close(blockCh)
+			close(blockGroupCh)
 		}()
 		if err := ebml.Unmarshal(r, &c, options.unmarshalOpts...); err != nil {
 			if options.onFatal != nil {

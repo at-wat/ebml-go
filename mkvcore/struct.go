@@ -18,10 +18,16 @@ import (
 	"github.com/at-wat/ebml-go"
 )
 
+type simpleBlockGroup struct {
+	Block             []ebml.Block `ebml:"Block"`
+	ReferencePriority uint64       `ebml:"ReferencePriority"`
+}
+
 type simpleBlockCluster struct {
-	Timecode    uint64       `ebml:"Timecode"`
-	PrevSize    uint64       `ebml:"PrevSize,omitempty"`
-	SimpleBlock []ebml.Block `ebml:"SimpleBlock"`
+	Timecode    uint64             `ebml:"Timecode"`
+	PrevSize    uint64             `ebml:"PrevSize,omitempty"`
+	SimpleBlock []ebml.Block       `ebml:"SimpleBlock"`
+	BlockGroup  []simpleBlockGroup `ebml:"BlockGroup,omitempty"`
 }
 
 type seekFixed struct {
