@@ -110,6 +110,9 @@ func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCl
 		}
 	}()
 	go func() {
+		defer func() {
+			close(c.Cluster.SimpleBlock)
+		}()
 		if err := ebml.Unmarshal(r, &c, options.unmarshalOpts...); err != nil {
 			if options.onFatal != nil {
 				options.onFatal(err)
