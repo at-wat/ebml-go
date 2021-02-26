@@ -20,6 +20,7 @@ import (
 	"io"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/at-wat/ebml-go"
 	"github.com/at-wat/ebml-go/internal/buffercloser"
@@ -159,6 +160,68 @@ func TestBlockReader(t *testing.T) {
 
 			wg.Wait()
 		})
+	}
+}
+
+func TestBlockReader_Close(t *testing.T) {
+	type testMkvHeader struct {
+		Segment flexSegment `ebml:"Segment"`
+	}
+	input := testMkvHeader{
+		Segment: flexSegment{
+			Tracks: flexTracks{TrackEntry: []interface{}{
+				map[string]interface{}{"TrackNumber": uint(1)},
+				map[string]interface{}{"TrackNumber": uint(2)},
+			}},
+			Cluster: []simpleBlockCluster{
+				{
+					SimpleBlock: []ebml.Block{
+						{TrackNumber: 1, Data: [][]byte{{0x01}}},
+						{TrackNumber: 2, Data: [][]byte{{0x02}}},
+						{TrackNumber: 1, Data: [][]byte{{0x03}}},
+					},
+				},
+			},
+		},
+	}
+
+	buf := buffercloser.New()
+	if err := ebml.Marshal(&input, buf); err != nil {
+		t.Fatalf("Failed to marshal test data: '%v'", err)
+	}
+	buf.Close()
+
+	ws, err := NewSimpleBlockReader(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		t.Fatalf("Failed to create BlockReader: '%v'", err)
+	}
+
+	if len(ws) != 2 {
+		t.Fatalf("Number of the returned writer (%d) must be same as the number of TrackEntry (%d)", len(ws), 2)
+	}
+
+	if err := ws[0].Close(); err != nil {
+		t.Fatalf("Unexpected Close error: '%v'", err)
+	}
+
+	errTimeout := errors.New("timeout")
+	readWithTimeout := func(i int) error {
+		errCh := make(chan error)
+		go func() {
+			_, _, _, err := ws[i].Read()
+			errCh <- err
+		}()
+
+		select {
+		case err := <-errCh:
+			return err
+		case <-time.After(time.Second):
+			return errTimeout
+		}
+	}
+
+	if err := readWithTimeout(1); err != nil {
+		t.Fatalf("Unexpected Read error: '%v'", err)
 	}
 }
 
