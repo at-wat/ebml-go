@@ -63,8 +63,6 @@ func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCl
 		}
 	}
 	switch err := ebml.Unmarshal(r, &header, options.unmarshalOpts...); err {
-	case nil:
-		// No clusters
 	case ebml.ErrReadStopped:
 	default:
 		return nil, err
