@@ -39,7 +39,7 @@ func (r *blockReader) Close() error {
 }
 
 // NewSimpleBlockReader creates BlockReadCloser for each track specified as tracks argument.
-// It reads SimpleBlocks and Blocks in BlockGroups and any optional data in BlockGroup is dropped.
+// It reads SimpleBlock-s and BlockGroup.Block-s. Any optional data in BlockGroup are dropped.
 // If you need full data, consider implementing a custom reader using ebml.Unmarshal.
 func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCloser, error) {
 	options := &BlockReaderOptions{
