@@ -450,6 +450,15 @@ func TestUnmarshal_Error(t *testing.T) {
 			t.Errorf("Expected error: '%v', got: '%v'", ErrUnknownElementName, err)
 		}
 	})
+	t.Run("InvalidTag", func(t *testing.T) {
+		input := &struct {
+			Header struct {
+			} `ebml:"EBML,ivalid"`
+		}{}
+		if err := Unmarshal(bytes.NewBuffer([]byte{}), input); !errs.Is(err, ErrInvalidTag) {
+			t.Errorf("Expected error: '%v', got: '%v'", ErrInvalidTag, err)
+		}
+	})
 	t.Run("UnknownElement", func(t *testing.T) {
 		input := &TestEBML{}
 		b := []byte{0x81}
