@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -32,8 +33,9 @@ func TestBlockReader(t *testing.T) {
 		Segment flexSegment `ebml:"Segment"`
 	}
 	testCases := map[string]struct {
-		input    testMkvHeader
-		expected [][]frame
+		input                testMkvHeader
+		expectedTrackEntries []TrackEntry
+		expected             [][]frame
 	}{
 		"TwoTracks": {
 			input: testMkvHeader{
@@ -72,6 +74,10 @@ func TestBlockReader(t *testing.T) {
 						},
 					},
 				},
+			},
+			expectedTrackEntries: []TrackEntry{
+				{TrackNumber: 1},
+				{TrackNumber: 2},
 			},
 			expected: [][]frame{
 				{
@@ -132,6 +138,10 @@ func TestBlockReader(t *testing.T) {
 					},
 				},
 			},
+			expectedTrackEntries: []TrackEntry{
+				{TrackNumber: 1},
+				{TrackNumber: 2},
+			},
 			expected: [][]frame{
 				{
 					{keyframe: false, timestamp: 90, b: []byte{0x01, 0x02}},
@@ -153,6 +163,10 @@ func TestBlockReader(t *testing.T) {
 					Cluster: []simpleBlockCluster{},
 				},
 			},
+			expectedTrackEntries: []TrackEntry{
+				{TrackNumber: 1},
+				{TrackNumber: 2},
+			},
 			expected: [][]frame{{}, {}},
 		},
 		"NoCluster": {
@@ -163,6 +177,10 @@ func TestBlockReader(t *testing.T) {
 						map[string]interface{}{"TrackNumber": uint(2)},
 					}},
 				},
+			},
+			expectedTrackEntries: []TrackEntry{
+				{TrackNumber: 1},
+				{TrackNumber: 2},
 			},
 			expected: [][]frame{{}, {}},
 		},
@@ -184,6 +202,12 @@ func TestBlockReader(t *testing.T) {
 
 			if len(rs) != len(testCase.expected) {
 				t.Fatalf("Number of the returned writer (%d) must be same as the number of TrackEntry (%d)", len(rs), len(testCase.expected))
+			}
+
+			for i, r := range rs {
+				if !reflect.DeepEqual(testCase.expectedTrackEntries[i], r.TrackEntry()) {
+					t.Errorf("Expected TrackEntry[%d]: %v, got: %v", i, testCase.expectedTrackEntries[i], r.TrackEntry())
+				}
 			}
 
 			var wg sync.WaitGroup

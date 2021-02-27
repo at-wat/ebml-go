@@ -45,3 +45,14 @@ type BlockReadCloser interface {
 	BlockReader
 	BlockCloser
 }
+
+// TrackEntryGetter is a interface to get TrackEntry.
+type TrackEntryGetter interface {
+	TrackEntry() TrackEntry
+}
+
+// BlockReadCloserWithTrackEntry groups BlockReadCloser and TrackEntryGetter.
+type BlockReadCloserWithTrackEntry interface {
+	BlockReadCloser
+	TrackEntryGetter
+}

@@ -54,3 +54,23 @@ type flexHeader struct {
 	Header  interface{} `ebml:"EBML"`
 	Segment flexSegment `ebml:"Segment,size=unknown"`
 }
+
+// TrackEntry is a TrackEntry struct with all mandatory elements and commonly used elements.
+type TrackEntry struct {
+	TrackNumber        uint64
+	TrackUID           uint64
+	TrackType          uint8
+	FlagEnabled        uint8
+	FlagDefault        uint8
+	FlagForced         uint8
+	FlagLacing         uint8
+	MinCache           uint64
+	DefaultDuration    uint64
+	MaxBlockAdditionID uint64
+	Name               string
+	Language           string
+	LanguageIETF       string
+	CodecID            string
+	CodecDecodeAll     uint8
+	SeekPreRoll        uint64
+}

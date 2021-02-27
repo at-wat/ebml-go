@@ -21,8 +21,9 @@ import (
 )
 
 type blockReader struct {
-	f      chan *frame
-	closed chan struct{}
+	f          chan *frame
+	closed     chan struct{}
+	trackEntry TrackEntry
 }
 
 func (r *blockReader) Read() (b []byte, keyframe bool, timestamp int64, err error) {
@@ -38,10 +39,14 @@ func (r *blockReader) Close() error {
 	return nil
 }
 
-// NewSimpleBlockReader creates BlockReadCloser for each track specified as tracks argument.
+func (r *blockReader) TrackEntry() TrackEntry {
+	return r.trackEntry
+}
+
+// NewSimpleBlockReader creates BlockReadCloserWithTrackEntry for each track specified as tracks argument.
 // It reads SimpleBlock-s and BlockGroup.Block-s. Any optional data in BlockGroup are dropped.
 // If you need full data, consider implementing a custom reader using ebml.Unmarshal.
-func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCloser, error) {
+func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCloserWithTrackEntry, error) {
 	options := &BlockReaderOptions{
 		BlockReadWriterOptions: BlockReadWriterOptions{
 			onFatal: func(err error) {
@@ -58,9 +63,7 @@ func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCl
 	var header struct {
 		Segment struct {
 			Tracks struct {
-				TrackEntry []struct {
-					TrackNumber uint64
-				}
+				TrackEntry []TrackEntry
 			} `ebml:"Tracks,stop"`
 		}
 	}
@@ -70,13 +73,14 @@ func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCl
 		return nil, err
 	}
 
-	var ws []BlockReadCloser
+	var ws []BlockReadCloserWithTrackEntry
 	br := make(map[uint64]*blockReader)
 
 	for _, t := range header.Segment.Tracks.TrackEntry {
 		r := &blockReader{
-			f:      make(chan *frame),
-			closed: make(chan struct{}),
+			f:          make(chan *frame),
+			closed:     make(chan struct{}),
+			trackEntry: t,
 		}
 		ws = append(ws, r)
 		br[t.TrackNumber] = r
