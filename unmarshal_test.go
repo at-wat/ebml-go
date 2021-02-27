@@ -590,7 +590,7 @@ func TestUnmarshal_Error(t *testing.T) {
 	})
 }
 
-func TestUnmarshal_Partial(t *testing.T) {
+func ExampleUnmarshal_Partial() {
 	TestBinary := []byte{
 		0x1a, 0x45, 0xdf, 0xa3, 0x84, // EBML
 		0x42, 0x87, 0x81, 0x02, // DocTypeVersion = 2
@@ -603,65 +603,36 @@ func TestUnmarshal_Partial(t *testing.T) {
 		0xA3, 0x86, 0x81, 0x00, 0x00, 0x88, 0xAA, 0xCC, // SimpleBlock
 	}
 
-	type TestSegment struct {
-		Tracks map[string]interface{} `ebml:"Tracks,stop"`
-	}
 	type TestHeader struct {
 		Header  map[string]interface{} `ebml:"EBML"`
-		Segment TestSegment
-	}
-	type TestCluster struct {
-		Timecode    uint64
-		SimpleBlock []Block
+		Segment struct {
+			Tracks map[string]interface{} `ebml:"Tracks,stop"` // Stop unmarshalling after reading this element
+		}
 	}
 	type TestClusters struct {
-		Cluster []TestCluster
+		Cluster []struct {
+			Timecode    uint64
+			SimpleBlock []Block
+		}
 	}
 
 	r := bytes.NewReader(TestBinary)
 
-	headerExpected := TestHeader{
-		Header: map[string]interface{}{
-			"EBMLDocTypeVersion": uint64(2),
-		},
-		Segment: TestSegment{
-			Tracks: map[string]interface{}{
-				"TrackEntry": map[string]interface{}{
-					"TrackNumber": uint64(1),
-				},
-			},
-		},
-	}
 	var header TestHeader
 	if err := Unmarshal(r, &header); !errs.Is(err, ErrReadStopped) {
-		t.Fatalf("Expected error: '%v', got: '%v'", ErrReadStopped, err)
+		panic("Unmarshal failed")
 	}
-	if !reflect.DeepEqual(headerExpected, header) {
-		t.Fatalf("Expected:\n%v\ngot:\n%v", headerExpected, header)
-	}
+	fmt.Printf("First unmarshal: %v\n", header)
 
-	clustersExpected := TestClusters{
-		Cluster: []TestCluster{
-			{
-				Timecode: 0,
-				SimpleBlock: []Block{
-					{
-						TrackNumber: 1,
-						Keyframe:    true,
-						Invisible:   true,
-						Data:        [][]byte{{0xAA, 0xCC}},
-					},
-				},
-			},
-		},
-	}
 	var clusters TestClusters
 	if err := Unmarshal(r, &clusters); err != nil {
-		t.Fatalf("Unexpected error: '%v'", err)
+		panic("Unmarshal failed")
 	}
-	if !reflect.DeepEqual(clustersExpected, clusters) {
-		t.Fatalf("Expected:\n%v\ngot:\n%v", clustersExpected, clusters)
-	}
+	fmt.Printf("Second unmarshal: %v\n", clusters)
+
+	// Output:
+	// First unmarshal: {map[EBMLDocTypeVersion:2] {map[TrackEntry:map[TrackNumber:1]]}}
+	// Second unmarshal: {[{0 [{1 0 true true 0 false [[170 204]]}]}]}
 }
 
 func BenchmarkUnmarshal(b *testing.B) {
