@@ -19,7 +19,6 @@ import (
 	"errors"
 	"io"
 	"reflect"
-	"strings"
 )
 
 // ErrUnknownElement means that a decoded element is not known.
@@ -90,28 +89,24 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 	switch vo.Kind() {
 	case reflect.Struct:
 		for i := 0; i < vo.NumField(); i++ {
-			var nn []string
-			if n, ok := vo.Type().Field(i).Tag.Lookup("ebml"); ok {
-				nn = strings.Split(n, ",")
+			f := fieldDef{
+				v: vo.Field(i),
 			}
 			var name string
-			if len(nn) > 0 && len(nn[0]) > 0 {
-				name = nn[0]
-			} else {
+			if n, ok := vo.Type().Field(i).Tag.Lookup("ebml"); ok {
+				t, err := parseTag(n)
+				if err != nil {
+					return nil, err
+				}
+				name = t.name
+				f.stop = t.stop
+			}
+			if name == "" {
 				name = vo.Type().Field(i).Name
 			}
 			t, err := ElementTypeFromString(name)
 			if err != nil {
 				return nil, err
-			}
-			f := fieldDef{
-				v: vo.Field(i),
-			}
-			for i := 1; i < len(nn); i++ {
-				switch nn[i] {
-				case "stop":
-					f.stop = true
-				}
 			}
 			fieldMap[t] = f
 		}

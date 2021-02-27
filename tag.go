@@ -25,6 +25,7 @@ type structTag struct {
 	name      string
 	size      uint64
 	omitEmpty bool
+	stop      bool
 }
 
 // ErrEmptyTag means that a tag string has empty item.
@@ -53,6 +54,8 @@ func parseTag(rawtag string) (*structTag, error) {
 				case "inf":
 					os.Stderr.WriteString("Deprecated: \"inf\" tag is replaced by \"size=unknown\"\n")
 					tag.size = SizeUnknown
+				case "stop":
+					tag.stop = true
 				default:
 					return nil, wrapErrorf(ErrInvalidTag, "parsing \"%s\"", t)
 				}
