@@ -46,6 +46,9 @@ func (r *blockReader) TrackEntry() TrackEntry {
 // NewSimpleBlockReader creates BlockReadCloserWithTrackEntry for each track specified as tracks argument.
 // It reads SimpleBlock-s and BlockGroup.Block-s. Any optional data in BlockGroup are dropped.
 // If you need full data, consider implementing a custom reader using ebml.Unmarshal.
+//
+// Note that, keyframe flag from BlockGroup.Block may be incorrect.
+// If you have knowledge about this, please consider fixing it.
 func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCloserWithTrackEntry, error) {
 	options := &BlockReaderOptions{
 		BlockReadWriterOptions: BlockReadWriterOptions{
@@ -130,6 +133,8 @@ func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCl
 					continue
 				}
 				b = &bg.Block
+				// FIXME: This may be wrong.
+				//        ReferencePriority == 0 means that the frame is not referenced.
 				b.Keyframe = bg.ReferencePriority != 0
 			}
 			r := br[b.TrackNumber]
