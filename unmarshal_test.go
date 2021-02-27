@@ -590,7 +590,7 @@ func TestUnmarshal_Error(t *testing.T) {
 	})
 }
 
-func ExampleUnmarshal_Partial() {
+func ExampleUnmarshal_partial() {
 	TestBinary := []byte{
 		0x1a, 0x45, 0xdf, 0xa3, 0x84, // EBML
 		0x42, 0x87, 0x81, 0x02, // DocTypeVersion = 2
