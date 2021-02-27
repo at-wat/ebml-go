@@ -70,16 +70,18 @@ type TrackDescription struct {
 // Frames written to each track must be sorted by their timestamp.
 func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...BlockWriterOption) ([]BlockWriteCloser, error) {
 	options := &BlockWriterOptions{
+		BlockReadWriterOptions: BlockReadWriterOptions{
+			onFatal: func(err error) {
+				panic(err)
+			},
+		},
 		ebmlHeader:  nil,
 		segmentInfo: nil,
-		onFatal: func(err error) {
-			panic(err)
-		},
 		interceptor: nil,
 		seekHead:    false,
 	}
 	for _, o := range opts {
-		if err := o(options); err != nil {
+		if err := o.ApplyToBlockWriterOptions(options); err != nil {
 			return nil, err
 		}
 	}

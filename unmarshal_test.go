@@ -590,6 +590,51 @@ func TestUnmarshal_Error(t *testing.T) {
 	})
 }
 
+func ExampleUnmarshal_partial() {
+	TestBinary := []byte{
+		0x1a, 0x45, 0xdf, 0xa3, 0x84, // EBML
+		0x42, 0x87, 0x81, 0x02, // DocTypeVersion = 2
+		0x18, 0x53, 0x80, 0x67, 0xFF, // Segment
+		0x16, 0x54, 0xae, 0x6b, 0x85, // Tracks
+		0xae, 0x83, // TrackEntry[0]
+		0xd7, 0x81, 0x01, // TrackNumber=1
+		0x1F, 0x43, 0xB6, 0x75, 0xFF, // Cluster
+		0xE7, 0x81, 0x00, // Timecode
+		0xA3, 0x86, 0x81, 0x00, 0x00, 0x88, 0xAA, 0xCC, // SimpleBlock
+	}
+
+	type TestHeader struct {
+		Header  map[string]interface{} `ebml:"EBML"`
+		Segment struct {
+			Tracks map[string]interface{} `ebml:"Tracks,stop"` // Stop unmarshalling after reading this element
+		}
+	}
+	type TestClusters struct {
+		Cluster []struct {
+			Timecode    uint64
+			SimpleBlock []Block
+		}
+	}
+
+	r := bytes.NewReader(TestBinary)
+
+	var header TestHeader
+	if err := Unmarshal(r, &header); !errs.Is(err, ErrReadStopped) {
+		panic("Unmarshal failed")
+	}
+	fmt.Printf("First unmarshal: %v\n", header)
+
+	var clusters TestClusters
+	if err := Unmarshal(r, &clusters); err != nil {
+		panic("Unmarshal failed")
+	}
+	fmt.Printf("Second unmarshal: %v\n", clusters)
+
+	// Output:
+	// First unmarshal: {map[EBMLDocTypeVersion:2] {map[TrackEntry:map[TrackNumber:1]]}}
+	// Second unmarshal: {[{0 [{1 0 true true 0 false [[170 204]]}]}]}
+}
+
 func BenchmarkUnmarshal(b *testing.B) {
 	TestBinary := []byte{
 		0x1a, 0x45, 0xdf, 0xa3, // EBML

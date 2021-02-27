@@ -169,7 +169,7 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 	}{
 		"WriterOptionError": {
 			opts: []BlockWriterOption{
-				func(*BlockWriterOptions) error { return errDummy0 },
+				BlockWriterOptionFn(func(*BlockWriterOptions) error { return errDummy0 }),
 			},
 			err: errDummy0,
 		},

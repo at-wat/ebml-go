@@ -18,10 +18,16 @@ import (
 	"github.com/at-wat/ebml-go"
 )
 
+type simpleBlockGroup struct {
+	Block             []ebml.Block `ebml:"Block"`
+	ReferencePriority uint64       `ebml:"ReferencePriority"`
+}
+
 type simpleBlockCluster struct {
-	Timecode    uint64       `ebml:"Timecode"`
-	PrevSize    uint64       `ebml:"PrevSize,omitempty"`
-	SimpleBlock []ebml.Block `ebml:"SimpleBlock"`
+	Timecode    uint64             `ebml:"Timecode"`
+	PrevSize    uint64             `ebml:"PrevSize,omitempty"`
+	SimpleBlock []ebml.Block       `ebml:"SimpleBlock"`
+	BlockGroup  []simpleBlockGroup `ebml:"BlockGroup,omitempty"`
 }
 
 type seekFixed struct {
@@ -33,16 +39,38 @@ type seekHeadFixed struct {
 	Seek []seekFixed `ebml:"Seek"`
 }
 
+type flexTracks struct {
+	TrackEntry []interface{} `ebml:"TrackEntry"`
+}
+
 type flexSegment struct {
-	SeekHead *seekHeadFixed `ebml:"SeekHead,omitempty"`
-	Info     interface{}    `ebml:"Info"`
-	Tracks   struct {
-		TrackEntry []interface{} `ebml:"TrackEntry"`
-	} `ebml:"Tracks"`
-	Cluster []simpleBlockCluster `ebml:"Cluster,size=unknown"`
+	SeekHead *seekHeadFixed       `ebml:"SeekHead,omitempty"`
+	Info     interface{}          `ebml:"Info"`
+	Tracks   flexTracks           `ebml:"Tracks"`
+	Cluster  []simpleBlockCluster `ebml:"Cluster,size=unknown"`
 }
 
 type flexHeader struct {
 	Header  interface{} `ebml:"EBML"`
 	Segment flexSegment `ebml:"Segment,size=unknown"`
+}
+
+// TrackEntry is a TrackEntry struct with all mandatory elements and commonly used elements.
+type TrackEntry struct {
+	TrackNumber        uint64
+	TrackUID           uint64
+	TrackType          uint8
+	FlagEnabled        uint8
+	FlagDefault        uint8
+	FlagForced         uint8
+	FlagLacing         uint8
+	MinCache           uint64
+	DefaultDuration    uint64
+	MaxBlockAdditionID uint64
+	Name               string
+	Language           string
+	LanguageIETF       string
+	CodecID            string
+	CodecDecodeAll     uint8
+	SeekPreRoll        uint64
 }
