@@ -19,9 +19,10 @@ jobs:
           - '1.13'
           - '1.14'
           - '1.15'
+          - '1.16'
     env:
       GO111MODULE: on
-      REVIEWDOG_ON: '1.15'
+      REVIEWDOG_ON: '1.16'
     steps:
       - name: Checkout
         uses: actions/checkout@v2
