@@ -33,7 +33,9 @@ jobs:
       - name: Install golint
         if: env.REVIEWDOG_ON == matrix.go
         run: |
+          go get golang.org/x/lint/golint
           go install golang.org/x/lint/golint
+          git reset --hard HEAD
           golint ./...
       - name: Run go test
         run: |
