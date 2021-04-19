@@ -54,7 +54,11 @@ func TestMultiTrackBlockSorter(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			wg := sync.WaitGroup{}
-			f := NewMultiTrackBlockSorter(2, c.rule)
+
+			f, err := NewMultiTrackBlockSorter(WithMaxDelayedPackets(2), WithSortRule(c.rule))
+			if err != nil {
+				t.Errorf("Failed to create MultiTrackBlockSorter: %v", err)
+			}
 
 			chOut := make(chan *frame)
 			ch := []chan *frame{
@@ -109,7 +113,10 @@ func TestMultiTrackBlockSorter(t *testing.T) {
 }
 
 func BenchmarkMultiTrackBlockSorter(b *testing.B) {
-	f := NewMultiTrackBlockSorter(2, BlockSorterDropOutdated)
+	f, err := NewMultiTrackBlockSorter(WithMaxDelayedPackets(2), WithSortRule(BlockSorterDropOutdated))
+	if err != nil {
+		b.Errorf("Failed to create MultiTrackBlockSorter: %v", err)
+	}
 
 	chOut := make(chan *frame)
 	ch := []chan *frame{

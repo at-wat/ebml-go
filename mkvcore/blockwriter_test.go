@@ -34,9 +34,14 @@ func TestBlockWriter(t *testing.T) {
 		{TrackNumber: 1},
 		{TrackNumber: 2},
 	}
+
+	blockSorter, err := NewMultiTrackBlockSorter(WithMaxDelayedPackets(10), WithSortRule(BlockSorterDropOutdated))
+	if err != nil {
+		t.Fatalf("Failed to create MultiTrackBlockSorter: %v", err)
+	}
+
 	ws, err := NewSimpleBlockWriter(buf, tracks,
-		WithBlockInterceptor(NewMultiTrackBlockSorter(10, BlockSorterDropOutdated)),
-	)
+		WithBlockInterceptor(blockSorter))
 	if err != nil {
 		t.Fatalf("Failed to create BlockWriter: '%v'", err)
 	}
@@ -524,8 +529,14 @@ func BenchmarkBlockWriter_InitFinalize(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		buf := buffercloser.New()
+
+		blockSorter, err := NewMultiTrackBlockSorter(WithMaxDelayedPackets(10), WithSortRule(BlockSorterDropOutdated))
+		if err != nil {
+			b.Fatalf("Failed to create MultiTrackBlockSorter: %v", err)
+		}
+
 		ws, err := NewSimpleBlockWriter(buf, tracks,
-			WithBlockInterceptor(NewMultiTrackBlockSorter(10, BlockSorterDropOutdated)),
+			WithBlockInterceptor(blockSorter),
 		)
 		if err != nil {
 			b.Fatalf("Failed to create BlockWriter: %v", err)
@@ -542,8 +553,14 @@ func BenchmarkBlockWriter_SimpleBlock(b *testing.B) {
 	}
 
 	buf := buffercloser.New()
+
+	blockSorter, err := NewMultiTrackBlockSorter(WithMaxDelayedPackets(10), WithSortRule(BlockSorterDropOutdated))
+	if err != nil {
+		b.Fatalf("Failed to create MultiTrackBlockSorter: %v", err)
+	}
+
 	ws, err := NewSimpleBlockWriter(buf, tracks,
-		WithBlockInterceptor(NewMultiTrackBlockSorter(10, BlockSorterDropOutdated)),
+		WithBlockInterceptor(blockSorter),
 	)
 	if err != nil {
 		b.Fatalf("Failed to create BlockWriter: %v", err)
