@@ -15,6 +15,7 @@
 package mkvcore
 
 import (
+	"fmt"
 	"io"
 	"sync"
 )
@@ -65,16 +66,70 @@ const (
 	BlockSorterWriteOutdated
 )
 
+// MultiTrackBlockSorterOption configures a MultiTrackBlockSorterOptions.
+type MultiTrackBlockSorterOption func(*MultiTrackBlockSorterOptions) error
+
+// MultiTrackBlockSorterOptions stores options for BlockWriter.
+type MultiTrackBlockSorterOptions struct {
+	maxDelayedPackets int
+	rule              BlockSorterRule
+	maxTimescaleDelay int64
+}
+
+// WithMaxDelayedPackets set the maximum number of packets that may be delayed
+// within each track.
+func WithMaxDelayedPackets(maxDelayedPackets int) MultiTrackBlockSorterOption {
+	return func(o *MultiTrackBlockSorterOptions) error {
+		o.maxDelayedPackets = maxDelayedPackets
+		return nil
+	}
+}
+
+// WithSortRule set the sort rule to apply to how packet ordering should be
+// treated within the webm container.
+func WithSortRule(rule BlockSorterRule) MultiTrackBlockSorterOption {
+	return func(o *MultiTrackBlockSorterOptions) error {
+		o.rule = rule
+		return nil
+	}
+}
+
+// WithMaxTimescaleDelay set the maximum allowed deley between tracks for a
+// given timescale.
+func WithMaxTimescaleDelay(maxTimescaleDelay int64) MultiTrackBlockSorterOption {
+	return func(o *MultiTrackBlockSorterOptions) error {
+		o.maxTimescaleDelay = maxTimescaleDelay
+		return nil
+	}
+}
+
 // NewMultiTrackBlockSorter creates BlockInterceptor, which sorts blocks on multiple tracks by timestamp.
 // The index of TrackEntry sorts blocks with the same timestamp.
 // Place the audio track before the video track to meet WebM Interceptor Guidelines.
-func NewMultiTrackBlockSorter(maxDelay int, rule BlockSorterRule) BlockInterceptor {
-	return &multiTrackBlockSorter{maxDelay: maxDelay, rule: rule}
+func NewMultiTrackBlockSorter(opts ...MultiTrackBlockSorterOption) (BlockInterceptor, error) {
+	applyOptions := []MultiTrackBlockSorterOption{
+		WithMaxDelayedPackets(0),
+		WithSortRule(BlockSorterDropOutdated),
+		WithMaxTimescaleDelay(0),
+	}
+	applyOptions = append(applyOptions, opts...)
+
+	options := &MultiTrackBlockSorterOptions{}
+	for _, o := range applyOptions {
+		if err := o(options); err != nil {
+			return nil, err
+		}
+	}
+
+	if options.maxDelayedPackets == 0 && options.maxTimescaleDelay == 0 {
+		return nil, fmt.Errorf("must specify either WithMaxDelayedPackets(...) or WithMaxTimescaleDelay(...) with a non-0 value")
+	}
+
+	return &multiTrackBlockSorter{options: *options}, nil
 }
 
 type multiTrackBlockSorter struct {
-	maxDelay int
-	rule     BlockSorterRule
+	options MultiTrackBlockSorterOptions
 }
 
 func (s *multiTrackBlockSorter) Intercept(r []BlockReader, w []BlockWriter) {
@@ -114,9 +169,12 @@ func (s *multiTrackBlockSorter) Intercept(r []BlockReader, w []BlockWriter) {
 			nChReq = len(r)
 		}
 		for {
+			var largestTimestampDelta int64
 			var tOldest int64
+			var tNewest int64
 			var nCh, nMax int
 			var bOldest *frameBuffer
+			var bNewest *frameBuffer
 			for _, b := range buf {
 				if n := b.Size(); n > 0 {
 					nCh++
@@ -124,12 +182,23 @@ func (s *multiTrackBlockSorter) Intercept(r []BlockReader, w []BlockWriter) {
 						tOldest = f.timestamp
 						bOldest = b
 					}
+					if f := b.Tail(); f.timestamp > tNewest || bNewest == nil {
+						tNewest = f.timestamp
+						bNewest = b
+
+						tDiff := tNewest - tOldest
+						if tDiff > largestTimestampDelta {
+							largestTimestampDelta = tDiff
+						}
+					}
 					if n > nMax {
 						nMax = n
 					}
 				}
 			}
-			if nCh >= nChReq || nMax > s.maxDelay {
+			if nCh >= nChReq ||
+				(nMax > s.options.maxDelayedPackets && s.options.maxDelayedPackets != 0) ||
+				(largestTimestampDelta > s.options.maxTimescaleDelay && s.options.maxTimescaleDelay != 0) {
 				fOldest := bOldest.Pop()
 				_, _ = w[fOldest.trackNumber].Write(fOldest.keyframe, fOldest.timestamp, fOldest.b)
 				tDone = fOldest.timestamp
@@ -142,7 +211,7 @@ func (s *multiTrackBlockSorter) Intercept(r []BlockReader, w []BlockWriter) {
 	for {
 		select {
 		case d := <-ch:
-			if d.timestamp >= tDone || s.rule == BlockSorterWriteOutdated {
+			if d.timestamp >= tDone || s.options.rule == BlockSorterWriteOutdated {
 				buf[d.trackNumber].Push(d)
 				flush(false)
 			}
