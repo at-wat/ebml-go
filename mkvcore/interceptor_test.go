@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-func TestMultiTrackBlockSorter(t *testing.T) {
+func TestMultiTrackBlockSorterMaxPackets(t *testing.T) {
 	for name, c := range map[string]struct {
 		rule     BlockSorterRule
 		expected []frame
@@ -96,6 +96,97 @@ func TestMultiTrackBlockSorter(t *testing.T) {
 				time.Sleep(time.Millisecond)
 				ch[1] <- &frame{1, false, 15, []byte{7}} // drop due to maxDelay=2
 				ch[1] <- &frame{1, false, 18, []byte{8}}
+				close(ch[0])
+				close(ch[1])
+			}()
+
+			f.Intercept(r, w)
+
+			close(chOut)
+			wg.Wait()
+
+			if !reflect.DeepEqual(c.expected, frames) {
+				t.Errorf("Unexpected sort result, \nexpected: %v, \n     got: %v", c.expected, frames)
+			}
+		})
+	}
+}
+
+func TestMultiTrackBlockSorterTimescale(t *testing.T) {
+	for name, c := range map[string]struct {
+		rule     BlockSorterRule
+		expected []frame
+	}{
+		"DropOutdated": {
+			BlockSorterDropOutdated,
+			[]frame{
+				{0, false, 100, []byte{1}},
+				{0, false, 110, []byte{2}},
+				{1, false, 150, []byte{3}},
+				{0, false, 160, []byte{4}},
+				{0, false, 170, []byte{5}},
+				{0, false, 200, []byte{6}},
+				{1, false, 210, []byte{8}},
+			},
+		},
+		"WriteOutdated": {
+			BlockSorterWriteOutdated,
+			[]frame{
+				{0, false, 100, []byte{1}},
+				{0, false, 110, []byte{2}},
+				{1, false, 150, []byte{3}},
+				{1, false, 90, []byte{7}},
+				{0, false, 160, []byte{4}},
+				{0, false, 170, []byte{5}},
+				{0, false, 200, []byte{6}},
+				{1, false, 210, []byte{8}},
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			wg := sync.WaitGroup{}
+
+			f, err := NewMultiTrackBlockSorter(WithMaxTimescaleDelay(100), WithSortRule(c.rule))
+			if err != nil {
+				t.Errorf("Failed to create MultiTrackBlockSorter: %v", err)
+			}
+
+			chOut := make(chan *frame)
+			ch := []chan *frame{
+				make(chan *frame),
+				make(chan *frame),
+			}
+
+			w := []BlockWriter{
+				&filterWriter{0, chOut},
+				&filterWriter{1, chOut},
+			}
+			r := []BlockReader{
+				&filterReader{ch[0]},
+				&filterReader{ch[1]},
+			}
+
+			var frames []frame
+			wg.Add(1)
+			go func() {
+				for f := range chOut {
+					frames = append(frames, *f)
+				}
+				wg.Done()
+			}()
+
+			go func() {
+				ch[0] <- &frame{0, false, 100, []byte{1}}
+				ch[0] <- &frame{0, false, 110, []byte{2}}
+				time.Sleep(time.Millisecond)
+				ch[1] <- &frame{1, false, 150, []byte{3}}
+				time.Sleep(time.Millisecond)
+				ch[0] <- &frame{0, false, 160, []byte{4}}
+				ch[0] <- &frame{0, false, 170, []byte{5}}
+				ch[0] <- &frame{0, false, 200, []byte{6}}
+				time.Sleep(time.Millisecond)
+				ch[1] <- &frame{1, false, 90, []byte{7}} // maybe dropped due to WithMaxTimescaleDelay=100
+				ch[1] <- &frame{1, false, 210, []byte{8}}
 				close(ch[0])
 				close(ch[1])
 			}()

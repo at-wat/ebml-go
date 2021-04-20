@@ -36,5 +36,5 @@ var (
 		WritingApp:    "ebml-go.webm.BlockWriter",
 	}
 	// DefaultBlockInterceptor is the default BlockInterceptor used by BlockWriter.
-	DefaultBlockInterceptor, _ = mkvcore.NewMultiTrackBlockSorter(mkvcore.WithMaxDelayedPackets(16), mkvcore.WithSortRule(mkvcore.BlockSorterDropOutdated))
+	DefaultBlockInterceptor = mkcore.MustBlockInterceptor(mkvcore.NewMultiTrackBlockSorter(mkvcore.WithMaxDelayedPackets(16), mkvcore.WithSortRule(mkvcore.BlockSorterDropOutdated)))
 )

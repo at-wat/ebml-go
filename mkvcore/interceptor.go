@@ -26,6 +26,13 @@ type BlockInterceptor interface {
 	Intercept(r []BlockReader, w []BlockWriter)
 }
 
+func MustBlockInterceptor(interceptor BlockInterceptor, err error) BlockInterceptor {
+	if err != nil {
+		panic(err)
+	}
+	return interceptor
+}
+
 type filterWriter struct {
 	trackNumber uint64
 	ch          chan *frame
@@ -94,7 +101,7 @@ func WithSortRule(rule BlockSorterRule) MultiTrackBlockSorterOption {
 	}
 }
 
-// WithMaxTimescaleDelay set the maximum allowed deley between tracks for a
+// WithMaxTimescaleDelay set the maximum allowed delay between tracks for a
 // given timescale.
 func WithMaxTimescaleDelay(maxTimescaleDelay int64) MultiTrackBlockSorterOption {
 	return func(o *MultiTrackBlockSorterOptions) error {
@@ -103,9 +110,14 @@ func WithMaxTimescaleDelay(maxTimescaleDelay int64) MultiTrackBlockSorterOption 
 	}
 }
 
-// NewMultiTrackBlockSorter creates BlockInterceptor, which sorts blocks on multiple tracks by timestamp.
-// The index of TrackEntry sorts blocks with the same timestamp.
-// Place the audio track before the video track to meet WebM Interceptor Guidelines.
+// NewMultiTrackBlockSorter creates BlockInterceptor, which sorts blocks on
+// multiple tracks by timestamp. Either WithMaxDelayedPackets or
+// WithMaxTimescaleDelay must be specified. If both are specified, then the
+// first rule that is satisfied causes the packets to get written (thus a
+// backlog of a max packets or max time scale will cause any older packets than
+// the one satisfying the rule to be discarded). The index of TrackEntry sorts
+// blocks with the same timestamp. Place the audio track before the video track
+// to meet WebM Interceptor Guidelines.
 func NewMultiTrackBlockSorter(opts ...MultiTrackBlockSorterOption) (BlockInterceptor, error) {
 	applyOptions := []MultiTrackBlockSorterOption{
 		WithMaxDelayedPackets(0),
