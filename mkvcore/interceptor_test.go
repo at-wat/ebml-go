@@ -15,6 +15,7 @@
 package mkvcore
 
 import (
+	"errors"
 	"reflect"
 	"sync"
 	"testing"
@@ -242,4 +243,53 @@ func BenchmarkMultiTrackBlockSorter(b *testing.B) {
 	f.Intercept(r, w)
 
 	close(chOut)
+}
+
+func TestMultiTrackBlockSorter_FailingOptions(t *testing.T) {
+
+	errDummy := errors.New("an error")
+
+	cases := map[string]struct {
+		opts []MultiTrackBlockSorterOption
+		err  error
+	}{
+		"SingleOptionPackets": {
+			opts: []MultiTrackBlockSorterOption{
+				WithMaxDelayedPackets(2),
+			},
+			err: nil,
+		},
+		"SingleOptionTimeScape": {
+			opts: []MultiTrackBlockSorterOption{
+				WithMaxTimescaleDelay(2),
+			},
+			err: nil,
+		},
+		"MultiOptionPacketsAndTimeScale": {
+			opts: []MultiTrackBlockSorterOption{
+				WithMaxDelayedPackets(2),
+				WithMaxTimescaleDelay(100),
+				WithSortRule(BlockSorterDropOutdated),
+			},
+			err: nil,
+		},
+		"FailingOption": {
+			opts: []MultiTrackBlockSorterOption{
+				WithSortRule(BlockSorterDropOutdated),
+			},
+			err: errDummy,
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			_, err := NewMultiTrackBlockSorter(c.opts...)
+			if c.err == nil && err != nil {
+				t.Errorf("Expecting no error but got: '%v'", err)
+			}
+			if c.err != nil && err == nil {
+				t.Errorf("Expected error but didn't get one: '%v'", name)
+			}
+		})
+	}
 }
