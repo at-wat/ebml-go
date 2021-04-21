@@ -278,6 +278,14 @@ func TestMultiTrackBlockSorter_FailingOptions(t *testing.T) {
 			},
 			err: errDummy,
 		},
+		"ErroredOption": {
+			opts: []MultiTrackBlockSorterOption{
+				func(*MultiTrackBlockSorterOptions) error {
+					return errDummy
+				},
+			},
+			err: errDummy,
+		},
 	}
 
 	for name, c := range cases {
