@@ -26,6 +26,10 @@ func TestFrameBuffer(t *testing.T) {
 		t.Errorf("Pop() must return nil if empty, expected: nil, got %v", h)
 	}
 
+	if f := buf.Tail(); f != nil {
+		t.Errorf("Tail() must return nil if empty, expected: nil, got %v", f)
+	}
+
 	if n := buf.Size(); n != 0 {
 		t.Errorf("Size() must return 0 at beginning, got %d", n)
 	}
@@ -45,6 +49,9 @@ func TestFrameBuffer(t *testing.T) {
 	}
 	if h := buf.Head(); !reflect.DeepEqual(*h, frames[0]) {
 		t.Errorf("Head() must return first frame, expected: %v, got %v", frames[0].trackNumber, *h)
+	}
+	if f := buf.Tail(); !reflect.DeepEqual(*f, frames[1]) {
+		t.Errorf("Tail() must return last frame, expected: %v, got %v", frames[1].trackNumber, *f)
 	}
 
 	if h := buf.Pop(); !reflect.DeepEqual(*h, frames[0]) {
