@@ -27,6 +27,12 @@ func (b *frameBuffer) Head() *frame {
 	}
 	return b.buf[0]
 }
+func (b *frameBuffer) Tail() *frame {
+	if len(b.buf) == 0 {
+		return nil
+	}
+	return b.buf[len(b.buf)-1]
+}
 func (b *frameBuffer) Pop() *frame {
 	n := len(b.buf)
 	if n == 0 {

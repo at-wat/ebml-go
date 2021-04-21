@@ -15,13 +15,14 @@
 package mkvcore
 
 import (
+	"errors"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
 )
 
-func TestMultiTrackBlockSorter(t *testing.T) {
+func TestMultiTrackBlockSorterMaxPackets(t *testing.T) {
 	for name, c := range map[string]struct {
 		rule     BlockSorterRule
 		expected []frame
@@ -54,7 +55,11 @@ func TestMultiTrackBlockSorter(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			wg := sync.WaitGroup{}
-			f := NewMultiTrackBlockSorter(2, c.rule)
+
+			f, err := NewMultiTrackBlockSorter(WithMaxDelayedPackets(2), WithSortRule(c.rule))
+			if err != nil {
+				t.Errorf("Failed to create MultiTrackBlockSorter: %v", err)
+			}
 
 			chOut := make(chan *frame)
 			ch := []chan *frame{
@@ -108,8 +113,102 @@ func TestMultiTrackBlockSorter(t *testing.T) {
 	}
 }
 
+func TestMultiTrackBlockSorterTimescale(t *testing.T) {
+	for name, c := range map[string]struct {
+		rule     BlockSorterRule
+		expected []frame
+	}{
+		"DropOutdated": {
+			BlockSorterDropOutdated,
+			[]frame{
+				{0, false, 100, []byte{1}},
+				{0, false, 110, []byte{2}},
+				{1, false, 150, []byte{3}},
+				{0, false, 160, []byte{4}},
+				{0, false, 170, []byte{5}},
+				{0, false, 200, []byte{6}},
+				{1, false, 210, []byte{8}},
+			},
+		},
+		"WriteOutdated": {
+			BlockSorterWriteOutdated,
+			[]frame{
+				{0, false, 100, []byte{1}},
+				{0, false, 110, []byte{2}},
+				{1, false, 150, []byte{3}},
+				{1, false, 90, []byte{7}},
+				{0, false, 160, []byte{4}},
+				{0, false, 170, []byte{5}},
+				{0, false, 200, []byte{6}},
+				{1, false, 210, []byte{8}},
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			wg := sync.WaitGroup{}
+
+			f, err := NewMultiTrackBlockSorter(WithMaxTimescaleDelay(100), WithSortRule(c.rule))
+			if err != nil {
+				t.Errorf("Failed to create MultiTrackBlockSorter: %v", err)
+			}
+
+			chOut := make(chan *frame)
+			ch := []chan *frame{
+				make(chan *frame),
+				make(chan *frame),
+			}
+
+			w := []BlockWriter{
+				&filterWriter{0, chOut},
+				&filterWriter{1, chOut},
+			}
+			r := []BlockReader{
+				&filterReader{ch[0]},
+				&filterReader{ch[1]},
+			}
+
+			var frames []frame
+			wg.Add(1)
+			go func() {
+				for f := range chOut {
+					frames = append(frames, *f)
+				}
+				wg.Done()
+			}()
+
+			go func() {
+				ch[0] <- &frame{0, false, 100, []byte{1}}
+				ch[0] <- &frame{0, false, 110, []byte{2}}
+				time.Sleep(time.Millisecond)
+				ch[1] <- &frame{1, false, 150, []byte{3}}
+				time.Sleep(time.Millisecond)
+				ch[0] <- &frame{0, false, 160, []byte{4}}
+				ch[0] <- &frame{0, false, 170, []byte{5}}
+				ch[0] <- &frame{0, false, 200, []byte{6}}
+				time.Sleep(time.Millisecond)
+				ch[1] <- &frame{1, false, 90, []byte{7}} // maybe dropped due to WithMaxTimescaleDelay=100
+				ch[1] <- &frame{1, false, 210, []byte{8}}
+				close(ch[0])
+				close(ch[1])
+			}()
+
+			f.Intercept(r, w)
+
+			close(chOut)
+			wg.Wait()
+
+			if !reflect.DeepEqual(c.expected, frames) {
+				t.Errorf("Unexpected sort result, \nexpected: %v, \n     got: %v", c.expected, frames)
+			}
+		})
+	}
+}
+
 func BenchmarkMultiTrackBlockSorter(b *testing.B) {
-	f := NewMultiTrackBlockSorter(2, BlockSorterDropOutdated)
+	f, err := NewMultiTrackBlockSorter(WithMaxDelayedPackets(2), WithSortRule(BlockSorterDropOutdated))
+	if err != nil {
+		b.Errorf("Failed to create MultiTrackBlockSorter: %v", err)
+	}
 
 	chOut := make(chan *frame)
 	ch := []chan *frame{
@@ -144,4 +243,53 @@ func BenchmarkMultiTrackBlockSorter(b *testing.B) {
 	f.Intercept(r, w)
 
 	close(chOut)
+}
+
+func TestMultiTrackBlockSorter_FailingOptions(t *testing.T) {
+
+	errDummy := errors.New("an error")
+
+	cases := map[string]struct {
+		opts []MultiTrackBlockSorterOption
+		err  error
+	}{
+		"SingleOptionPackets": {
+			opts: []MultiTrackBlockSorterOption{
+				WithMaxDelayedPackets(2),
+			},
+			err: nil,
+		},
+		"SingleOptionTimeScape": {
+			opts: []MultiTrackBlockSorterOption{
+				WithMaxTimescaleDelay(2),
+			},
+			err: nil,
+		},
+		"MultiOptionPacketsAndTimeScale": {
+			opts: []MultiTrackBlockSorterOption{
+				WithMaxDelayedPackets(2),
+				WithMaxTimescaleDelay(100),
+				WithSortRule(BlockSorterDropOutdated),
+			},
+			err: nil,
+		},
+		"FailingOption": {
+			opts: []MultiTrackBlockSorterOption{
+				WithSortRule(BlockSorterDropOutdated),
+			},
+			err: errDummy,
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			_, err := NewMultiTrackBlockSorter(c.opts...)
+			if c.err == nil && err != nil {
+				t.Errorf("Expecting no error but got: '%v'", err)
+			}
+			if c.err != nil && err == nil {
+				t.Errorf("Expected error but didn't get one: '%v'", name)
+			}
+		})
+	}
 }
