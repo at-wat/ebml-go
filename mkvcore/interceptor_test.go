@@ -246,7 +246,6 @@ func BenchmarkMultiTrackBlockSorter(b *testing.B) {
 }
 
 func TestMultiTrackBlockSorter_FailingOptions(t *testing.T) {
-
 	errDummy := errors.New("an error")
 
 	cases := map[string]struct {
@@ -292,4 +291,32 @@ func TestMultiTrackBlockSorter_FailingOptions(t *testing.T) {
 			}
 		})
 	}
+}
+
+type dummyInterceptor struct{}
+
+func (dummyInterceptor) Intercept([]BlockReader, []BlockWriter) {
+	panic("unimplemented")
+}
+
+func TestMustBlockInterceptor(t *testing.T) {
+	t.Run("OK", func(t *testing.T) {
+		i := &dummyInterceptor{}
+		ret := MustBlockInterceptor(i, nil)
+		if ret != i {
+			t.Error("MustBlockInterceptor must return the interceptor on success")
+		}
+	})
+	t.Run("Error", func(t *testing.T) {
+		i := &dummyInterceptor{}
+		err := errors.New("dummy error")
+
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("MustBlockInterceptor must panic on failure")
+			}
+		}()
+
+		_ = MustBlockInterceptor(i, err)
+	})
 }
