@@ -26,8 +26,8 @@ type BlockInterceptor interface {
 	Intercept(r []BlockReader, w []BlockWriter)
 }
 
-// Panics if creation of a BlockInterceptor fails, such as when the
-// NewMultiTrackBlockSorter function fails.
+// MustBlockInterceptor panics if creation of a BlockInterceptor fails, such as
+// when the NewMultiTrackBlockSorter function fails.
 func MustBlockInterceptor(interceptor BlockInterceptor, err error) BlockInterceptor {
 	if err != nil {
 		panic(err)
