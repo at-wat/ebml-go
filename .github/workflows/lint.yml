@@ -1,0 +1,25 @@
+name: lint
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v2
+      - name: Install golint
+        run: |
+          go get golang.org/x/lint/golint
+          go install golang.org/x/lint/golint
+          echo $(go env GOPATH)/bin >> ${GITHUB_PATH}
+      - name: Lint
+        run: |
+          golint ./... | sed 's/^\([^:]\+\):\([0-9]\+\):\([0-9]\+\): \(.*\)$/::warning file=\1,line=\2,col=\3::\4/'
