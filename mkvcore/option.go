@@ -145,6 +145,7 @@ func WithMaxKeyframeInterval(mainTrackNumber uint64, interval int64) BlockWriter
 // BlockReaderOptionFn configures a BlockReaderOptions.
 type BlockReaderOptionFn func(*BlockReaderOptions) error
 
+// ApplyToBlockReaderOptions implements BlockReaderOption.
 func (o BlockReaderOptionFn) ApplyToBlockReaderOptions(opts *BlockReaderOptions) error {
 	return o(opts)
 }
