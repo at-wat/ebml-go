@@ -66,7 +66,7 @@ func main() {
 		panic(err)
 	}
 
-	closed := make(chan os.Signal)
+	closed := make(chan os.Signal, 1)
 	signal.Notify(closed, os.Interrupt)
 	go func() {
 		<-closed
