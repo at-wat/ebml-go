@@ -1,3 +1,4 @@
+//go:build matroska_official
 // +build matroska_official
 
 package ebml
