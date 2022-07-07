@@ -43,7 +43,7 @@ func TestBlockWriter(t *testing.T) {
 			Name:        "Audio",
 			TrackNumber: 2,
 			TrackUID:    54321,
-			CodecID:     "V_OPUS",
+			CodecID:     "A_OPUS",
 			TrackType:   2,
 			Audio: &Audio{
 				SamplingFrequency: 48000.0,
