@@ -97,6 +97,11 @@ const (
 	ElementFlagEnabled
 	ElementFlagDefault
 	ElementFlagForced
+	ElementFlagHearingImpaired
+	ElementFlagVisualImpaired
+	ElementFlagTextDescriptions
+	ElementFlagOriginal
+	ElementFlagCommentary
 	ElementFlagLacing
 	ElementMinCache
 	ElementMaxCache
@@ -343,6 +348,11 @@ var elementTypeName = map[ElementType]string{
 	ElementFlagEnabled:                 "FlagEnabled",
 	ElementFlagDefault:                 "FlagDefault",
 	ElementFlagForced:                  "FlagForced",
+	ElementFlagHearingImpaired:         "FlagHearingImpaired",
+	ElementFlagVisualImpaired:          "FlagVisualImpaired",
+	ElementFlagTextDescriptions:        "FlagTextDescriptions",
+	ElementFlagOriginal:                "FlagOriginal",
+	ElementFlagCommentary:              "FlagCommentary",
 	ElementFlagLacing:                  "FlagLacing",
 	ElementMinCache:                    "MinCache",
 	ElementMaxCache:                    "MaxCache",
