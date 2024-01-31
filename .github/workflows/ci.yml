@@ -45,6 +45,6 @@ jobs:
 
           go mod tidy
           git diff --exit-code go.mod  # must be up-to-date and tidied
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         with:
           file: ./cover.out
