@@ -359,7 +359,7 @@ func encodeString(i interface{}, n uint64) ([]byte, error) {
 		return []byte{}, wrapErrorf(ErrInvalidType, "writing %T as string", i)
 	}
 	if uint64(len(v)) >= n {
-		return append([]byte(v)), nil
+		return []byte(v), nil
 	}
 	return append([]byte(v), bytes.Repeat([]byte{0x00}, int(n)-len(v))...), nil
 }
