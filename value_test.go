@@ -204,7 +204,7 @@ func TestValue(t *testing.T) {
 	}{
 		"Binary":      {[]byte{0x01, 0x02, 0x03}, DataTypeBinary, []byte{0x01, 0x02, 0x03}, 0, nil},
 		"Binary(4B)":  {[]byte{0x01, 0x02, 0x03, 0x00}, DataTypeBinary, []byte{0x01, 0x02, 0x03, 0x00}, 4, []byte{0x01, 0x02, 0x03}},
-		"String":      {[]byte{0x31, 0x32, 0x00}, DataTypeString, "12", 0, nil},
+		"String":      {[]byte{0x31, 0x32}, DataTypeString, "12", 0, nil},
 		"String(3B)":  {[]byte{0x31, 0x32, 0x00}, DataTypeString, "12", 3, nil},
 		"String(4B)":  {[]byte{0x31, 0x32, 0x00, 0x00}, DataTypeString, "12", 4, nil},
 		"Int8":        {[]byte{0x01}, DataTypeInt, int64(0x01), 0, nil},
