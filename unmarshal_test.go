@@ -26,6 +26,32 @@ import (
 	"github.com/at-wat/ebml-go/internal/errs"
 )
 
+type successWithEOFBytesReader struct {
+	buf []byte
+}
+
+func (r *successWithEOFBytesReader) Read(b []byte) (int, error) {
+	if len(r.buf) == 0 {
+		return 0, io.EOF
+	}
+
+	b[0] = r.buf[0]
+	r.buf = r.buf[1:]
+	if len(r.buf) == 1 {
+		return 1, io.EOF
+	}
+	return 1, nil
+}
+
+func runForEachReader(t *testing.T, b []byte, fn func(t *testing.T, r io.Reader)) {
+	t.Run("NormalReader", func(t *testing.T) {
+		fn(t, bytes.NewReader(b))
+	})
+	t.Run("SuccessWithEOFReader", func(t *testing.T) {
+		fn(t, &successWithEOFBytesReader{buf: b})
+	})
+}
+
 func ExampleUnmarshal() {
 	TestBinary := []byte{
 		0x1a, 0x45, 0xdf, 0xa3, // EBML
@@ -79,13 +105,15 @@ func TestUnmarshal_MultipleUnknownSize(t *testing.T) {
 		},
 	}
 
-	var ret TestEBML
-	if err := Unmarshal(bytes.NewReader(b), &ret); err != nil {
-		t.Fatalf("Unexpected error: '%v'\n", err)
-	}
-	if !reflect.DeepEqual(expected, ret) {
-		t.Errorf("Expected result: %v, got: %v", expected, ret)
-	}
+	runForEachReader(t, b, func(t *testing.T, r io.Reader) {
+		var ret TestEBML
+		if err := Unmarshal(r, &ret); err != nil {
+			t.Fatalf("Unexpected error: '%v'\n", err)
+		}
+		if !reflect.DeepEqual(expected, ret) {
+			t.Errorf("Expected result: %v, got: %v", expected, ret)
+		}
+	})
 }
 
 func TestUnmarshal_Convert(t *testing.T) {
@@ -193,15 +221,17 @@ func TestUnmarshal_Convert(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			ret := reflect.New(reflect.ValueOf(c.expected).Type())
-			if err := Unmarshal(bytes.NewReader(c.b), ret.Interface()); err != nil {
-				t.Fatalf("Unexpected error: '%v'\n", err)
-			}
+			runForEachReader(t, c.b, func(t *testing.T, r io.Reader) {
+				ret := reflect.New(reflect.ValueOf(c.expected).Type())
+				if err := Unmarshal(r, ret.Interface()); err != nil {
+					t.Fatalf("Unexpected error: '%v'\n", err)
+				}
 
-			if !reflect.DeepEqual(c.expected, ret.Elem().Interface()) {
-				t.Errorf("Expected convert result: %v, got %v",
-					c.expected, ret.Elem().Interface())
-			}
+				if !reflect.DeepEqual(c.expected, ret.Elem().Interface()) {
+					t.Errorf("Expected convert result: %v, got %v",
+						c.expected, ret.Elem().Interface())
+				}
+			})
 		})
 	}
 }
@@ -219,7 +249,7 @@ func TestUnmarshal_OptionError(t *testing.T) {
 }
 
 func TestUnmarshal_WithElementReadHooks(t *testing.T) {
-	TestBinary := []byte{
+	testBinary := []byte{
 		0x18, 0x53, 0x80, 0x67, 0xa6, // Segment
 		0x1c, 0x53, 0xbb, 0x6b, 0x80, // Cues (empty)
 		0x16, 0x54, 0xae, 0x6b, 0x9c, // Tracks
@@ -242,46 +272,46 @@ func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 		} `ebml:"Segment"`
 	}
 
-	r := bytes.NewReader(TestBinary)
+	runForEachReader(t, testBinary, func(t *testing.T, r io.Reader) {
+		var ret TestEBML
+		m := make(map[string][]*Element)
+		hook := withElementMap(m)
+		if err := Unmarshal(r, &ret, WithElementReadHooks(hook)); err != nil {
+			t.Errorf("Unexpected error: '%v'", err)
+		}
 
-	var ret TestEBML
-	m := make(map[string][]*Element)
-	hook := withElementMap(m)
-	if err := Unmarshal(r, &ret, WithElementReadHooks(hook)); err != nil {
-		t.Errorf("Unexpected error: '%v'", err)
-	}
-
-	// Verify positions of elements
-	expected := map[string][]uint64{
-		"Segment":                               {0},
-		"Segment.Tracks":                        {10},
-		"Segment.Tracks.TrackEntry":             {15, 29},
-		"Segment.Tracks.TrackEntry.Name":        {17, 31},
-		"Segment.Tracks.TrackEntry.TrackNumber": {26, 40},
-	}
-	posMap := elementPositionMap(m)
-	if !reflect.DeepEqual(expected, posMap) {
-		t.Errorf("Unexpected read hook positions, \nexpected: %v, \n     got: %v", expected, posMap)
-	}
-	checkTarget := "Segment.Tracks.TrackEntry.Name"
-	switch {
-	case len(m[checkTarget]) != 2:
-		t.Fatalf("%s read hook should be called twice, but called %d times",
-			checkTarget, len(m[checkTarget]))
-	case m[checkTarget][0].Type != ElementName:
-		t.Fatalf("ElementType of %s should be %s, got %s",
-			checkTarget, ElementName, m[checkTarget][0].Type)
-	}
-	switch v, ok := m[checkTarget][0].Value.(string); {
-	case !ok:
-		t.Errorf("Invalid type of data: %T", v)
-	case v != "Video":
-		t.Errorf("The value should be Video, got %s", v)
-	}
+		// Verify positions of elements
+		expected := map[string][]uint64{
+			"Segment":                               {0},
+			"Segment.Tracks":                        {10},
+			"Segment.Tracks.TrackEntry":             {15, 29},
+			"Segment.Tracks.TrackEntry.Name":        {17, 31},
+			"Segment.Tracks.TrackEntry.TrackNumber": {26, 40},
+		}
+		posMap := elementPositionMap(m)
+		if !reflect.DeepEqual(expected, posMap) {
+			t.Errorf("Unexpected read hook positions, \nexpected: %v, \n     got: %v", expected, posMap)
+		}
+		checkTarget := "Segment.Tracks.TrackEntry.Name"
+		switch {
+		case len(m[checkTarget]) != 2:
+			t.Fatalf("%s read hook should be called twice, but called %d times",
+				checkTarget, len(m[checkTarget]))
+		case m[checkTarget][0].Type != ElementName:
+			t.Fatalf("ElementType of %s should be %s, got %s",
+				checkTarget, ElementName, m[checkTarget][0].Type)
+		}
+		switch v, ok := m[checkTarget][0].Value.(string); {
+		case !ok:
+			t.Errorf("Invalid type of data: %T", v)
+		case v != "Video":
+			t.Errorf("The value should be Video, got %s", v)
+		}
+	})
 }
 
 func TestUnmarshal_Chan(t *testing.T) {
-	TestBinary := []byte{
+	testBinary := []byte{
 		0x18, 0x53, 0x80, 0x67, 0x8f, // Segment
 		0x16, 0x54, 0xae, 0x6b, 0x8a, // Tracks
 		0xae, 0x83, // TrackEntry[0]
@@ -299,31 +329,33 @@ func TestUnmarshal_Chan(t *testing.T) {
 		} `ebml:"Segment"`
 	}
 
-	var ret TestEBML
-	ch := make(chan uint64, 100)
-	ret.Segment.Tracks.TrackEntry.TrackNumber = ch
+	runForEachReader(t, testBinary, func(t *testing.T, r io.Reader) {
+		var ret TestEBML
+		ch := make(chan uint64, 100)
+		ret.Segment.Tracks.TrackEntry.TrackNumber = ch
 
-	done := make(chan struct{})
-	go func() {
-		select {
-		case <-time.After(5 * time.Second):
-			panic("test timeout")
-		case <-done:
+		done := make(chan struct{})
+		go func() {
+			select {
+			case <-time.After(5 * time.Second):
+				panic("test timeout")
+			case <-done:
+			}
+		}()
+		if err := Unmarshal(r, &ret); err != nil {
+			t.Errorf("Unexpected error: '%v'", err)
 		}
-	}()
-	if err := Unmarshal(bytes.NewReader(TestBinary), &ret); err != nil {
-		t.Errorf("Unexpected error: '%v'", err)
-	}
-	close(done)
-	if len(ch) != 2 {
-		t.Fatalf("Element chan should be sent twice, but sent %d times", len(ch))
-	}
-	if v := <-ch; v != 1 {
-		t.Errorf("First value should be 1, got %d", v)
-	}
-	if v := <-ch; v != 2 {
-		t.Errorf("Second value should be 2, got %d", v)
-	}
+		close(done)
+		if len(ch) != 2 {
+			t.Fatalf("Element chan should be sent twice, but sent %d times", len(ch))
+		}
+		if v := <-ch; v != 1 {
+			t.Errorf("First value should be 1, got %d", v)
+		}
+		if v := <-ch; v != 2 {
+			t.Errorf("Second value should be 2, got %d", v)
+		}
+	})
 }
 
 func TestUnmarshal_Tag(t *testing.T) {
@@ -336,16 +368,18 @@ func TestUnmarshal_Tag(t *testing.T) {
 
 	b := []byte{0x42, 0x82, 0x85, 0x68, 0x6F, 0x67, 0x65, 0x00}
 
-	if err := Unmarshal(bytes.NewBuffer(b), &tagged); err != nil {
-		t.Fatalf("Unexpected error: '%v'", err)
-	}
-	if err := Unmarshal(bytes.NewBuffer(b), &untagged); err != nil {
-		t.Fatalf("Unexpected error: '%v'", err)
-	}
+	runForEachReader(t, b, func(t *testing.T, r io.Reader) {
+		if err := Unmarshal(bytes.NewBuffer(b), &tagged); err != nil {
+			t.Fatalf("Unexpected error: '%v'", err)
+		}
+		if err := Unmarshal(bytes.NewBuffer(b), &untagged); err != nil {
+			t.Fatalf("Unexpected error: '%v'", err)
+		}
 
-	if tagged.DocCustomNamedType != untagged.EBMLDocType {
-		t.Errorf("Unmarshal result to tagged and and untagged struct must be same, tagged: %v, untagged: %v", tagged, untagged)
-	}
+		if tagged.DocCustomNamedType != untagged.EBMLDocType {
+			t.Errorf("Unmarshal result to tagged and and untagged struct must be same, tagged: %v, untagged: %v", tagged, untagged)
+		}
+	})
 }
 
 func TestUnmarshal_Map(t *testing.T) {
@@ -373,25 +407,29 @@ func TestUnmarshal_Map(t *testing.T) {
 	}
 
 	t.Run("AllocatedMap", func(t *testing.T) {
-		ret := make(map[string]interface{})
-		if err := Unmarshal(bytes.NewBuffer(b), &ret); err != nil {
-			t.Fatalf("Unexpected error: '%v'", err)
-		}
+		runForEachReader(t, b, func(t *testing.T, r io.Reader) {
+			ret := make(map[string]interface{})
+			if err := Unmarshal(r, &ret); err != nil {
+				t.Fatalf("Unexpected error: '%v'", err)
+			}
 
-		if !reflect.DeepEqual(expected, ret) {
-			t.Errorf("Unmarshal to map differs from expected:\n%#+v\ngot:\n%#+v", expected, ret)
-		}
+			if !reflect.DeepEqual(expected, ret) {
+				t.Errorf("Unmarshal to map differs from expected:\n%#+v\ngot:\n%#+v", expected, ret)
+			}
+		})
 	})
 
 	t.Run("NilMap", func(t *testing.T) {
-		var ret map[string]interface{}
-		if err := Unmarshal(bytes.NewBuffer(b), &ret); err != nil {
-			t.Fatalf("Unexpected error: '%v'", err)
-		}
+		runForEachReader(t, b, func(t *testing.T, r io.Reader) {
+			var ret map[string]interface{}
+			if err := Unmarshal(r, &ret); err != nil {
+				t.Fatalf("Unexpected error: '%v'", err)
+			}
 
-		if !reflect.DeepEqual(expected, ret) {
-			t.Errorf("Unmarshal to map differs from expected:\n%#+v\ngot:\n%#+v", expected, ret)
-		}
+			if !reflect.DeepEqual(expected, ret) {
+				t.Errorf("Unmarshal to map differs from expected:\n%#+v\ngot:\n%#+v", expected, ret)
+			}
+		})
 	})
 }
 
@@ -416,14 +454,16 @@ func TestUnmarshal_IgnoreUnknown(t *testing.T) {
 		},
 	}
 
-	ret := make(map[string]interface{})
-	if err := Unmarshal(bytes.NewBuffer(b), &ret, WithIgnoreUnknown(true)); err != nil {
-		t.Fatalf("Unexpected error: '%v'", err)
-	}
+	runForEachReader(t, b, func(t *testing.T, r io.Reader) {
+		ret := make(map[string]interface{})
+		if err := Unmarshal(r, &ret, WithIgnoreUnknown(true)); err != nil {
+			t.Fatalf("Unexpected error: '%v'", err)
+		}
 
-	if !reflect.DeepEqual(expected, ret) {
-		t.Errorf("Unmarshal with IgnoreUnknown differs from expected:\n%#+v\ngot:\n%#+v", expected, ret)
-	}
+		if !reflect.DeepEqual(expected, ret) {
+			t.Errorf("Unmarshal with IgnoreUnknown differs from expected:\n%#+v\ngot:\n%#+v", expected, ret)
+		}
+	})
 }
 
 func TestUnmarshal_Error(t *testing.T) {
