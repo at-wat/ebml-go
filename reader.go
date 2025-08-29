@@ -43,6 +43,9 @@ func (r *rollbackReaderImpl) Get() io.Reader {
 func (r *rollbackReaderImpl) Read(b []byte) (int, error) {
 	n, err := r.Reader.Read(b)
 	r.buf = append(r.buf, b[:n]...)
+	if n != 0 && err == io.EOF {
+		err = nil
+	}
 	return n, err
 }
 
@@ -69,6 +72,14 @@ func (r *rollbackReaderNop) Set(v io.Reader) {
 
 func (r *rollbackReaderNop) Get() io.Reader {
 	return r.Reader
+}
+
+func (r *rollbackReaderNop) Read(b []byte) (int, error) {
+	n, err := r.Reader.Read(b)
+	if n != 0 && err == io.EOF {
+		err = nil
+	}
+	return n, err
 }
 
 func (*rollbackReaderNop) Reset() {
