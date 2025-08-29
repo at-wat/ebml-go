@@ -43,12 +43,16 @@ func (r *successWithEOFBytesReader) Read(b []byte) (int, error) {
 	return 1, nil
 }
 
-func runForEachReader(t *testing.T, b []byte, fn func(t *testing.T, r io.Reader)) {
+func runForEachReader(t *testing.T, b []byte, fn func(t *testing.T, r func() io.Reader)) {
 	t.Run("NormalReader", func(t *testing.T) {
-		fn(t, bytes.NewReader(b))
+		fn(t, func() io.Reader {
+			return bytes.NewReader(b)
+		})
 	})
 	t.Run("SuccessWithEOFReader", func(t *testing.T) {
-		fn(t, &successWithEOFBytesReader{buf: b})
+		fn(t, func() io.Reader {
+			return &successWithEOFBytesReader{buf: b}
+		})
 	})
 }
 
@@ -105,9 +109,9 @@ func TestUnmarshal_MultipleUnknownSize(t *testing.T) {
 		},
 	}
 
-	runForEachReader(t, b, func(t *testing.T, r io.Reader) {
+	runForEachReader(t, b, func(t *testing.T, r func() io.Reader) {
 		var ret TestEBML
-		if err := Unmarshal(r, &ret); err != nil {
+		if err := Unmarshal(r(), &ret); err != nil {
 			t.Fatalf("Unexpected error: '%v'\n", err)
 		}
 		if !reflect.DeepEqual(expected, ret) {
@@ -221,9 +225,9 @@ func TestUnmarshal_Convert(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			runForEachReader(t, c.b, func(t *testing.T, r io.Reader) {
+			runForEachReader(t, c.b, func(t *testing.T, r func() io.Reader) {
 				ret := reflect.New(reflect.ValueOf(c.expected).Type())
-				if err := Unmarshal(r, ret.Interface()); err != nil {
+				if err := Unmarshal(r(), ret.Interface()); err != nil {
 					t.Fatalf("Unexpected error: '%v'\n", err)
 				}
 
@@ -272,11 +276,11 @@ func TestUnmarshal_WithElementReadHooks(t *testing.T) {
 		} `ebml:"Segment"`
 	}
 
-	runForEachReader(t, testBinary, func(t *testing.T, r io.Reader) {
+	runForEachReader(t, testBinary, func(t *testing.T, r func() io.Reader) {
 		var ret TestEBML
 		m := make(map[string][]*Element)
 		hook := withElementMap(m)
-		if err := Unmarshal(r, &ret, WithElementReadHooks(hook)); err != nil {
+		if err := Unmarshal(r(), &ret, WithElementReadHooks(hook)); err != nil {
 			t.Errorf("Unexpected error: '%v'", err)
 		}
 
@@ -329,7 +333,7 @@ func TestUnmarshal_Chan(t *testing.T) {
 		} `ebml:"Segment"`
 	}
 
-	runForEachReader(t, testBinary, func(t *testing.T, r io.Reader) {
+	runForEachReader(t, testBinary, func(t *testing.T, r func() io.Reader) {
 		var ret TestEBML
 		ch := make(chan uint64, 100)
 		ret.Segment.Tracks.TrackEntry.TrackNumber = ch
@@ -342,7 +346,7 @@ func TestUnmarshal_Chan(t *testing.T) {
 			case <-done:
 			}
 		}()
-		if err := Unmarshal(r, &ret); err != nil {
+		if err := Unmarshal(r(), &ret); err != nil {
 			t.Errorf("Unexpected error: '%v'", err)
 		}
 		close(done)
@@ -368,11 +372,11 @@ func TestUnmarshal_Tag(t *testing.T) {
 
 	b := []byte{0x42, 0x82, 0x85, 0x68, 0x6F, 0x67, 0x65, 0x00}
 
-	runForEachReader(t, b, func(t *testing.T, r io.Reader) {
-		if err := Unmarshal(bytes.NewBuffer(b), &tagged); err != nil {
+	runForEachReader(t, b, func(t *testing.T, r func() io.Reader) {
+		if err := Unmarshal(r(), &tagged); err != nil {
 			t.Fatalf("Unexpected error: '%v'", err)
 		}
-		if err := Unmarshal(bytes.NewBuffer(b), &untagged); err != nil {
+		if err := Unmarshal(r(), &untagged); err != nil {
 			t.Fatalf("Unexpected error: '%v'", err)
 		}
 
@@ -407,9 +411,9 @@ func TestUnmarshal_Map(t *testing.T) {
 	}
 
 	t.Run("AllocatedMap", func(t *testing.T) {
-		runForEachReader(t, b, func(t *testing.T, r io.Reader) {
+		runForEachReader(t, b, func(t *testing.T, r func() io.Reader) {
 			ret := make(map[string]interface{})
-			if err := Unmarshal(r, &ret); err != nil {
+			if err := Unmarshal(r(), &ret); err != nil {
 				t.Fatalf("Unexpected error: '%v'", err)
 			}
 
@@ -420,9 +424,9 @@ func TestUnmarshal_Map(t *testing.T) {
 	})
 
 	t.Run("NilMap", func(t *testing.T) {
-		runForEachReader(t, b, func(t *testing.T, r io.Reader) {
+		runForEachReader(t, b, func(t *testing.T, r func() io.Reader) {
 			var ret map[string]interface{}
-			if err := Unmarshal(r, &ret); err != nil {
+			if err := Unmarshal(r(), &ret); err != nil {
 				t.Fatalf("Unexpected error: '%v'", err)
 			}
 
@@ -454,9 +458,9 @@ func TestUnmarshal_IgnoreUnknown(t *testing.T) {
 		},
 	}
 
-	runForEachReader(t, b, func(t *testing.T, r io.Reader) {
+	runForEachReader(t, b, func(t *testing.T, r func() io.Reader) {
 		ret := make(map[string]interface{})
-		if err := Unmarshal(r, &ret, WithIgnoreUnknown(true)); err != nil {
+		if err := Unmarshal(r(), &ret, WithIgnoreUnknown(true)); err != nil {
 			t.Fatalf("Unexpected error: '%v'", err)
 		}
 
