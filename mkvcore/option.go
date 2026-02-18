@@ -23,6 +23,21 @@ import (
 // ErrInvalidTrackNumber means that a track number is invalid. The track number must be larger than 0.
 var ErrInvalidTrackNumber = errors.New("invalid track number")
 
+// ErrCuesRequiresSeekHead means WithCues was used without WithSeekHead.
+var ErrCuesRequiresSeekHead = errors.New("WithCues requires WithSeekHead")
+
+// ErrCuesRequiresSeeker means WithCues was used with a writer that does not implement io.WriteSeeker.
+var ErrCuesRequiresSeeker = errors.New("WithCues requires an io.WriteSeeker")
+
+// ErrCuesReservedTooSmall means WithCues was called with a reservedSize smaller than 9 bytes.
+var ErrCuesReservedTooSmall = errors.New("WithCues reservedSize must be at least 9")
+
+// durationSettable is implemented by segment info types that support
+// having their Duration field set automatically (e.g. webm.Info).
+type durationSettable interface {
+	SetDuration(float64)
+}
+
 // BlockWriterOption configures a BlockWriterOptions.
 type BlockWriterOption interface {
 	ApplyToBlockWriterOptions(opts *BlockWriterOptions) error
@@ -86,6 +101,7 @@ type BlockWriterOptions struct {
 	interceptor         BlockInterceptor
 	mainTrackNumber     uint64
 	maxKeyframeInterval int64
+	cuesReservedSize    int
 }
 
 // WithEBMLHeader sets EBML header.
@@ -124,6 +140,21 @@ func WithMarshalOptions(opts ...ebml.MarshalOption) BlockWriterOptionFn {
 func WithBlockInterceptor(interceptor BlockInterceptor) BlockWriterOptionFn {
 	return func(o *BlockWriterOptions) error {
 		o.interceptor = interceptor
+		return nil
+	}
+}
+
+// WithCues enables writing a Cues (seek index) element and calculates Duration on finish.
+// This effectively allows writing seekable streams without additional remuxing, at the cost
+// pre-allocated and likely inefficient index space.
+// reservedSize is the number of bytes (>=9) to reserve at the front of the file for Cues.
+// Requires WithSeekHead(true) and an io.WriteSeeker, not just io.WriteCloser.
+func WithCues(reservedSize int) BlockWriterOptionFn {
+	return func(o *BlockWriterOptions) error {
+		if reservedSize < 9 {
+			return ErrCuesReservedTooSmall
+		}
+		o.cuesReservedSize = reservedSize
 		return nil
 	}
 }

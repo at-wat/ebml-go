@@ -20,7 +20,7 @@ import (
 	"github.com/at-wat/ebml-go"
 )
 
-func setSeekHead(header *flexHeader, opts ...ebml.MarshalOption) error {
+func setSeekHead(header *flexHeader, withCues bool, opts ...ebml.MarshalOption) (segmentDataStart, durationElementPos uint64, err error) {
 	infoPos := new(uint64)
 	tracksPos := new(uint64)
 	header.Segment.SeekHead = &seekHeadFixed{}
@@ -34,6 +34,14 @@ func setSeekHead(header *flexHeader, opts ...ebml.MarshalOption) error {
 		SeekID:       ebml.ElementTracks.Bytes(),
 		SeekPosition: tracksPos,
 	})
+	var cuesPos *uint64
+	if withCues {
+		cuesPos = new(uint64)
+		header.Segment.SeekHead.Seek = append(header.Segment.SeekHead.Seek, seekFixed{
+			SeekID:       ebml.ElementCues.Bytes(),
+			SeekPosition: cuesPos,
+		})
+	}
 
 	var segmentPos uint64
 	hook := func(e *ebml.Element) {
@@ -54,8 +62,24 @@ func setSeekHead(header *flexHeader, opts ...ebml.MarshalOption) error {
 
 	var buf bytes.Buffer
 	if err := ebml.Marshal(header, &buf, optsWithHook...); err != nil {
-		return err
+		return 0, 0, err
 	}
 
-	return nil
+	// The Void (reserved for Cues) starts right after the header.
+	// Its position relative to segment data start is the SeekPosition for Cues.
+	if cuesPos != nil {
+		*cuesPos = uint64(buf.Len()) - segmentPos
+	}
+
+	// Find Duration element position by scanning the temporary buffer.
+	// We can't use the hook because child element positions don't account
+	// for the parent's VINT size (which is written after content for
+	// known-size elements). Byte scanning the buffer is exact.
+	// Duration element: ID 0x44 0x89, VINT 0x88 (8-byte float64).
+	durationPattern := []byte{0x44, 0x89, 0x88}
+	if idx := bytes.Index(buf.Bytes(), durationPattern); idx >= 0 {
+		durationElementPos = uint64(idx)
+	}
+
+	return segmentPos, durationElementPos, nil
 }

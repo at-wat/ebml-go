@@ -15,8 +15,11 @@
 package mkvcore
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"io"
+	"math"
 	"sync"
 
 	"github.com/at-wat/ebml-go"
@@ -86,6 +89,19 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 		}
 	}
 
+	// Validate Cues requirements
+	var seeker io.WriteSeeker
+	if options.cuesReservedSize > 0 {
+		if !options.seekHead {
+			return nil, ErrCuesRequiresSeekHead
+		}
+		var ok bool
+		seeker, ok = w0.(io.WriteSeeker)
+		if !ok {
+			return nil, ErrCuesRequiresSeeker
+		}
+	}
+
 	w := &writerWithSizeCount{w: w0}
 
 	header := flexHeader{
@@ -97,14 +113,39 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 	for _, t := range tracks {
 		header.Segment.Tracks.TrackEntry = append(header.Segment.Tracks.TrackEntry, t.TrackEntry)
 	}
+
+	// When Cues are enabled and segmentInfo supports it, set a placeholder
+	// Duration so the marshaler includes the element in the output.
+	// We'll overwrite it with the real value at finalization.
+	if options.cuesReservedSize > 0 {
+		if ds, ok := options.segmentInfo.(durationSettable); ok {
+			ds.SetDuration(math.SmallestNonzeroFloat64)
+		}
+	}
+
+	var durationElementPos uint64
+	var segmentDataStart uint64
 	if options.seekHead {
-		if err := setSeekHead(&header, options.marshalOpts...); err != nil {
+		var err error
+		segmentDataStart, durationElementPos, err = setSeekHead(&header, options.cuesReservedSize > 0, options.marshalOpts...)
+		if err != nil {
 			return nil, err
 		}
 	}
 	if err := ebml.Marshal(&header, w, options.marshalOpts...); err != nil {
 		return nil, err
 	}
+
+	// Reserve space for Cues by writing a Void element
+	var cuesReservedStart uint64
+	var posAfterHeader uint64
+	if options.cuesReservedSize > 0 {
+		cuesReservedStart = uint64(w.Size())
+		if err := writeVoidElement(w, options.cuesReservedSize); err != nil {
+			return nil, err
+		}
+	}
+	posAfterHeader = uint64(w.Size())
 
 	w.Clear()
 
@@ -161,6 +202,10 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 		tc1 := invalidTimestamp
 		lastTc := int64(0)
 
+		// Cues tracking state
+		runningPos := posAfterHeader
+		var cuePoints []cuePoint
+
 		defer func() {
 			// Finalize WebM
 			if tc0 == invalidTimestamp {
@@ -180,6 +225,37 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 					options.onFatal(err)
 				}
 			}
+
+			// Write Cues to the reserved space
+			if options.cuesReservedSize > 0 && len(cuePoints) > 0 {
+				writeCuesToReserved(
+					seeker, cuePoints, options.marshalOpts,
+					cuesReservedStart, options.cuesReservedSize,
+					options.onFatal,
+				)
+			}
+
+			// Overwrite the placeholder Duration with the real value.
+			// Duration element layout: 2-byte ID (0x44 0x89) + 1-byte VINT (0x88) + 8-byte float64.
+			if durationElementPos > 0 && seeker != nil {
+				duration := float64(lastTc - tc0)
+				var buf [8]byte
+				binary.BigEndian.PutUint64(buf[:], math.Float64bits(duration))
+				if _, err := seeker.Seek(int64(durationElementPos)+3, io.SeekStart); err != nil {
+					if options.onFatal != nil {
+						options.onFatal(err)
+					}
+				} else if _, err := seeker.Write(buf[:]); err != nil {
+					if options.onFatal != nil {
+						options.onFatal(err)
+					}
+				} else if _, err := seeker.Seek(0, io.SeekEnd); err != nil {
+					if options.onFatal != nil {
+						options.onFatal(err)
+					}
+				}
+			}
+
 			w.Close()
 			<-fin // read one data to release blocked Close()
 		}()
@@ -199,6 +275,18 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 					// Create new Cluster
 					tc1 = f.timestamp
 					tc = 0
+
+					// Collect CuePoint before Clear
+					if options.cuesReservedSize > 0 {
+						runningPos += uint64(w.Size())
+						cuePoints = append(cuePoints, cuePoint{
+							CueTime: uint64(tc1 - tc0),
+							CueTrackPositions: []cueTrackPosition{{
+								CueTrack:           f.trackNumber,
+								CueClusterPosition: runningPos - segmentDataStart,
+							}},
+						})
+					}
 
 					cluster := struct {
 						Cluster simpleBlockCluster `ebml:"Cluster,size=unknown"`
@@ -246,4 +334,82 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 	}()
 
 	return ws, nil
+}
+
+// writeVoidElement writes an EBML Void element of exactly totalSize bytes.
+// Always uses 8-byte VINT for simplicity; callers must ensure totalSize >= 9.
+func writeVoidElement(w io.Writer, totalSize int) error {
+	buf := make([]byte, totalSize)
+	buf[0] = 0xEC // Void Element ID
+	dataSize := uint64(totalSize - 9)
+	buf[1] = 0x01
+	buf[2] = byte(dataSize >> 48)
+	buf[3] = byte(dataSize >> 40)
+	buf[4] = byte(dataSize >> 32)
+	buf[5] = byte(dataSize >> 24)
+	buf[6] = byte(dataSize >> 16)
+	buf[7] = byte(dataSize >> 8)
+	buf[8] = byte(dataSize)
+	_, err := w.Write(buf)
+	return err
+}
+
+// writeCuesToReserved marshals Cues and writes them into the reserved Void space.
+func writeCuesToReserved(
+	seeker io.WriteSeeker,
+	cuePoints []cuePoint,
+	marshalOpts []ebml.MarshalOption,
+	reservedStart uint64, reservedSize int,
+	onFatal func(error),
+) {
+	cuesData := struct {
+		Cues cues `ebml:"Cues"`
+	}{
+		Cues: cues{CuePoint: cuePoints},
+	}
+	var buf bytes.Buffer
+	if err := ebml.Marshal(&cuesData, &buf, marshalOpts...); err != nil {
+		if onFatal != nil {
+			onFatal(err)
+		}
+		return
+	}
+
+	cuesBytes := buf.Bytes()
+	remaining := reservedSize - len(cuesBytes)
+	if remaining < 0 || (remaining > 0 && remaining < 9) {
+		// Cues don't fit, or leftover space is too small for a Void element
+		// (need 9 bytes minimum: 1-byte ID + 8-byte VINT).
+		// Skip silently — the file remains valid, just not seekable.
+		return
+	}
+
+	if _, err := seeker.Seek(int64(reservedStart), io.SeekStart); err != nil {
+		if onFatal != nil {
+			onFatal(err)
+		}
+		return
+	}
+	if _, err := seeker.Write(cuesBytes); err != nil {
+		if onFatal != nil {
+			onFatal(err)
+		}
+		return
+	}
+
+	if remaining > 0 {
+		if err := writeVoidElement(seeker, remaining); err != nil {
+			if onFatal != nil {
+				onFatal(err)
+			}
+			return
+		}
+	}
+
+	// Seek back to end of file
+	if _, err := seeker.Seek(0, io.SeekEnd); err != nil {
+		if onFatal != nil {
+			onFatal(err)
+		}
+	}
 }
