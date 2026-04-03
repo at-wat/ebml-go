@@ -49,7 +49,7 @@ jobs:
 
           go mod tidy
           git diff --exit-code go.mod  # must be up-to-date and tidied
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           file: ./cover.out
           token: ${{ secrets.CODECOV_TOKEN }}
