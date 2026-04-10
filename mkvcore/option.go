@@ -149,6 +149,7 @@ func WithBlockInterceptor(interceptor BlockInterceptor) BlockWriterOptionFn {
 // pre-allocated and likely inefficient index space.
 // reservedSize is the number of bytes (>=9) to reserve at the front of the file for Cues.
 // Requires WithSeekHead(true) and an io.WriteSeeker, not just io.WriteCloser.
+// If the index space is underallocated, Cues data is not written at all.
 func WithCues(reservedSize int) BlockWriterOptionFn {
 	return func(o *BlockWriterOptions) error {
 		if reservedSize < 9 {
