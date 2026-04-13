@@ -17,6 +17,7 @@ package mkvcore
 import (
 	"bytes"
 	"errors"
+	"io"
 	"reflect"
 	"sync"
 	"testing"
@@ -579,4 +580,581 @@ func BenchmarkBlockWriter_SimpleBlock(b *testing.B) {
 	for _, w := range ws {
 		w.Close()
 	}
+}
+
+// seekableBuffer implements io.WriteCloser and io.WriteSeeker for testing.
+type seekableBuffer struct {
+	buf    []byte
+	pos    int
+	closed chan struct{}
+}
+
+func newSeekableBuffer() *seekableBuffer {
+	return &seekableBuffer{
+		closed: make(chan struct{}),
+	}
+}
+
+func (b *seekableBuffer) Write(p []byte) (int, error) {
+	end := b.pos + len(p)
+	if end > len(b.buf) {
+		b.buf = append(b.buf, make([]byte, end-len(b.buf))...)
+	}
+	copy(b.buf[b.pos:], p)
+	b.pos = end
+	return len(p), nil
+}
+
+func (b *seekableBuffer) Seek(offset int64, whence int) (int64, error) {
+	var newPos int64
+	switch whence {
+	case io.SeekStart:
+		newPos = offset
+	case io.SeekCurrent:
+		newPos = int64(b.pos) + offset
+	case io.SeekEnd:
+		newPos = int64(len(b.buf)) + offset
+	}
+	b.pos = int(newPos)
+	return newPos, nil
+}
+
+func (b *seekableBuffer) Close() error {
+	close(b.closed)
+	return nil
+}
+
+func (b *seekableBuffer) Closed() <-chan struct{} {
+	return b.closed
+}
+
+func (b *seekableBuffer) Bytes() []byte {
+	return b.buf
+}
+
+// cuesTestSegment is the EBML segment structure used across Cues tests.
+type cuesTestSegment struct {
+	SeekHead *struct {
+		Seek []struct {
+			SeekID       []byte `ebml:"SeekID"`
+			SeekPosition uint64 `ebml:"SeekPosition"`
+		} `ebml:"Seek"`
+	} `ebml:"SeekHead"`
+	Info interface{} `ebml:"Info"`
+	Cues *struct {
+		CuePoint []struct {
+			CueTime           uint64 `ebml:"CueTime"`
+			CueTrackPositions []struct {
+				CueTrack           uint64 `ebml:"CueTrack"`
+				CueClusterPosition uint64 `ebml:"CueClusterPosition"`
+			} `ebml:"CueTrackPositions"`
+		} `ebml:"CuePoint"`
+	} `ebml:"Cues"`
+	Tracks  flexTracks           `ebml:"Tracks"`
+	Cluster []simpleBlockCluster `ebml:"Cluster,size=unknown"`
+}
+
+func TestBlockWriter_WithCues(t *testing.T) {
+	t.Run("ValidationRequiresSeekHead", func(t *testing.T) {
+		buf := newSeekableBuffer()
+		_, err := NewSimpleBlockWriter(
+			buf,
+			[]TrackDescription{{TrackNumber: 1}},
+			WithEBMLHeader(nil),
+			WithSegmentInfo(nil),
+			WithCues(1024),
+			// No WithSeekHead
+		)
+		if !errs.Is(err, ErrCuesRequiresSeekHead) {
+			t.Errorf("Expected error: '%v', got: '%v'", ErrCuesRequiresSeekHead, err)
+		}
+	})
+
+	t.Run("ValidationRequiresSeeker", func(t *testing.T) {
+		buf := buffercloser.New() // not an io.WriteSeeker
+		_, err := NewSimpleBlockWriter(
+			buf,
+			[]TrackDescription{{TrackNumber: 1}},
+			WithEBMLHeader(nil),
+			WithSegmentInfo(nil),
+			WithSeekHead(true),
+			WithCues(1024),
+		)
+		if !errs.Is(err, ErrCuesRequiresSeeker) {
+			t.Errorf("Expected error: '%v', got: '%v'", ErrCuesRequiresSeeker, err)
+		}
+	})
+
+	t.Run("CuesWritten", func(t *testing.T) {
+		buf := newSeekableBuffer()
+		ws, err := NewSimpleBlockWriter(
+			buf,
+			[]TrackDescription{{TrackNumber: 1}},
+			WithEBMLHeader(nil),
+			WithSegmentInfo(&struct {
+				TimecodeScale uint64 `ebml:"TimecodeScale"`
+			}{TimecodeScale: 1000000}),
+			WithSeekHead(true),
+			WithCues(4096),
+		)
+		if err != nil {
+			t.Fatalf("Failed to create BlockWriter: '%v'", err)
+		}
+		if len(ws) != 1 {
+			t.Fatalf("Number of the returned writer must be 1, got %d", len(ws))
+		}
+
+		// Write blocks that span multiple clusters
+		// Each cluster boundary creates a CuePoint
+		for i := 0; i < 5; i++ {
+			if _, err := ws[0].Write(true, int64(i)*0x8000, []byte{0x01}); err != nil {
+				t.Fatalf("Failed to Write: '%v'", err)
+			}
+		}
+
+		ws[0].Close()
+		<-buf.Closed()
+
+		// Unmarshal and verify Cues are present
+		var result struct {
+			Segment cuesTestSegment `ebml:"Segment,size=unknown"`
+		}
+		if err := ebml.Unmarshal(bytes.NewReader(buf.Bytes()), &result); err != nil {
+			t.Fatalf("Failed to Unmarshal: '%v'", err)
+		}
+
+		if result.Segment.Cues == nil {
+			t.Fatal("Expected Cues to be present, got nil")
+		}
+
+		// Should have 5 CuePoints (one for each cluster)
+		if got := len(result.Segment.Cues.CuePoint); got != 5 {
+			t.Errorf("Expected 5 CuePoints, got %d", got)
+		}
+
+		// Verify CueTimes are increasing
+		for i := 1; i < len(result.Segment.Cues.CuePoint); i++ {
+			prev := result.Segment.Cues.CuePoint[i-1].CueTime
+			curr := result.Segment.Cues.CuePoint[i].CueTime
+			if curr <= prev {
+				t.Errorf("CuePoint[%d].CueTime (%d) <= CuePoint[%d].CueTime (%d)", i, curr, i-1, prev)
+			}
+		}
+
+		// Verify CueClusterPositions are increasing
+		for i := 1; i < len(result.Segment.Cues.CuePoint); i++ {
+			prev := result.Segment.Cues.CuePoint[i-1].CueTrackPositions[0].CueClusterPosition
+			curr := result.Segment.Cues.CuePoint[i].CueTrackPositions[0].CueClusterPosition
+			if curr <= prev {
+				t.Errorf("CuePoint[%d].CueClusterPosition (%d) <= CuePoint[%d].CueClusterPosition (%d)", i, curr, i-1, prev)
+			}
+		}
+
+		// Verify SeekHead contains Cues entry
+		if result.Segment.SeekHead == nil {
+			t.Fatal("Expected SeekHead to be present, got nil")
+		}
+		foundCues := false
+		cuesID := ebml.ElementCues.Bytes()
+		for _, seek := range result.Segment.SeekHead.Seek {
+			if bytes.Equal(seek.SeekID, cuesID) {
+				foundCues = true
+				break
+			}
+		}
+		if !foundCues {
+			t.Error("SeekHead does not contain Cues entry")
+		}
+	})
+
+	t.Run("CuesOverflow", func(t *testing.T) {
+		buf := newSeekableBuffer()
+		ws, err := NewSimpleBlockWriter(
+			buf,
+			[]TrackDescription{{TrackNumber: 1}},
+			WithEBMLHeader(nil),
+			WithSegmentInfo(nil),
+			WithSeekHead(true),
+			WithCues(32), // Tiny reserved space - will overflow
+		)
+		if err != nil {
+			t.Fatalf("Failed to create BlockWriter: '%v'", err)
+		}
+
+		// Write blocks to create multiple clusters
+		for i := 0; i < 5; i++ {
+			if _, err := ws[0].Write(true, int64(i)*0x8000, []byte{0x01}); err != nil {
+				t.Fatalf("Failed to Write: '%v'", err)
+			}
+		}
+		ws[0].Close()
+		<-buf.Closed()
+
+		// File should still be valid, just without Cues
+		var result struct {
+			Segment struct {
+				Tracks  flexTracks           `ebml:"Tracks"`
+				Cluster []simpleBlockCluster `ebml:"Cluster,size=unknown"`
+			} `ebml:"Segment,size=unknown"`
+		}
+		if err := ebml.Unmarshal(bytes.NewReader(buf.Bytes()), &result); err != nil {
+			t.Fatalf("Failed to Unmarshal: '%v'", err)
+		}
+		// Should have clusters (file is valid)
+		if len(result.Segment.Cluster) == 0 {
+			t.Error("Expected clusters in output")
+		}
+	})
+
+	t.Run("PositionVerification", func(t *testing.T) {
+		buf := newSeekableBuffer()
+		ws, err := NewSimpleBlockWriter(
+			buf,
+			[]TrackDescription{{TrackNumber: 1}},
+			WithEBMLHeader(nil),
+			WithSegmentInfo(&struct {
+				TimecodeScale uint64 `ebml:"TimecodeScale"`
+			}{TimecodeScale: 1000000}),
+			WithSeekHead(true),
+			WithCues(4096),
+		)
+		if err != nil {
+			t.Fatalf("Failed to create BlockWriter: '%v'", err)
+		}
+
+		// Write 3 frames, each triggering a new cluster (timecodes far apart)
+		for i := 0; i < 3; i++ {
+			if _, err := ws[0].Write(true, int64(i)*0x8000, []byte{0x01}); err != nil {
+				t.Fatalf("Failed to Write: '%v'", err)
+			}
+		}
+		ws[0].Close()
+		<-buf.Closed()
+
+		data := buf.Bytes()
+
+		// Find Segment data start by locating the Segment element ID
+		segmentID := []byte{0x18, 0x53, 0x80, 0x67}
+		segmentIdx := bytes.Index(data, segmentID)
+		if segmentIdx < 0 {
+			t.Fatal("Segment element not found")
+		}
+		// Segment uses unknown size: 4 byte ID + 8 byte size VINT = 12 byte header
+		segmentDataStart := segmentIdx + 4 + 8
+
+		// Unmarshal to get SeekHead and Cues data
+		var result struct {
+			Segment cuesTestSegment `ebml:"Segment,size=unknown"`
+		}
+		if err := ebml.Unmarshal(bytes.NewReader(data), &result); err != nil {
+			t.Fatalf("Failed to Unmarshal: '%v'", err)
+		}
+
+		if result.Segment.Cues == nil {
+			t.Fatal("Cues not found in output")
+		}
+		if result.Segment.SeekHead == nil {
+			t.Fatal("SeekHead not found in output")
+		}
+
+		clusterElementID := []byte{0x1F, 0x43, 0xB6, 0x75}
+
+		// SeekHead Cues position points to actual Cues element
+		t.Run("SeekHeadCuesPosition", func(t *testing.T) {
+			cuesElementID := []byte{0x1C, 0x53, 0xBB, 0x6B}
+			var seekHeadCuesPos uint64
+			for _, seek := range result.Segment.SeekHead.Seek {
+				if bytes.Equal(seek.SeekID, ebml.ElementCues.Bytes()) {
+					seekHeadCuesPos = seek.SeekPosition
+					break
+				}
+			}
+			cuesAbsolutePos := segmentDataStart + int(seekHeadCuesPos)
+
+			if cuesAbsolutePos+4 > len(data) {
+				t.Fatalf("Cues position %d is beyond file size %d", cuesAbsolutePos, len(data))
+			}
+			actualCuesID := data[cuesAbsolutePos : cuesAbsolutePos+4]
+			if !bytes.Equal(actualCuesID, cuesElementID) {
+				t.Errorf("SeekHead Cues position points to bytes %X, expected Cues element ID %X", actualCuesID, cuesElementID)
+			}
+		})
+
+		// CueClusterPositions point to actual Cluster elements
+		t.Run("CueClusterPositions", func(t *testing.T) {
+			for i, cp := range result.Segment.Cues.CuePoint {
+				if len(cp.CueTrackPositions) == 0 {
+					t.Errorf("CuePoint[%d] has no CueTrackPositions", i)
+					continue
+				}
+				clusterRelPos := cp.CueTrackPositions[0].CueClusterPosition
+				clusterAbsPos := segmentDataStart + int(clusterRelPos)
+
+				if clusterAbsPos+4 > len(data) {
+					t.Errorf("CuePoint[%d] Cluster position %d is beyond file size %d", i, clusterAbsPos, len(data))
+					continue
+				}
+				actualID := data[clusterAbsPos : clusterAbsPos+4]
+				if !bytes.Equal(actualID, clusterElementID) {
+					t.Errorf("CuePoint[%d] CueClusterPosition points to bytes %X, expected Cluster element ID %X",
+						i, actualID, clusterElementID)
+				}
+			}
+		})
+
+		// Find all Cluster positions by scanning binary and compare
+		t.Run("ClusterPositionCrossCheck", func(t *testing.T) {
+			var actualClusterPositions []int
+			for i := 0; i <= len(data)-4; i++ {
+				if bytes.Equal(data[i:i+4], clusterElementID) {
+					relPos := i - segmentDataStart
+					actualClusterPositions = append(actualClusterPositions, relPos)
+				}
+			}
+
+			// We should have 3 streaming clusters + 1 terminal cluster = 4 total
+			// and 3 CuePoints (one for each streaming cluster)
+			if len(result.Segment.Cues.CuePoint) != 3 {
+				t.Errorf("Expected 3 CuePoints, got %d", len(result.Segment.Cues.CuePoint))
+			}
+
+			// Verify each CueClusterPosition matches a real cluster
+			for i, cp := range result.Segment.Cues.CuePoint {
+				clusterPos := int(cp.CueTrackPositions[0].CueClusterPosition)
+				found := false
+				for _, actual := range actualClusterPositions {
+					if actual == clusterPos {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Errorf("CuePoint[%d] CueClusterPosition %d does not match any Cluster position. Actual positions: %v",
+						i, clusterPos, actualClusterPositions)
+				}
+			}
+		})
+	})
+
+	t.Run("WithEBMLHeader", func(t *testing.T) {
+		// Verify positions are correct when a full EBML header is present
+		// (matching real-world usage through the webm package)
+		buf := newSeekableBuffer()
+		ws, err := NewSimpleBlockWriter(
+			buf,
+			[]TrackDescription{{TrackNumber: 1}},
+			WithEBMLHeader(&struct {
+				EBMLVersion        uint64 `ebml:"EBMLVersion"`
+				EBMLReadVersion    uint64 `ebml:"EBMLReadVersion"`
+				EBMLMaxIDLength    uint64 `ebml:"EBMLMaxIDLength"`
+				EBMLMaxSizeLength  uint64 `ebml:"EBMLMaxSizeLength"`
+				DocType            string `ebml:"EBMLDocType"`
+				DocTypeVersion     uint64 `ebml:"EBMLDocTypeVersion"`
+				DocTypeReadVersion uint64 `ebml:"EBMLDocTypeReadVersion"`
+			}{1, 1, 4, 8, "webm", 4, 2}),
+			WithSegmentInfo(&struct {
+				TimecodeScale uint64 `ebml:"TimecodeScale"`
+			}{TimecodeScale: 1000000}),
+			WithSeekHead(true),
+			WithCues(4096),
+		)
+		if err != nil {
+			t.Fatalf("Failed to create BlockWriter: '%v'", err)
+		}
+
+		for i := 0; i < 3; i++ {
+			if _, err := ws[0].Write(true, int64(i)*0x8000, []byte{0x01}); err != nil {
+				t.Fatalf("Failed to Write: '%v'", err)
+			}
+		}
+		ws[0].Close()
+		<-buf.Closed()
+
+		data := buf.Bytes()
+
+		// Find Segment data start
+		segmentID := []byte{0x18, 0x53, 0x80, 0x67}
+		segmentIdx := bytes.Index(data, segmentID)
+		if segmentIdx < 0 {
+			t.Fatal("Segment element not found")
+		}
+		segmentDataStart := segmentIdx + 4 + 8
+
+		// Verify SeekHead Cues position points to Cues element
+		cuesElementID := []byte{0x1C, 0x53, 0xBB, 0x6B}
+		clusterElementID := []byte{0x1F, 0x43, 0xB6, 0x75}
+
+		var result struct {
+			Header  interface{}     `ebml:"EBML"`
+			Segment cuesTestSegment `ebml:"Segment,size=unknown"`
+		}
+		if err := ebml.Unmarshal(bytes.NewReader(data), &result); err != nil {
+			t.Fatalf("Failed to Unmarshal: '%v'", err)
+		}
+
+		if result.Segment.Cues == nil {
+			t.Fatal("Cues not found")
+		}
+
+		// Verify SeekHead Cues position
+		var seekHeadCuesPos uint64
+		for _, seek := range result.Segment.SeekHead.Seek {
+			if bytes.Equal(seek.SeekID, ebml.ElementCues.Bytes()) {
+				seekHeadCuesPos = seek.SeekPosition
+				break
+			}
+		}
+		cuesAbsPos := segmentDataStart + int(seekHeadCuesPos)
+		if cuesAbsPos+4 > len(data) || !bytes.Equal(data[cuesAbsPos:cuesAbsPos+4], cuesElementID) {
+			t.Errorf("SeekHead Cues position %d (abs %d) doesn't point to Cues element", seekHeadCuesPos, cuesAbsPos)
+		}
+
+		// Verify CueClusterPositions point to Cluster elements
+		for i, cp := range result.Segment.Cues.CuePoint {
+			clusterAbsPos := segmentDataStart + int(cp.CueTrackPositions[0].CueClusterPosition)
+			if clusterAbsPos+4 > len(data) || !bytes.Equal(data[clusterAbsPos:clusterAbsPos+4], clusterElementID) {
+				t.Errorf("CuePoint[%d] position %d (abs %d) doesn't point to Cluster",
+					i, cp.CueTrackPositions[0].CueClusterPosition, clusterAbsPos)
+			}
+		}
+	})
+}
+
+func TestWriteVoidElement(t *testing.T) {
+	for _, size := range []int{9, 100, 4096, 51200} {
+		var buf bytes.Buffer
+		if err := writeVoidElement(&buf, size); err != nil {
+			t.Fatalf("writeVoidElement(%d) failed: %v", size, err)
+		}
+		if buf.Len() != size {
+			t.Errorf("writeVoidElement(%d): got %d bytes, want %d", size, buf.Len(), size)
+		}
+		b := buf.Bytes()
+		if b[0] != 0xEC {
+			t.Errorf("writeVoidElement(%d): first byte = 0x%02X, want 0xEC", size, b[0])
+		}
+		if b[1] != 0x01 {
+			t.Errorf("writeVoidElement(%d): VINT marker = 0x%02X, want 0x01 (8-byte VINT)", size, b[1])
+		}
+	}
+}
+
+// durationInfo is a test segmentInfo that implements durationSettable.
+type durationInfo struct {
+	TimecodeScale uint64  `ebml:"TimecodeScale"`
+	Duration      float64 `ebml:"Duration,omitempty"`
+}
+
+func (i *durationInfo) SetDuration(d float64) { i.Duration = d }
+
+func TestBlockWriter_Duration(t *testing.T) {
+	t.Run("DurationWritten", func(t *testing.T) {
+		buf := newSeekableBuffer()
+		ws, err := NewSimpleBlockWriter(
+			buf,
+			[]TrackDescription{{TrackNumber: 1}},
+			WithEBMLHeader(nil),
+			WithSegmentInfo(&durationInfo{TimecodeScale: 1000000}),
+			WithSeekHead(true),
+			WithCues(4096),
+		)
+		if err != nil {
+			t.Fatalf("Failed to create BlockWriter: '%v'", err)
+		}
+
+		// Write blocks spanning multiple clusters.
+		// tc0=0, lastTc=3*0x8000=98304; expected Duration=98304.0
+		for i := 0; i < 4; i++ {
+			if _, err := ws[0].Write(true, int64(i)*0x8000, []byte{0x01}); err != nil {
+				t.Fatalf("Failed to Write: '%v'", err)
+			}
+		}
+		ws[0].Close()
+		<-buf.Closed()
+
+		data := buf.Bytes()
+
+		// Unmarshal and verify Duration via EBML
+		var result struct {
+			Segment struct {
+				Info struct {
+					Duration float64 `ebml:"Duration"`
+				} `ebml:"Info"`
+			} `ebml:"Segment,size=unknown"`
+		}
+		if err := ebml.Unmarshal(bytes.NewReader(data), &result); err != nil {
+			t.Fatalf("Failed to Unmarshal: '%v'", err)
+		}
+		expected := float64(3 * 0x8000)
+		if result.Segment.Info.Duration != expected {
+			t.Errorf("Expected Duration %v, got %v", expected, result.Segment.Info.Duration)
+		}
+
+	})
+
+	t.Run("WithoutSettable", func(t *testing.T) {
+		// segmentInfo without SetDuration method — no Duration element should appear
+		buf := newSeekableBuffer()
+		ws, err := NewSimpleBlockWriter(
+			buf,
+			[]TrackDescription{{TrackNumber: 1}},
+			WithEBMLHeader(nil),
+			WithSegmentInfo(&struct {
+				TimecodeScale uint64 `ebml:"TimecodeScale"`
+			}{TimecodeScale: 1000000}),
+			WithSeekHead(true),
+			WithCues(4096),
+		)
+		if err != nil {
+			t.Fatalf("Failed to create BlockWriter: '%v'", err)
+		}
+
+		for i := 0; i < 3; i++ {
+			if _, err := ws[0].Write(true, int64(i)*0x8000, []byte{0x01}); err != nil {
+				t.Fatalf("Failed to Write: '%v'", err)
+			}
+		}
+		ws[0].Close()
+		<-buf.Closed()
+
+		// Duration element with 8-byte VINT should not be present
+		durationWithVINT := []byte{0x44, 0x89, 0x88}
+		if bytes.Contains(buf.Bytes(), durationWithVINT) {
+			t.Error("Duration element should not be present when segmentInfo doesn't implement durationSettable")
+		}
+	})
+
+	t.Run("NoFrames", func(t *testing.T) {
+		buf := newSeekableBuffer()
+		ws, err := NewSimpleBlockWriter(
+			buf,
+			[]TrackDescription{{TrackNumber: 1}},
+			WithEBMLHeader(nil),
+			WithSegmentInfo(&durationInfo{TimecodeScale: 1000000}),
+			WithSeekHead(true),
+			WithCues(4096),
+		)
+		if err != nil {
+			t.Fatalf("Failed to create BlockWriter: '%v'", err)
+		}
+
+		// Close immediately without writing any frames
+		ws[0].Close()
+		<-buf.Closed()
+
+		data := buf.Bytes()
+		var result struct {
+			Segment struct {
+				Info struct {
+					Duration float64 `ebml:"Duration"`
+				} `ebml:"Info"`
+			} `ebml:"Segment,size=unknown"`
+		}
+		if err := ebml.Unmarshal(bytes.NewReader(data), &result); err != nil {
+			t.Fatalf("Failed to Unmarshal: '%v'", err)
+		}
+		if result.Segment.Info.Duration != 0.0 {
+			t.Errorf("Expected Duration 0.0 when no frames written, got %v", result.Segment.Info.Duration)
+		}
+	})
 }

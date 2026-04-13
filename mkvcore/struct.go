@@ -30,6 +30,20 @@ type simpleBlockCluster struct {
 	BlockGroup  []simpleBlockGroup `ebml:"BlockGroup,omitempty"`
 }
 
+type cueTrackPosition struct {
+	CueTrack           uint64 `ebml:"CueTrack"`
+	CueClusterPosition uint64 `ebml:"CueClusterPosition"`
+}
+
+type cuePoint struct {
+	CueTime           uint64             `ebml:"CueTime"`
+	CueTrackPositions []cueTrackPosition `ebml:"CueTrackPositions"`
+}
+
+type cues struct {
+	CuePoint []cuePoint `ebml:"CuePoint"`
+}
+
 type seekFixed struct {
 	SeekID       []byte  `ebml:"SeekID"`
 	SeekPosition *uint64 `ebml:"SeekPosition,size=8"`

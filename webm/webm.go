@@ -54,6 +54,11 @@ type Info struct {
 	DateUTC       time.Time `ebml:"DateUTC,omitempty"`
 }
 
+// SetDuration sets the Duration field.
+// This implements the mkvcore durationSettable interface, allowing the
+// library to automatically write Duration when Cues are enabled.
+func (i *Info) SetDuration(d float64) { i.Duration = d }
+
 // TrackEntry represents TrackEntry element struct.
 type TrackEntry struct {
 	Name            string `ebml:"Name,omitempty"`
