@@ -362,26 +362,38 @@ func writeCuesToReserved(
 	reservedStart uint64, reservedSize int,
 	onFatal func(error),
 ) {
-	cuesData := struct {
-		Cues cues `ebml:"Cues"`
-	}{
-		Cues: cues{CuePoint: cuePoints},
-	}
 	var buf bytes.Buffer
-	if err := ebml.Marshal(&cuesData, &buf, marshalOpts...); err != nil {
-		if onFatal != nil {
-			onFatal(err)
-		}
-		return
-	}
+	var cuesBytes []byte
+	var remaining int
 
-	cuesBytes := buf.Bytes()
-	remaining := reservedSize - len(cuesBytes)
-	if remaining < 0 || (remaining > 0 && remaining < 9) {
+	for {
+		cuesData := struct {
+			Cues cues `ebml:"Cues"`
+		}{
+			Cues: cues{CuePoint: cuePoints},
+		}
+		buf.Reset()
+		if err := ebml.Marshal(&cuesData, &buf, marshalOpts...); err != nil {
+			if onFatal != nil {
+				onFatal(err)
+			}
+			return
+		}
+
+		cuesBytes = buf.Bytes()
+		remaining = reservedSize - len(cuesBytes)
+		if remaining == 0 || remaining >= 9 {
+			break
+		}
+
 		// Cues don't fit, or leftover space is too small for a Void element
 		// (need 9 bytes minimum: 1-byte ID + 8-byte VINT).
-		// Skip silently — the file remains valid, just not seekable.
-		return
+		// Thin out the cues to fit to the space and retry.
+		cuePoints2 := make([]cuePoint, 0, len(cuePoints)/2)
+		for i := 0; i < len(cuePoints); i += 2 {
+			cuePoints2 = append(cuePoints2, cuePoints[i])
+		}
+		cuePoints = cuePoints2
 	}
 
 	if _, err := seeker.Seek(int64(reservedStart), io.SeekStart); err != nil {
