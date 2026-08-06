@@ -33,6 +33,7 @@ type simpleBlockCluster struct {
 type cueTrackPosition struct {
 	CueTrack           uint64 `ebml:"CueTrack"`
 	CueClusterPosition uint64 `ebml:"CueClusterPosition"`
+	CueBlockNumber     uint64 `ebml:"CueBlockNumber"`
 }
 
 type cuePoint struct {

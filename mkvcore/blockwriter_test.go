@@ -775,7 +775,7 @@ func TestBlockWriter_WithCues(t *testing.T) {
 			WithEBMLHeader(nil),
 			WithSegmentInfo(nil),
 			WithSeekHead(true),
-			WithCues(48), // Tiny reserved space - will overflow
+			WithCues(96), // Tiny reserved space - will overflow
 		)
 		if err != nil {
 			t.Fatalf("Failed to create BlockWriter: '%v'", err)
