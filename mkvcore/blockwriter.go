@@ -278,6 +278,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 					tc1 = f.timestamp
 					tc = 0
 					clusterPos += uint64(w.Size())
+					blockIndex = 0
 
 					cluster := struct {
 						Cluster simpleBlockCluster `ebml:"Cluster,size=unknown"`
