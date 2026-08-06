@@ -792,10 +792,7 @@ func TestBlockWriter_WithCues(t *testing.T) {
 
 		// File should still be valid, just without Cues
 		var result struct {
-			Segment struct {
-				Tracks  flexTracks           `ebml:"Tracks"`
-				Cluster []simpleBlockCluster `ebml:"Cluster,size=unknown"`
-			} `ebml:"Segment,size=unknown"`
+			Segment cuesTestSegment `ebml:"Segment,size=unknown"`
 		}
 		if err := ebml.Unmarshal(bytes.NewReader(buf.Bytes()), &result); err != nil {
 			t.Fatalf("Failed to Unmarshal: '%v'", err)
@@ -803,6 +800,9 @@ func TestBlockWriter_WithCues(t *testing.T) {
 		// Should have clusters (file is valid)
 		if len(result.Segment.Cluster) == 0 {
 			t.Error("Expected clusters in output")
+		}
+		if result.Segment.Cues != nil {
+			t.Error("Unexpected cues in output")
 		}
 	})
 
