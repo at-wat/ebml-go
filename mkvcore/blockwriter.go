@@ -306,7 +306,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 				blockIndex++
 
 				// Collect CuePoint
-				if options.cuesReservedSize > 0 && f.trackNumber == options.mainTrackNumber {
+				if options.cuesReservedSize > 0 && f.trackNumber == options.mainTrackNumber && f.keyframe {
 					cuePoints = append(cuePoints, cuePoint{
 						CueTime: uint64(tc1 - tc0 + tc),
 						CueTrackPositions: []cueTrackPosition{{
