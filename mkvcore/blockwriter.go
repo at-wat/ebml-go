@@ -83,13 +83,6 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 		interceptor: nil,
 		seekHead:    false,
 	}
-	if options.cuesReservedSize > 0 {
-		// Defaults to refer the first track number for collecting cues
-		for _, t := range tracks {
-			options.mainTrackNumber = t.TrackNumber
-			break
-		}
-	}
 	for _, o := range opts {
 		if err := o.ApplyToBlockWriterOptions(options); err != nil {
 			return nil, err
@@ -106,6 +99,11 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 		seeker, ok = w0.(io.WriteSeeker)
 		if !ok {
 			return nil, ErrCuesRequiresSeeker
+		}
+		// Defaults to refer the first track number for collecting cues
+		for _, t := range tracks {
+			options.mainTrackNumber = t.TrackNumber
+			break
 		}
 	}
 
