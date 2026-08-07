@@ -78,11 +78,17 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 				panic(err)
 			},
 		},
-		ebmlHeader:      nil,
-		segmentInfo:     nil,
-		interceptor:     nil,
-		seekHead:        false,
-		mainTrackNumber: 1,
+		ebmlHeader:  nil,
+		segmentInfo: nil,
+		interceptor: nil,
+		seekHead:    false,
+	}
+	if options.cuesReservedSize > 0 {
+		// Defaults to refer the first track number for collecting cues
+		for _, t := range tracks {
+			options.mainTrackNumber = t.TrackNumber
+			break
+		}
 	}
 	for _, o := range opts {
 		if err := o.ApplyToBlockWriterOptions(options); err != nil {
