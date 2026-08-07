@@ -1020,6 +1020,75 @@ func TestBlockWriter_WithCues(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("WithMinMaxClusterDuration", func(t *testing.T) {
+		const nFrames = 100
+		testCases := map[string]struct {
+			minDuration         int64
+			maxDuration         int64
+			keyframeDistance    int
+			expectedNumClusters int
+		}{
+			"ClusterForEachKeyframe": {
+				minDuration:         0,
+				maxDuration:         0x7FFF,
+				keyframeDistance:    10,
+				expectedNumClusters: 11,
+			},
+			"ClusterByMinDuration": {
+				minDuration:         200,
+				maxDuration:         0x7FFF,
+				keyframeDistance:    10,
+				expectedNumClusters: 6,
+			},
+			"ClusterByMaxDuration": {
+				minDuration:         0,
+				maxDuration:         200,
+				keyframeDistance:    0x8000,
+				expectedNumClusters: 6,
+			},
+		}
+		for name, testCase := range testCases {
+			testCase := testCase
+			t.Run(name, func(t *testing.T) {
+				buf := newSeekableBuffer()
+				ws, err := NewSimpleBlockWriter(
+					buf,
+					[]TrackDescription{{TrackNumber: 1}},
+					WithEBMLHeader(nil),
+					WithSegmentInfo(nil),
+					WithSeekHead(true),
+					WithMinMaxClusterDuration(1, testCase.minDuration, testCase.maxDuration),
+				)
+				if err != nil {
+					t.Fatalf("Failed to create BlockWriter: '%v'", err)
+				}
+
+				// Write blocks to create multiple clusters
+				for i := 0; i < nFrames; i++ {
+					if _, err := ws[0].Write(i%testCase.keyframeDistance == 0, int64(i)*10, []byte{0x01}); err != nil {
+						t.Fatalf("Failed to Write: '%v'", err)
+					}
+				}
+				ws[0].Close()
+				<-buf.Closed()
+
+				// File should still be valid, just without Cues
+				var result struct {
+					Segment struct {
+						Tracks  flexTracks           `ebml:"Tracks"`
+						Cluster []simpleBlockCluster `ebml:"Cluster,size=unknown"`
+					} `ebml:"Segment,size=unknown"`
+				}
+				if err := ebml.Unmarshal(bytes.NewReader(buf.Bytes()), &result); err != nil {
+					t.Fatalf("Failed to Unmarshal: '%v'", err)
+				}
+				if n := len(result.Segment.Cluster); n != testCase.expectedNumClusters {
+					t.Errorf("Expected %d clusters in output, got %d", testCase.expectedNumClusters, n)
+				}
+			})
+		}
+	})
 }
 
 func TestWriteVoidElement(t *testing.T) {
