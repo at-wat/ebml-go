@@ -184,6 +184,7 @@ func WithMaxKeyframeInterval(mainTrackNumber uint64, interval int64) BlockWriter
 }
 
 // WithMinMaxClusterDuration sets minimum and maximum cluster duration.
+// minDuration and maxDuration must be given in the scale of timecode.
 // New cluster will be created if
 // 1. a first keyframe is appeared on mainTrackNumber after minDuration.
 // 2. current cluster duration exceeds maxDuration.
