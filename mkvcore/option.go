@@ -177,7 +177,7 @@ func WithMaxKeyframeInterval(mainTrackNumber uint64, interval int64) BlockWriter
 		}
 		o.mainTrackNumber = mainTrackNumber
 		o.maxKeyframeInterval = interval
-		o.minClusterDuration = 0
+		o.minClusterDuration = -1
 		o.maxClusterDuration = 0x7FFF
 		return nil
 	}

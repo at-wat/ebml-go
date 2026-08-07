@@ -82,6 +82,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 		segmentInfo:        nil,
 		interceptor:        nil,
 		seekHead:           false,
+		minClusterDuration: -1,
 		maxClusterDuration: 0x7FFF,
 	}
 	for _, o := range opts {
@@ -196,7 +197,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 	}()
 
 	tNextCluster := 0x7FFF - options.maxKeyframeInterval
-	if options.minClusterDuration != 0 {
+	if options.minClusterDuration >= 0 {
 		tNextCluster = options.minClusterDuration
 	}
 
