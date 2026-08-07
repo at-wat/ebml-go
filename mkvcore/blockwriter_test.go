@@ -824,7 +824,7 @@ func TestBlockWriter_WithCues(t *testing.T) {
 			t.Fatalf("Failed to create BlockWriter: '%v'", err)
 		}
 
-		// Write 3 frames
+		// Write 3 frames, each triggering a new cluster
 		for i := 0; i < 3; i++ {
 			if _, err := ws[0].Write(true, int64(i), []byte{0x01}); err != nil {
 				t.Fatalf("Failed to Write: '%v'", err)
