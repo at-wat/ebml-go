@@ -1038,7 +1038,7 @@ func TestBlockWriter_WithCues(t *testing.T) {
 			"ClusterByMinDuration": {
 				minDuration:         200,
 				maxDuration:         0x7FFF,
-				keyframeDistance:    10,
+				keyframeDistance:    1,
 				expectedNumClusters: 6,
 			},
 			"ClusterByMaxDuration": {
