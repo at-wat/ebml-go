@@ -78,10 +78,11 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 				panic(err)
 			},
 		},
-		ebmlHeader:  nil,
-		segmentInfo: nil,
-		interceptor: nil,
-		seekHead:    false,
+		ebmlHeader:      nil,
+		segmentInfo:     nil,
+		interceptor:     nil,
+		seekHead:        false,
+		mainTrackNumber: 1,
 	}
 	for _, o := range opts {
 		if err := o.ApplyToBlockWriterOptions(options); err != nil {
@@ -203,8 +204,9 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 		lastTc := int64(0)
 
 		// Cues tracking state
-		runningPos := posAfterHeader
+		clusterPos := posAfterHeader
 		var cuePoints []cuePoint
+		var blockIndex uint64
 
 		defer func() {
 			// Finalize WebM
@@ -275,18 +277,8 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 					// Create new Cluster
 					tc1 = f.timestamp
 					tc = 0
-
-					// Collect CuePoint before Clear
-					if options.cuesReservedSize > 0 {
-						runningPos += uint64(w.Size())
-						cuePoints = append(cuePoints, cuePoint{
-							CueTime: uint64(tc1 - tc0),
-							CueTrackPositions: []cueTrackPosition{{
-								CueTrack:           f.trackNumber,
-								CueClusterPosition: runningPos - segmentDataStart,
-							}},
-						})
-					}
+					clusterPos += uint64(w.Size())
+					blockIndex = 0
 
 					cluster := struct {
 						Cluster simpleBlockCluster `ebml:"Cluster,size=unknown"`
@@ -310,6 +302,20 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 						options.onError(ErrIgnoreOldFrame)
 					}
 					continue
+				}
+
+				blockIndex++
+
+				// Collect CuePoint
+				if options.cuesReservedSize > 0 && f.trackNumber == options.mainTrackNumber && f.keyframe {
+					cuePoints = append(cuePoints, cuePoint{
+						CueTime: uint64(tc1 - tc0 + tc),
+						CueTrackPositions: []cueTrackPosition{{
+							CueTrack:           f.trackNumber,
+							CueClusterPosition: clusterPos - segmentDataStart,
+							CueBlockNumber:     blockIndex,
+						}},
+					})
 				}
 
 				b := struct {
