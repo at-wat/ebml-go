@@ -899,7 +899,6 @@ func TestBlockWriter_WithCues(t *testing.T) {
 				if !bytes.Equal(actualID, clusterElementID) {
 					t.Errorf("CuePoint[%d] CueClusterPosition points to bytes %X, expected Cluster element ID %X",
 						i, actualID, clusterElementID)
-					continue
 				}
 			}
 		})
