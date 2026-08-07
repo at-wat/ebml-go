@@ -101,9 +101,11 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 			return nil, ErrCuesRequiresSeeker
 		}
 		// Defaults to refer the first track number for collecting cues
-		for _, t := range tracks {
-			options.mainTrackNumber = t.TrackNumber
-			break
+		if options.mainTrackNumber == 0 {
+			for _, t := range tracks {
+				options.mainTrackNumber = t.TrackNumber
+				break
+			}
 		}
 	}
 
