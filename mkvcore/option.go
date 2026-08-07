@@ -32,6 +32,9 @@ var ErrCuesRequiresSeeker = errors.New("WithCues requires an io.WriteSeeker")
 // ErrCuesReservedTooSmall means WithCues was called with a reservedSize smaller than 9 bytes.
 var ErrCuesReservedTooSmall = errors.New("WithCues reservedSize must be at least 9")
 
+// ErrDurationInClusterOutOfRange means that a duration is not in the valid range. Duration in a cluster must be between 0 and 0x7FFF.
+var ErrDurationInClusterOutOfRange = errors.New("duration in cluster out of range")
+
 // durationSettable is implemented by segment info types that support
 // having their Duration field set automatically (e.g. webm.Info).
 type durationSettable interface {
@@ -102,6 +105,8 @@ type BlockWriterOptions struct {
 	mainTrackNumber     uint64
 	maxKeyframeInterval int64
 	cuesReservedSize    int
+	minClusterDuration  int64
+	maxClusterDuration  int64
 }
 
 // WithEBMLHeader sets EBML header.
@@ -163,6 +168,8 @@ func WithCues(reservedSize int) BlockWriterOptionFn {
 // WithMaxKeyframeInterval sets maximum keyframe interval of the main (video) track.
 // Using this option starts the cluster with a key frame if possible.
 // interval must be given in the scale of timecode.
+//
+// Exclusive with WithMinMaxClusterDuration.
 func WithMaxKeyframeInterval(mainTrackNumber uint64, interval int64) BlockWriterOptionFn {
 	return func(o *BlockWriterOptions) error {
 		if mainTrackNumber == 0 {
@@ -170,6 +177,30 @@ func WithMaxKeyframeInterval(mainTrackNumber uint64, interval int64) BlockWriter
 		}
 		o.mainTrackNumber = mainTrackNumber
 		o.maxKeyframeInterval = interval
+		o.minClusterDuration = 0
+		o.maxClusterDuration = 0x7FFF
+		return nil
+	}
+}
+
+// WithMinMaxClusterDuration sets minimum and maximum cluster duration.
+// New cluster will be created if
+// 1. a first keyframe is appeared on mainTrackNumber after minDuration.
+// 2. current cluster duration exceeds maxDuration.
+//
+// Exclusive with WithMaxKeyframeInterval.
+func WithMinMaxClusterDuration(mainTrackNumber uint64, minDuration, maxDuration int64) BlockWriterOptionFn {
+	return func(o *BlockWriterOptions) error {
+		if mainTrackNumber == 0 {
+			return ErrInvalidTrackNumber
+		}
+		if minDuration < 0 || minDuration > maxDuration || maxDuration >= 0x8000 {
+			return ErrDurationInClusterOutOfRange
+		}
+		o.mainTrackNumber = mainTrackNumber
+		o.minClusterDuration = minDuration
+		o.maxClusterDuration = maxDuration
+		o.maxKeyframeInterval = 0
 		return nil
 	}
 }
