@@ -97,16 +97,15 @@ func (o BlockWriterOptionFn) ApplyToBlockWriterOptions(opts *BlockWriterOptions)
 // BlockWriterOptions stores options for BlockWriter.
 type BlockWriterOptions struct {
 	BlockReadWriterOptions
-	ebmlHeader          interface{}
-	segmentInfo         interface{}
-	seekHead            bool
-	marshalOpts         []ebml.MarshalOption
-	interceptor         BlockInterceptor
-	mainTrackNumber     uint64
-	maxKeyframeInterval int64
-	cuesReservedSize    int
-	minClusterDuration  int64
-	maxClusterDuration  int64
+	ebmlHeader         interface{}
+	segmentInfo        interface{}
+	seekHead           bool
+	marshalOpts        []ebml.MarshalOption
+	interceptor        BlockInterceptor
+	mainTrackNumber    uint64
+	cuesReservedSize   int
+	minClusterDuration int64
+	maxClusterDuration int64
 }
 
 // WithEBMLHeader sets EBML header.
@@ -165,8 +164,8 @@ func WithCues(reservedSize int) BlockWriterOptionFn {
 	}
 }
 
-// WithMaxKeyframeInterval sets maximum keyframe interval of the main (video) track.
-// Using this option starts the cluster with a key frame if possible.
+// WithMaxKeyframeInterval sets maximum keyframe interval of the main (usually video) track.
+// Using this option make clusters start with a key frame based on the specified maximum keyframe interval.
 // interval must be given in the scale of timecode.
 //
 // Exclusive with WithMinMaxClusterDuration.
@@ -176,8 +175,7 @@ func WithMaxKeyframeInterval(mainTrackNumber uint64, interval int64) BlockWriter
 			return ErrInvalidTrackNumber
 		}
 		o.mainTrackNumber = mainTrackNumber
-		o.maxKeyframeInterval = interval
-		o.minClusterDuration = -1
+		o.minClusterDuration = 0x7FFF - interval
 		o.maxClusterDuration = 0x7FFF
 		return nil
 	}
@@ -201,7 +199,6 @@ func WithMinMaxClusterDuration(mainTrackNumber uint64, minDuration, maxDuration 
 		o.mainTrackNumber = mainTrackNumber
 		o.minClusterDuration = minDuration
 		o.maxClusterDuration = maxDuration
-		o.maxKeyframeInterval = 0
 		return nil
 	}
 }

@@ -82,7 +82,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 		segmentInfo:        nil,
 		interceptor:        nil,
 		seekHead:           false,
-		minClusterDuration: -1,
+		minClusterDuration: 0,
 		maxClusterDuration: 0x7FFF,
 	}
 	for _, o := range opts {
@@ -196,11 +196,6 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 		close(closed)
 	}()
 
-	tNextCluster := 0x7FFF - options.maxKeyframeInterval
-	if options.minClusterDuration >= 0 {
-		tNextCluster = options.minClusterDuration
-	}
-
 	go func() {
 		const invalidTimestamp = int64(0x7FFFFFFFFFFFFFFF)
 		tc0 := invalidTimestamp
@@ -278,7 +273,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 				tc := f.timestamp - tc1
 				if tc1 == invalidTimestamp ||
 					tc >= options.maxClusterDuration ||
-					(f.trackNumber == options.mainTrackNumber && tc >= tNextCluster && f.keyframe) {
+					(f.trackNumber == options.mainTrackNumber && tc >= options.minClusterDuration && f.keyframe) {
 					// Create new Cluster
 					tc1 = f.timestamp
 					tc = 0
