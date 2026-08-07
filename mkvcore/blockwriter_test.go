@@ -775,7 +775,8 @@ func TestBlockWriter_WithCues(t *testing.T) {
 			WithEBMLHeader(nil),
 			WithSegmentInfo(nil),
 			WithSeekHead(true),
-			WithCues(32), // Tiny reserved space - will overflow
+			WithCues(32),                            // Tiny reserved space - will overflow
+			WithMinMaxClusterDuration(1, 0, 0x7FFF), // Every keyframe creates new cluster
 		)
 		if err != nil {
 			t.Fatalf("Failed to create BlockWriter: '%v'", err)
@@ -783,7 +784,7 @@ func TestBlockWriter_WithCues(t *testing.T) {
 
 		// Write blocks to create multiple clusters
 		for i := 0; i < 5; i++ {
-			if _, err := ws[0].Write(true, int64(i)*0x8000, []byte{0x01}); err != nil {
+			if _, err := ws[0].Write(true, int64(i), []byte{0x01}); err != nil {
 				t.Fatalf("Failed to Write: '%v'", err)
 			}
 		}
@@ -817,14 +818,15 @@ func TestBlockWriter_WithCues(t *testing.T) {
 			}{TimecodeScale: 1000000}),
 			WithSeekHead(true),
 			WithCues(4096),
+			WithMinMaxClusterDuration(1, 0, 0x7FFF), // Every keyframe creates new cluster
 		)
 		if err != nil {
 			t.Fatalf("Failed to create BlockWriter: '%v'", err)
 		}
 
-		// Write 3 frames, each triggering a new cluster (timecodes far apart)
+		// Write 3 frames
 		for i := 0; i < 3; i++ {
-			if _, err := ws[0].Write(true, int64(i)*0x8000, []byte{0x01}); err != nil {
+			if _, err := ws[0].Write(true, int64(i), []byte{0x01}); err != nil {
 				t.Fatalf("Failed to Write: '%v'", err)
 			}
 		}
