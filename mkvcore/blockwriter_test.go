@@ -647,6 +647,7 @@ type cuesTestSegment struct {
 			CueTrackPositions []struct {
 				CueTrack           uint64 `ebml:"CueTrack"`
 				CueClusterPosition uint64 `ebml:"CueClusterPosition"`
+				CueBlockNumber     uint64 `ebml:"CueBlockNumber"`
 			} `ebml:"CueTrackPositions"`
 		} `ebml:"CuePoint"`
 	} `ebml:"Cues"`
@@ -898,12 +899,13 @@ func TestBlockWriter_WithCues(t *testing.T) {
 				if !bytes.Equal(actualID, clusterElementID) {
 					t.Errorf("CuePoint[%d] CueClusterPosition points to bytes %X, expected Cluster element ID %X",
 						i, actualID, clusterElementID)
+					continue
 				}
 			}
 		})
 
 		// Find all Cluster positions by scanning binary and compare
-		t.Run("ClusterPositionCrossCheck", func(t *testing.T) {
+		t.Run("ClusterPositionAndBlockNumberCrossCheck", func(t *testing.T) {
 			var actualClusterPositions []int
 			for i := 0; i <= len(data)-4; i++ {
 				if bytes.Equal(data[i:i+4], clusterElementID) {
@@ -919,18 +921,36 @@ func TestBlockWriter_WithCues(t *testing.T) {
 			}
 
 			// Verify each CueClusterPosition matches a real cluster
+			// and the cluster has matching block
 			for i, cp := range result.Segment.Cues.CuePoint {
 				clusterPos := int(cp.CueTrackPositions[0].CueClusterPosition)
 				found := false
-				for _, actual := range actualClusterPositions {
+				var iCluster int
+				for i, actual := range actualClusterPositions {
 					if actual == clusterPos {
 						found = true
+						iCluster = i
 						break
 					}
 				}
 				if !found {
 					t.Errorf("CuePoint[%d] CueClusterPosition %d does not match any Cluster position. Actual positions: %v",
 						i, clusterPos, actualClusterPositions)
+					continue
+				}
+
+				blockNumber := cp.CueTrackPositions[0].CueBlockNumber
+
+				if blockNumber == 0 {
+					t.Errorf("CuePoint[%d] CueBlockNumber must not be 0. Actual: %d", i, blockNumber)
+					continue
+				}
+				if n := len(result.Segment.Cluster[iCluster].SimpleBlock) + 1; blockNumber >= uint64(n) {
+					t.Errorf("CuePoint[%d] CueBlockNumber out-of-boundary. Actual: %d, max: %d", i, blockNumber, n+1)
+					continue
+				}
+				if !result.Segment.Cluster[iCluster].SimpleBlock[blockNumber-1].Keyframe {
+					t.Errorf("CuePoint[%d] CueBlockNumber must point keyframe", i)
 				}
 			}
 		})
