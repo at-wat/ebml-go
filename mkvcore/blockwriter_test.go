@@ -406,7 +406,7 @@ func TestBlockWriter_WithMaxKeyframeInterval(t *testing.T) {
 		[]TrackDescription{{TrackNumber: 1}},
 		WithEBMLHeader(nil),
 		WithSegmentInfo(nil),
-		WithMaxKeyframeInterval(1, 900*0x6FFF),
+		WithMaxKeyframeInterval(1, 0x6FFF),
 		WithSeekHead(false),
 	)
 	if err != nil {
@@ -1021,31 +1021,53 @@ func TestBlockWriter_WithCues(t *testing.T) {
 		}
 	})
 
-	t.Run("WithMinMaxClusterDuration", func(t *testing.T) {
-		const nFrames = 100
+	t.Run("ClusterDurationControl", func(t *testing.T) {
+		const nFrames = 10000
 		testCases := map[string]struct {
+			opts                []BlockWriterOption
 			minDuration         int64
 			maxDuration         int64
 			keyframeDistance    int
 			expectedNumClusters int
 		}{
-			"ClusterForEachKeyframe": {
-				minDuration:         0,
-				maxDuration:         0x7FFF,
+			"Default": {
 				keyframeDistance:    10,
-				expectedNumClusters: 11,
+				expectedNumClusters: 5,
 			},
-			"ClusterByMinDuration": {
-				minDuration:         200,
-				maxDuration:         0x7FFF,
+			"WithMaxKeyframeInterval_SmallMaxKeyframeInterval": {
+				opts: []BlockWriterOption{
+					WithMaxKeyframeInterval(1, 0x10),
+				},
+				keyframeDistance:    10,
+				expectedNumClusters: 5,
+			},
+			"WithMaxKeyframeInterval_LargeMaxKeyframeInterval": {
+				opts: []BlockWriterOption{
+					WithMaxKeyframeInterval(1, 0x8000-1000),
+				},
 				keyframeDistance:    1,
-				expectedNumClusters: 6,
+				expectedNumClusters: 101,
 			},
-			"ClusterByMaxDuration": {
-				minDuration:         0,
-				maxDuration:         200,
+			"WithMinMaxClusterDuration_ClusterForEachKeyframe": {
+				opts: []BlockWriterOption{
+					WithMinMaxClusterDuration(1, 0, 0x7FFF),
+				},
+				keyframeDistance:    10,
+				expectedNumClusters: 1001,
+			},
+			"WithMinMaxClusterDuration_ClusterByMinDuration": {
+				opts: []BlockWriterOption{
+					WithMinMaxClusterDuration(1, 100, 0x7FFF),
+				},
+				keyframeDistance:    1,
+				expectedNumClusters: 1001,
+			},
+			"WithMinMaxClusterDuration_ClusterByMaxDuration": {
+				opts: []BlockWriterOption{
+					WithMinMaxClusterDuration(1, 0, 100),
+				},
 				keyframeDistance:    0x8000,
-				expectedNumClusters: 6,
+				expectedNumClusters: 1001,
 			},
 		}
 		for name, testCase := range testCases {
@@ -1055,10 +1077,14 @@ func TestBlockWriter_WithCues(t *testing.T) {
 				ws, err := NewSimpleBlockWriter(
 					buf,
 					[]TrackDescription{{TrackNumber: 1}},
-					WithEBMLHeader(nil),
-					WithSegmentInfo(nil),
-					WithSeekHead(true),
-					WithMinMaxClusterDuration(1, testCase.minDuration, testCase.maxDuration),
+					append(
+						[]BlockWriterOption{
+							WithEBMLHeader(nil),
+							WithSegmentInfo(nil),
+							WithSeekHead(true),
+						},
+						testCase.opts...,
+					)...,
 				)
 				if err != nil {
 					t.Fatalf("Failed to create BlockWriter: '%v'", err)

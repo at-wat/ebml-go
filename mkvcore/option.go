@@ -174,6 +174,9 @@ func WithMaxKeyframeInterval(mainTrackNumber uint64, interval int64) BlockWriter
 		if mainTrackNumber == 0 {
 			return ErrInvalidTrackNumber
 		}
+		if interval < 0 || interval >= 0x8000 {
+			return ErrDurationInClusterOutOfRange
+		}
 		o.mainTrackNumber = mainTrackNumber
 		o.minClusterDuration = 0x7FFF - interval
 		o.maxClusterDuration = 0x7FFF
