@@ -17,6 +17,7 @@ package mkvcore
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"sync"
@@ -170,48 +171,75 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 	errDummy1 := errors.New("an error 1")
 
 	cases := map[string]struct {
-		opts []BlockWriterOption
+		opts [][]BlockWriterOption
 		err  error
 	}{
 		"WriterOptionError": {
-			opts: []BlockWriterOption{
-				BlockWriterOptionFn(func(*BlockWriterOptions) error { return errDummy0 }),
+			opts: [][]BlockWriterOption{
+				{BlockWriterOptionFn(func(*BlockWriterOptions) error { return errDummy0 })},
 			},
 			err: errDummy0,
 		},
 		"MarshalOptionError": {
-			opts: []BlockWriterOption{
-				WithMarshalOptions(
-					func(*ebml.MarshalOptions) error { return errDummy1 },
-				),
-				WithSeekHead(false),
+			opts: [][]BlockWriterOption{
+				{WithMarshalOptions(func(*ebml.MarshalOptions) error { return errDummy1 })},
 			},
 			err: errDummy1,
 		},
-		"MarshalOptionErrorWithSeekHead": {
-			opts: []BlockWriterOption{
-				WithMarshalOptions(
-					func(*ebml.MarshalOptions) error {
-						return errDummy1
-					},
-				),
+		"MaxKeyframeIntervalOption_OK": {
+			opts: [][]BlockWriterOption{
+				{WithMaxKeyframeInterval(1, 0)},
 			},
-			err: errDummy1,
 		},
-		"MaxKeyframeIntervalOptionError": {
-			opts: []BlockWriterOption{
-				WithMaxKeyframeInterval(0, 0),
+		"MaxKeyframeIntervalOption_TrackNumberError": {
+			opts: [][]BlockWriterOption{
+				{WithMaxKeyframeInterval(0, 0)},
 			},
 			err: ErrInvalidTrackNumber,
+		},
+		"MaxKeyframeIntervalOption_IntervalError": {
+			opts: [][]BlockWriterOption{
+				{WithMaxKeyframeInterval(1, -1)},
+				{WithMaxKeyframeInterval(1, 0x8000)},
+			},
+			err: ErrDurationInClusterOutOfRange,
+		},
+		"WithMinMaxClusterDuration_OK": {
+			opts: [][]BlockWriterOption{
+				{WithMinMaxClusterDuration(1, 0, 0)},
+			},
+		},
+		"WithMinMaxClusterDuration_TrackNumberError": {
+			opts: [][]BlockWriterOption{
+				{WithMinMaxClusterDuration(0, 0, 0)},
+			},
+			err: ErrInvalidTrackNumber,
+		},
+		"WithMinMaxClusterDuration_DurationError": {
+			opts: [][]BlockWriterOption{
+				{WithMinMaxClusterDuration(1, -1, 0)},
+				{WithMinMaxClusterDuration(1, 0, 0x8000)},
+				{WithMinMaxClusterDuration(1, 0x1001, 0x1000)},
+			},
+			err: ErrDurationInClusterOutOfRange,
 		},
 	}
 
 	for name, c := range cases {
+		c := c
 		t.Run(name, func(t *testing.T) {
-			buf := buffercloser.New()
-			_, err := NewSimpleBlockWriter(buf, []TrackDescription{}, c.opts...)
-			if !errs.Is(err, c.err) {
-				t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
+			for i := range c.opts {
+				t.Run(fmt.Sprintf("#%d", i), func(t *testing.T) {
+					buf := buffercloser.New()
+					ws, err := NewSimpleBlockWriter(
+						buf, []TrackDescription{{TrackNumber: 1}}, c.opts[i]...)
+					if !errs.Is(err, c.err) {
+						t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
+					}
+					for _, w := range ws {
+						w.Close()
+					}
+				})
 			}
 		})
 	}
