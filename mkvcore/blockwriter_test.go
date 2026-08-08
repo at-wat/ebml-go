@@ -796,155 +796,153 @@ func TestBlockWriter_WithCues(t *testing.T) {
 	})
 
 	t.Run("PositionVerification", func(t *testing.T) {
-		/*
-			const numFrames = 16
-			testCases := map[string]struct {
-				reservedSize int
-				expectedCues int
-			}{
-				"EnoughCuesBufferSize": {
-					reservedSize: 4096,
-					expectedCues: numFrames,
-				},
-				"SmallCuesBufferSize": {
-					reservedSize: 128,
-					expectedCues: 4,
-				},
-			}
-			for name, testCase := range testCases {
-				testCase := testCase
-				t.Run(name, func(t *testing.T) {
-		*/
-		buf := newSeekableBuffer()
-		ws, err := NewSimpleBlockWriter(
-			buf,
-			[]TrackDescription{{TrackNumber: 1}},
-			WithEBMLHeader(nil),
-			WithSegmentInfo(&struct {
-				TimecodeScale uint64 `ebml:"TimecodeScale"`
-			}{TimecodeScale: 1000000}),
-			WithSeekHead(true),
-			WithCues(testCase.reservedSize),
-			WithMinMaxClusterDuration(1, 0, 0x7FFF), // Every keyframe creates new cluster
-		)
-		if err != nil {
-			t.Fatalf("Failed to create BlockWriter: '%v'", err)
+		const numFrames = 16
+		testCases := map[string]struct {
+			reservedSize int
+			expectedCues int
+		}{
+			"EnoughCuesBufferSize": {
+				reservedSize: 4096,
+				expectedCues: numFrames,
+			},
+			"SmallCuesBufferSize": {
+				reservedSize: 128,
+				expectedCues: 8,
+			},
 		}
-
-		// Write frames, each triggering a new cluster
-		for i := 0; i < numFrames; i++ {
-			if _, err := ws[0].Write(true, int64(i), []byte{0x01}); err != nil {
-				t.Fatalf("Failed to Write: '%v'", err)
-			}
-		}
-		ws[0].Close()
-		<-buf.Closed()
-
-		data := buf.Bytes()
-
-		// Find Segment data start by locating the Segment element ID
-		segmentID := []byte{0x18, 0x53, 0x80, 0x67}
-		segmentIdx := bytes.Index(data, segmentID)
-		if segmentIdx < 0 {
-			t.Fatal("Segment element not found")
-		}
-		// Segment uses unknown size: 4 byte ID + 8 byte size VINT = 12 byte header
-		segmentDataStart := segmentIdx + 4 + 8
-
-		// Unmarshal to get SeekHead and Cues data
-		var result struct {
-			Segment cuesTestSegment `ebml:"Segment,size=unknown"`
-		}
-		if err := ebml.Unmarshal(bytes.NewReader(data), &result); err != nil {
-			t.Fatalf("Failed to Unmarshal: '%v'", err)
-		}
-
-		if result.Segment.Cues == nil {
-			t.Fatal("Cues not found in output")
-		}
-		if result.Segment.SeekHead == nil {
-			t.Fatal("SeekHead not found in output")
-		}
-
-		clusterElementID := []byte{0x1F, 0x43, 0xB6, 0x75}
-
-		// SeekHead Cues position points to actual Cues element
-		t.Run("SeekHeadCuesPosition", func(t *testing.T) {
-			cuesElementID := []byte{0x1C, 0x53, 0xBB, 0x6B}
-			var seekHeadCuesPos uint64
-			for _, seek := range result.Segment.SeekHead.Seek {
-				if bytes.Equal(seek.SeekID, ebml.ElementCues.Bytes()) {
-					seekHeadCuesPos = seek.SeekPosition
-					break
+		for name, testCase := range testCases {
+			testCase := testCase
+			t.Run(name, func(t *testing.T) {
+				buf := newSeekableBuffer()
+				ws, err := NewSimpleBlockWriter(
+					buf,
+					[]TrackDescription{{TrackNumber: 1}},
+					WithEBMLHeader(nil),
+					WithSegmentInfo(&struct {
+						TimecodeScale uint64 `ebml:"TimecodeScale"`
+					}{TimecodeScale: 1000000}),
+					WithSeekHead(true),
+					WithCues(testCase.reservedSize),
+					WithMinMaxClusterDuration(1, 0, 0x7FFF), // Every keyframe creates new cluster
+				)
+				if err != nil {
+					t.Fatalf("Failed to create BlockWriter: '%v'", err)
 				}
-			}
-			cuesAbsolutePos := segmentDataStart + int(seekHeadCuesPos)
 
-			if cuesAbsolutePos+4 > len(data) {
-				t.Fatalf("Cues position %d is beyond file size %d", cuesAbsolutePos, len(data))
-			}
-			actualCuesID := data[cuesAbsolutePos : cuesAbsolutePos+4]
-			if !bytes.Equal(actualCuesID, cuesElementID) {
-				t.Errorf("SeekHead Cues position points to bytes %X, expected Cues element ID %X", actualCuesID, cuesElementID)
-			}
-		})
-
-		// CueClusterPositions point to actual Cluster elements
-		t.Run("CueClusterPositions", func(t *testing.T) {
-			for i, cp := range result.Segment.Cues.CuePoint {
-				if len(cp.CueTrackPositions) == 0 {
-					t.Errorf("CuePoint[%d] has no CueTrackPositions", i)
-					continue
-				}
-				clusterRelPos := cp.CueTrackPositions[0].CueClusterPosition
-				clusterAbsPos := segmentDataStart + int(clusterRelPos)
-
-				if clusterAbsPos+4 > len(data) {
-					t.Errorf("CuePoint[%d] Cluster position %d is beyond file size %d", i, clusterAbsPos, len(data))
-					continue
-				}
-				actualID := data[clusterAbsPos : clusterAbsPos+4]
-				if !bytes.Equal(actualID, clusterElementID) {
-					t.Errorf("CuePoint[%d] CueClusterPosition points to bytes %X, expected Cluster element ID %X",
-						i, actualID, clusterElementID)
-				}
-			}
-		})
-
-		// Find all Cluster positions by scanning binary and compare
-		t.Run("ClusterPositionCrossCheck", func(t *testing.T) {
-			var actualClusterPositions []int
-			for i := 0; i <= len(data)-4; i++ {
-				if bytes.Equal(data[i:i+4], clusterElementID) {
-					relPos := i - segmentDataStart
-					actualClusterPositions = append(actualClusterPositions, relPos)
-				}
-			}
-
-			// We should have same number of CuePoints as streaming clusters
-			// if we have enough amount of the reserved size
-			if len(result.Segment.Cues.CuePoint) != testCase.expectedCues {
-				t.Errorf("Expected %d CuePoints, got %d", testCase.expectedCues, len(result.Segment.Cues.CuePoint))
-			}
-
-			// Verify each CueClusterPosition matches a real cluster
-			for i, cp := range result.Segment.Cues.CuePoint {
-				clusterPos := int(cp.CueTrackPositions[0].CueClusterPosition)
-				found := false
-				for _, actual := range actualClusterPositions {
-					if actual == clusterPos {
-						found = true
-						break
+				// Write frames, each triggering a new cluster
+				for i := 0; i < numFrames; i++ {
+					if _, err := ws[0].Write(true, int64(i), []byte{0x01}); err != nil {
+						t.Fatalf("Failed to Write: '%v'", err)
 					}
 				}
-				if !found {
-					t.Errorf("CuePoint[%d] CueClusterPosition %d does not match any Cluster position. Actual positions: %v",
-						i, clusterPos, actualClusterPositions)
+				ws[0].Close()
+				<-buf.Closed()
+
+				data := buf.Bytes()
+
+				// Find Segment data start by locating the Segment element ID
+				segmentID := []byte{0x18, 0x53, 0x80, 0x67}
+				segmentIdx := bytes.Index(data, segmentID)
+				if segmentIdx < 0 {
+					t.Fatal("Segment element not found")
 				}
-			}
-		})
-		//	 })
-		// }
+				// Segment uses unknown size: 4 byte ID + 8 byte size VINT = 12 byte header
+				segmentDataStart := segmentIdx + 4 + 8
+
+				// Unmarshal to get SeekHead and Cues data
+				var result struct {
+					Segment cuesTestSegment `ebml:"Segment,size=unknown"`
+				}
+				if err := ebml.Unmarshal(bytes.NewReader(data), &result); err != nil {
+					t.Fatalf("Failed to Unmarshal: '%v'", err)
+				}
+
+				if result.Segment.Cues == nil {
+					t.Fatal("Cues not found in output")
+				}
+				if result.Segment.SeekHead == nil {
+					t.Fatal("SeekHead not found in output")
+				}
+
+				clusterElementID := []byte{0x1F, 0x43, 0xB6, 0x75}
+
+				// SeekHead Cues position points to actual Cues element
+				t.Run("SeekHeadCuesPosition", func(t *testing.T) {
+					cuesElementID := []byte{0x1C, 0x53, 0xBB, 0x6B}
+					var seekHeadCuesPos uint64
+					for _, seek := range result.Segment.SeekHead.Seek {
+						if bytes.Equal(seek.SeekID, ebml.ElementCues.Bytes()) {
+							seekHeadCuesPos = seek.SeekPosition
+							break
+						}
+					}
+					cuesAbsolutePos := segmentDataStart + int(seekHeadCuesPos)
+
+					if cuesAbsolutePos+4 > len(data) {
+						t.Fatalf("Cues position %d is beyond file size %d", cuesAbsolutePos, len(data))
+					}
+					actualCuesID := data[cuesAbsolutePos : cuesAbsolutePos+4]
+					if !bytes.Equal(actualCuesID, cuesElementID) {
+						t.Errorf("SeekHead Cues position points to bytes %X, expected Cues element ID %X", actualCuesID, cuesElementID)
+					}
+				})
+
+				// CueClusterPositions point to actual Cluster elements
+				t.Run("CueClusterPositions", func(t *testing.T) {
+					for i, cp := range result.Segment.Cues.CuePoint {
+						if len(cp.CueTrackPositions) == 0 {
+							t.Errorf("CuePoint[%d] has no CueTrackPositions", i)
+							continue
+						}
+						clusterRelPos := cp.CueTrackPositions[0].CueClusterPosition
+						clusterAbsPos := segmentDataStart + int(clusterRelPos)
+
+						if clusterAbsPos+4 > len(data) {
+							t.Errorf("CuePoint[%d] Cluster position %d is beyond file size %d", i, clusterAbsPos, len(data))
+							continue
+						}
+						actualID := data[clusterAbsPos : clusterAbsPos+4]
+						if !bytes.Equal(actualID, clusterElementID) {
+							t.Errorf("CuePoint[%d] CueClusterPosition points to bytes %X, expected Cluster element ID %X",
+								i, actualID, clusterElementID)
+						}
+					}
+				})
+
+				// Find all Cluster positions by scanning binary and compare
+				t.Run("ClusterPositionCrossCheck", func(t *testing.T) {
+					var actualClusterPositions []int
+					for i := 0; i <= len(data)-4; i++ {
+						if bytes.Equal(data[i:i+4], clusterElementID) {
+							relPos := i - segmentDataStart
+							actualClusterPositions = append(actualClusterPositions, relPos)
+						}
+					}
+
+					// We should have same number of CuePoints as streaming clusters
+					// if we have enough amount of the reserved size
+					if len(result.Segment.Cues.CuePoint) != testCase.expectedCues {
+						t.Errorf("Expected %d CuePoints, got %d", testCase.expectedCues, len(result.Segment.Cues.CuePoint))
+					}
+
+					// Verify each CueClusterPosition matches a real cluster
+					for i, cp := range result.Segment.Cues.CuePoint {
+						clusterPos := int(cp.CueTrackPositions[0].CueClusterPosition)
+						found := false
+						for _, actual := range actualClusterPositions {
+							if actual == clusterPos {
+								found = true
+								break
+							}
+						}
+						if !found {
+							t.Errorf("CuePoint[%d] CueClusterPosition %d does not match any Cluster position. Actual positions: %v",
+								i, clusterPos, actualClusterPositions)
+						}
+					}
+				})
+			})
+		}
 	})
 
 	t.Run("WithEBMLHeader", func(t *testing.T) {
