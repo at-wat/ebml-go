@@ -164,11 +164,11 @@ func WithCues(reservedSize int) BlockWriterOptionFn {
 	}
 }
 
-// WithMaxKeyframeInterval sets maximum keyframe interval of the main (usually video) track.
-// Using this option make clusters start with a key frame based on the specified maximum keyframe interval.
+// WithMaxKeyframeInterval sets the maximum keyframe interval of the main (usually video) track.
+// Using this option makes clusters start with a keyframe based on the specified maximum keyframe interval.
 // interval must be given in the scale of timecode.
 //
-// Exclusive with WithMinMaxClusterDuration.
+// Exclusive with WithMinMaxClusterDuration and later one overrides the other.
 func WithMaxKeyframeInterval(mainTrackNumber uint64, interval int64) BlockWriterOptionFn {
 	return func(o *BlockWriterOptions) error {
 		if mainTrackNumber == 0 {
@@ -186,11 +186,11 @@ func WithMaxKeyframeInterval(mainTrackNumber uint64, interval int64) BlockWriter
 
 // WithMinMaxClusterDuration sets minimum and maximum cluster duration.
 // minDuration and maxDuration must be given in the scale of timecode.
-// New cluster will be created if
-// 1. a first keyframe is appeared on mainTrackNumber after minDuration.
-// 2. current cluster duration exceeds maxDuration.
+// A new cluster will be created when either:
+// 1. a first keyframe appears on mainTrackNumber after the current cluster reaches minDuration.
+// 2. the current cluster reaches maxDuration.
 //
-// Exclusive with WithMaxKeyframeInterval.
+// Exclusive with WithMaxKeyframeInterval and later one overrides the other.
 func WithMinMaxClusterDuration(mainTrackNumber uint64, minDuration, maxDuration int64) BlockWriterOptionFn {
 	return func(o *BlockWriterOptions) error {
 		if mainTrackNumber == 0 {
