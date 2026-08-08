@@ -801,13 +801,17 @@ func TestBlockWriter_WithCues(t *testing.T) {
 			reservedSize int
 			expectedCues int
 		}{
-			"EnoughCuesBufferSize": {
+			"WithSpaceForAllCues": {
 				reservedSize: 4096,
 				expectedCues: numFrames,
 			},
-			"SmallCuesBufferSize": {
+			"WithSpaceForDownsampledCues": {
 				reservedSize: 128,
 				expectedCues: 8,
+			},
+			"WithoutSpaceForOneCue": {
+				reservedSize: 9,
+				expectedCues: 0,
 			},
 		}
 		for name, testCase := range testCases {
@@ -858,6 +862,10 @@ func TestBlockWriter_WithCues(t *testing.T) {
 				}
 
 				if result.Segment.Cues == nil {
+					if testCase.expectedCues == 0 {
+						// Expected to have no cue
+						return
+					}
 					t.Fatal("Cues not found in output")
 				}
 				if result.Segment.SeekHead == nil {

@@ -388,6 +388,12 @@ func writeCuesToReserved(
 			break
 		}
 
+		if len(cuePoints) == 1 {
+			// The space is too small and no cue can be written.
+			cuesBytes = nil
+			break
+		}
+
 		// Cues don't fit, or leftover space is too small for a Void element
 		// (need 9 bytes minimum: 1-byte ID + 8-byte VINT).
 		// Downsample the cues to fit the space and retry.
