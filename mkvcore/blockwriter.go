@@ -390,7 +390,7 @@ func writeCuesToReserved(
 
 		// Cues don't fit, or leftover space is too small for a Void element
 		// (need 9 bytes minimum: 1-byte ID + 8-byte VINT).
-		// Thin out the cues to fit to the space and retry.
+		// Downsample the cues to fit the space and retry.
 		cuePoints2 := make([]cuePoint, 0, len(cuePoints)/2)
 		for i := 0; i < len(cuePoints); i += 2 {
 			cuePoints2 = append(cuePoints2, cuePoints[i])
