@@ -17,6 +17,7 @@ package mkvcore
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"sync"
@@ -170,48 +171,75 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 	errDummy1 := errors.New("an error 1")
 
 	cases := map[string]struct {
-		opts []BlockWriterOption
+		opts [][]BlockWriterOption
 		err  error
 	}{
 		"WriterOptionError": {
-			opts: []BlockWriterOption{
-				BlockWriterOptionFn(func(*BlockWriterOptions) error { return errDummy0 }),
+			opts: [][]BlockWriterOption{
+				{BlockWriterOptionFn(func(*BlockWriterOptions) error { return errDummy0 })},
 			},
 			err: errDummy0,
 		},
 		"MarshalOptionError": {
-			opts: []BlockWriterOption{
-				WithMarshalOptions(
-					func(*ebml.MarshalOptions) error { return errDummy1 },
-				),
-				WithSeekHead(false),
+			opts: [][]BlockWriterOption{
+				{WithMarshalOptions(func(*ebml.MarshalOptions) error { return errDummy1 })},
 			},
 			err: errDummy1,
 		},
-		"MarshalOptionErrorWithSeekHead": {
-			opts: []BlockWriterOption{
-				WithMarshalOptions(
-					func(*ebml.MarshalOptions) error {
-						return errDummy1
-					},
-				),
+		"MaxKeyframeIntervalOption_OK": {
+			opts: [][]BlockWriterOption{
+				{WithMaxKeyframeInterval(1, 0)},
 			},
-			err: errDummy1,
 		},
-		"MaxKeyframeIntervalOptionError": {
-			opts: []BlockWriterOption{
-				WithMaxKeyframeInterval(0, 0),
+		"MaxKeyframeIntervalOption_TrackNumberError": {
+			opts: [][]BlockWriterOption{
+				{WithMaxKeyframeInterval(0, 0)},
 			},
 			err: ErrInvalidTrackNumber,
+		},
+		"MaxKeyframeIntervalOption_IntervalError": {
+			opts: [][]BlockWriterOption{
+				{WithMaxKeyframeInterval(1, -1)},
+				{WithMaxKeyframeInterval(1, 0x8000)},
+			},
+			err: ErrDurationInClusterOutOfRange,
+		},
+		"WithMinMaxClusterDuration_OK": {
+			opts: [][]BlockWriterOption{
+				{WithMinMaxClusterDuration(1, 0, 0)},
+			},
+		},
+		"WithMinMaxClusterDuration_TrackNumberError": {
+			opts: [][]BlockWriterOption{
+				{WithMinMaxClusterDuration(0, 0, 0)},
+			},
+			err: ErrInvalidTrackNumber,
+		},
+		"WithMinMaxClusterDuration_DurationError": {
+			opts: [][]BlockWriterOption{
+				{WithMinMaxClusterDuration(1, -1, 0)},
+				{WithMinMaxClusterDuration(1, 0, 0x8000)},
+				{WithMinMaxClusterDuration(1, 0x1001, 0x1000)},
+			},
+			err: ErrDurationInClusterOutOfRange,
 		},
 	}
 
 	for name, c := range cases {
+		c := c
 		t.Run(name, func(t *testing.T) {
-			buf := buffercloser.New()
-			_, err := NewSimpleBlockWriter(buf, []TrackDescription{}, c.opts...)
-			if !errs.Is(err, c.err) {
-				t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
+			for i := range c.opts {
+				t.Run(fmt.Sprintf("#%d", i), func(t *testing.T) {
+					buf := buffercloser.New()
+					ws, err := NewSimpleBlockWriter(
+						buf, []TrackDescription{{TrackNumber: 1}}, c.opts[i]...)
+					if !errs.Is(err, c.err) {
+						t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
+					}
+					for _, w := range ws {
+						w.Close()
+					}
+				})
 			}
 		})
 	}
@@ -406,7 +434,7 @@ func TestBlockWriter_WithMaxKeyframeInterval(t *testing.T) {
 		[]TrackDescription{{TrackNumber: 1}},
 		WithEBMLHeader(nil),
 		WithSegmentInfo(nil),
-		WithMaxKeyframeInterval(1, 900*0x6FFF),
+		WithMaxKeyframeInterval(1, 0x6FFF),
 		WithSeekHead(false),
 	)
 	if err != nil {
@@ -775,7 +803,8 @@ func TestBlockWriter_WithCues(t *testing.T) {
 			WithEBMLHeader(nil),
 			WithSegmentInfo(nil),
 			WithSeekHead(true),
-			WithCues(32), // Tiny reserved space - will overflow
+			WithCues(32),                            // Tiny reserved space - will overflow
+			WithMinMaxClusterDuration(1, 0, 0x7FFF), // Every keyframe creates new cluster
 		)
 		if err != nil {
 			t.Fatalf("Failed to create BlockWriter: '%v'", err)
@@ -783,7 +812,7 @@ func TestBlockWriter_WithCues(t *testing.T) {
 
 		// Write blocks to create multiple clusters
 		for i := 0; i < 5; i++ {
-			if _, err := ws[0].Write(true, int64(i)*0x8000, []byte{0x01}); err != nil {
+			if _, err := ws[0].Write(true, int64(i), []byte{0x01}); err != nil {
 				t.Fatalf("Failed to Write: '%v'", err)
 			}
 		}
@@ -817,14 +846,15 @@ func TestBlockWriter_WithCues(t *testing.T) {
 			}{TimecodeScale: 1000000}),
 			WithSeekHead(true),
 			WithCues(4096),
+			WithMinMaxClusterDuration(1, 0, 0x7FFF), // Every keyframe creates new cluster
 		)
 		if err != nil {
 			t.Fatalf("Failed to create BlockWriter: '%v'", err)
 		}
 
-		// Write 3 frames, each triggering a new cluster (timecodes far apart)
+		// Write 3 frames, each triggering a new cluster
 		for i := 0; i < 3; i++ {
-			if _, err := ws[0].Write(true, int64(i)*0x8000, []byte{0x01}); err != nil {
+			if _, err := ws[0].Write(true, int64(i), []byte{0x01}); err != nil {
 				t.Fatalf("Failed to Write: '%v'", err)
 			}
 		}
@@ -1016,6 +1046,101 @@ func TestBlockWriter_WithCues(t *testing.T) {
 				t.Errorf("CuePoint[%d] position %d (abs %d) doesn't point to Cluster",
 					i, cp.CueTrackPositions[0].CueClusterPosition, clusterAbsPos)
 			}
+		}
+	})
+
+	t.Run("ClusterDurationControl", func(t *testing.T) {
+		const nFrames = 10000
+		testCases := map[string]struct {
+			opts                []BlockWriterOption
+			minDuration         int64
+			maxDuration         int64
+			keyframeDistance    int
+			expectedNumClusters int
+		}{
+			"Default": {
+				keyframeDistance:    10,
+				expectedNumClusters: 5,
+			},
+			"WithMaxKeyframeInterval_SmallMaxKeyframeInterval": {
+				opts: []BlockWriterOption{
+					WithMaxKeyframeInterval(1, 0x10),
+				},
+				keyframeDistance:    10,
+				expectedNumClusters: 5,
+			},
+			"WithMaxKeyframeInterval_LargeMaxKeyframeInterval": {
+				opts: []BlockWriterOption{
+					WithMaxKeyframeInterval(1, 0x8000-1000),
+				},
+				keyframeDistance:    1,
+				expectedNumClusters: 101,
+			},
+			"WithMinMaxClusterDuration_ClusterForEachKeyframe": {
+				opts: []BlockWriterOption{
+					WithMinMaxClusterDuration(1, 0, 0x7FFF),
+				},
+				keyframeDistance:    10,
+				expectedNumClusters: 1001,
+			},
+			"WithMinMaxClusterDuration_ClusterByMinDuration": {
+				opts: []BlockWriterOption{
+					WithMinMaxClusterDuration(1, 100, 0x7FFF),
+				},
+				keyframeDistance:    1,
+				expectedNumClusters: 1001,
+			},
+			"WithMinMaxClusterDuration_ClusterByMaxDuration": {
+				opts: []BlockWriterOption{
+					WithMinMaxClusterDuration(1, 0, 100),
+				},
+				keyframeDistance:    0x8000,
+				expectedNumClusters: 1001,
+			},
+		}
+		for name, testCase := range testCases {
+			testCase := testCase
+			t.Run(name, func(t *testing.T) {
+				buf := newSeekableBuffer()
+				ws, err := NewSimpleBlockWriter(
+					buf,
+					[]TrackDescription{{TrackNumber: 1}},
+					append(
+						[]BlockWriterOption{
+							WithEBMLHeader(nil),
+							WithSegmentInfo(nil),
+							WithSeekHead(true),
+						},
+						testCase.opts...,
+					)...,
+				)
+				if err != nil {
+					t.Fatalf("Failed to create BlockWriter: '%v'", err)
+				}
+
+				// Write blocks to create multiple clusters
+				for i := 0; i < nFrames; i++ {
+					if _, err := ws[0].Write(i%testCase.keyframeDistance == 0, int64(i)*10, []byte{0x01}); err != nil {
+						t.Fatalf("Failed to Write: '%v'", err)
+					}
+				}
+				ws[0].Close()
+				<-buf.Closed()
+
+				// File should still be valid, just without Cues
+				var result struct {
+					Segment struct {
+						Tracks  flexTracks           `ebml:"Tracks"`
+						Cluster []simpleBlockCluster `ebml:"Cluster,size=unknown"`
+					} `ebml:"Segment,size=unknown"`
+				}
+				if err := ebml.Unmarshal(bytes.NewReader(buf.Bytes()), &result); err != nil {
+					t.Fatalf("Failed to Unmarshal: '%v'", err)
+				}
+				if n := len(result.Segment.Cluster); n != testCase.expectedNumClusters {
+					t.Errorf("Expected %d clusters in output, got %d", testCase.expectedNumClusters, n)
+				}
+			})
 		}
 	})
 }
