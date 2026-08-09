@@ -25,7 +25,6 @@ import (
 
 	"github.com/at-wat/ebml-go"
 	"github.com/at-wat/ebml-go/internal/buffercloser"
-	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestBlockReader(t *testing.T) {
@@ -338,7 +337,7 @@ func TestBlockReader_FailingOptions(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			buf := bytes.NewReader([]byte{})
 			_, err := NewSimpleBlockReader(buf, c.opts...)
-			if !errs.Is(err, c.err) {
+			if !errors.Is(err, c.err) {
 				t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
 			}
 		})
@@ -380,7 +379,7 @@ func TestBlockReader_WithUnmarshalOptions(t *testing.T) {
 				bytes.NewReader(testBinary),
 				testCase.opts...,
 			)
-			if !errs.Is(err, testCase.err) {
+			if !errors.Is(err, testCase.err) {
 				if testCase.err != nil {
 					t.Fatalf("Expected error: '%v', got: '%v'", testCase.err, err)
 				} else {
@@ -431,7 +430,7 @@ func TestBlockReader_WithOnFatalHandler(t *testing.T) {
 	select {
 	case err := <-chFatal:
 		// Expected error
-		if !errs.Is(err, ebml.ErrUnknownElement) {
+		if !errors.Is(err, ebml.ErrUnknownElement) {
 			t.Errorf("Expected error: '%v', got: '%v'", ebml.ErrUnknownElement, err)
 		}
 	case <-time.After(time.Second):

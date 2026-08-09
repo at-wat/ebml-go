@@ -17,8 +17,6 @@ package ebml
 import (
 	"errors"
 	"testing"
-
-	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 type dummyError struct {
@@ -41,7 +39,7 @@ func TestError(t *testing.T) {
 	errStr := "info: an error"
 
 	t.Run("ErrorsIs", func(t *testing.T) {
-		if !errs.Is(errChained, errBase) {
+		if !errors.Is(errChained, errBase) {
 			t.Errorf("Wrapped error '%v' doesn't chain '%v'", errChained, errBase)
 		}
 	})

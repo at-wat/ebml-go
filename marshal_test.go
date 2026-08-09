@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-
-	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestMarshal(t *testing.T) {
@@ -267,7 +265,7 @@ func TestMarshal_Error(t *testing.T) {
 	for n, c := range testCases {
 		t.Run(n, func(t *testing.T) {
 			var b bytes.Buffer
-			if err := Marshal(c.input, &b); !errs.Is(err, c.err) {
+			if err := Marshal(c.input, &b); !errors.Is(err, c.err) {
 				t.Fatalf("Expected error: '%v', got: '%v'", c.err, err)
 			}
 		})
@@ -296,7 +294,7 @@ func TestMarshal_WriterError(t *testing.T) {
 	}{} // 61 bytes
 
 	for l := 0; l < 61; l++ {
-		if err := Marshal(&s, &limitedDummyWriter{limit: l}); !errs.Is(err, bytes.ErrTooLarge) {
+		if err := Marshal(&s, &limitedDummyWriter{limit: l}); !errors.Is(err, bytes.ErrTooLarge) {
 			t.Errorf("Expected error against too large data (Writer size limit: %d): '%v', got '%v'",
 				l, bytes.ErrTooLarge, err,
 			)
@@ -313,7 +311,7 @@ func TestMarshal_EncodeError(t *testing.T) {
 			Data:   [][]byte{{0x01}, {0x01, 0x02}},
 		},
 	}
-	if err := Marshal(&s, &bytes.Buffer{}); !errs.Is(err, ErrUnevenFixedLace) {
+	if err := Marshal(&s, &bytes.Buffer{}); !errors.Is(err, ErrUnevenFixedLace) {
 		t.Errorf("Expected error on encoding uneven fixed lace Block: '%v', got: '%v'",
 			ErrUnevenFixedLace, err)
 	}
@@ -456,7 +454,7 @@ func TestMarshal_InvalidTag(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	if err := Marshal(&input, &buf); !errs.Is(err, ErrInvalidTag) {
+	if err := Marshal(&input, &buf); !errors.Is(err, ErrInvalidTag) {
 		t.Errorf("Expected error against invalid tag: '%v', got: '%v'", ErrInvalidTag, err)
 	}
 }
@@ -521,7 +519,7 @@ func TestMarshal_Chan(t *testing.T) {
 			ch <- nil
 			close(ch)
 
-			if err := Marshal(input, &bytes.Buffer{}); !errs.Is(err, ErrIncompatibleType) {
+			if err := Marshal(input, &bytes.Buffer{}); !errors.Is(err, ErrIncompatibleType) {
 				t.Fatalf("Expected error: '%v', got: '%v'", ErrIncompatibleType, err)
 			}
 		})
@@ -537,7 +535,7 @@ func TestMarshal_Chan(t *testing.T) {
 		ch <- make([]Cluster, 2)
 		close(ch)
 
-		if err := Marshal(input, &bytes.Buffer{}); !errs.Is(err, ErrIncompatibleType) {
+		if err := Marshal(input, &bytes.Buffer{}); !errors.Is(err, ErrIncompatibleType) {
 			t.Fatalf("Expected error: '%v', got: '%v'", ErrIncompatibleType, err)
 		}
 	})
@@ -596,7 +594,7 @@ func TestMarshal_Func(t *testing.T) {
 				return nil
 			}
 
-			if err := Marshal(input, &bytes.Buffer{}); !errs.Is(err, ErrIncompatibleType) {
+			if err := Marshal(input, &bytes.Buffer{}); !errors.Is(err, ErrIncompatibleType) {
 				t.Fatalf("Expected error: '%v', got: '%v'", ErrIncompatibleType, err)
 			}
 		})
@@ -655,7 +653,7 @@ func TestMarshal_Func(t *testing.T) {
 				return Cluster{Timecode: 0x01}, expectedErr
 			}
 
-			if err := Marshal(input, &bytes.Buffer{}); !errs.Is(err, expectedErr) {
+			if err := Marshal(input, &bytes.Buffer{}); !errors.Is(err, expectedErr) {
 				t.Fatalf("Expected error: '%v', got: '%v'", expectedErr, err)
 			}
 		})
@@ -669,7 +667,7 @@ func TestMarshal_Func(t *testing.T) {
 				return nil, 1
 			}
 
-			if err := Marshal(input, &bytes.Buffer{}); !errs.Is(err, ErrIncompatibleType) {
+			if err := Marshal(input, &bytes.Buffer{}); !errors.Is(err, ErrIncompatibleType) {
 				t.Fatalf("Expected error: '%v', got: '%v'", ErrIncompatibleType, err)
 			}
 		})
@@ -682,7 +680,7 @@ func TestMarshal_Func(t *testing.T) {
 		}{}
 		input.Segment.Cluster = func() {}
 
-		if err := Marshal(input, &bytes.Buffer{}); !errs.Is(err, ErrIncompatibleType) {
+		if err := Marshal(input, &bytes.Buffer{}); !errors.Is(err, ErrIncompatibleType) {
 			t.Fatalf("Expected error: '%v', got: '%v'", ErrIncompatibleType, err)
 		}
 	})

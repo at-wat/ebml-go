@@ -15,11 +15,10 @@
 package ebml
 
 import (
+	"errors"
 	"reflect"
 	"strconv"
 	"testing"
-
-	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestParseTag(t *testing.T) {
@@ -84,7 +83,7 @@ func TestParseTag(t *testing.T) {
 	for n, c := range cases {
 		t.Run(n, func(t *testing.T) {
 			tag, err := parseTag(c.input)
-			if !errs.Is(err, c.err) {
+			if !errors.Is(err, c.err) {
 				t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
 			}
 			if (c.expected == nil) != (tag == nil) {

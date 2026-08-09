@@ -16,10 +16,9 @@ package ebml
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"testing"
-
-	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestElementType_Roundtrip(t *testing.T) {
@@ -52,7 +51,7 @@ func TestElementType_InitReverseLookupTable(t *testing.T) {
 		err := recover()
 		switch v := err.(type) {
 		case error:
-			if !errs.Is(v, io.ErrUnexpectedEOF) {
+			if !errors.Is(v, io.ErrUnexpectedEOF) {
 				t.Errorf("Expected initReverseLookupTable panic: '%v', got: '%v'", io.ErrUnexpectedEOF, v)
 			}
 		default:
