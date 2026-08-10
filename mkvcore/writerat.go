@@ -31,10 +31,10 @@ func (w *writerAtBySeeker) WriteAt(p []byte, off int64) (int, error) {
 	}
 	n, err := w.Write(p)
 	if err != nil {
-		return n, err
+		return 0, err
 	}
 	if _, err := w.Seek(0, io.SeekEnd); err != nil {
-		return n, err
+		return 0, err
 	}
 	return n, nil
 }
