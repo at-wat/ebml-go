@@ -16,11 +16,10 @@ package ebml
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"reflect"
 	"testing"
-
-	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestUnmarshalBlock(t *testing.T) {
@@ -79,7 +78,7 @@ func TestUnmarshalBlock_Error(t *testing.T) {
 	t.Run("EOF", func(t *testing.T) {
 		input := []byte{0x21, 0x23, 0x45, 0x00, 0x02, 0x00}
 		for l := 0; l < len(input); l++ {
-			if _, err := UnmarshalBlock(bytes.NewBuffer(input[:l]), int64(len(input))); !errs.Is(err, io.ErrUnexpectedEOF) {
+			if _, err := UnmarshalBlock(bytes.NewBuffer(input[:l]), int64(len(input))); !errors.Is(err, io.ErrUnexpectedEOF) {
 				t.Errorf("Short data (%d bytes) expected error: '%v', got: '%v'",
 					l, io.ErrUnexpectedEOF, err)
 			}
@@ -96,7 +95,7 @@ func TestUnmarshalBlock_Error(t *testing.T) {
 	}
 	for n, c := range testCases {
 		t.Run(n, func(t *testing.T) {
-			if _, err := UnmarshalBlock(bytes.NewBuffer(c.input), int64(len(c.input))); !errs.Is(err, c.err) {
+			if _, err := UnmarshalBlock(bytes.NewBuffer(c.input), int64(len(c.input))); !errors.Is(err, c.err) {
 				t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
 			}
 		})
@@ -146,7 +145,7 @@ func TestMarshalBlock_Error(t *testing.T) {
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			if err := MarshalBlock(c.input, &bytes.Buffer{}); !errs.Is(err, c.err) {
+			if err := MarshalBlock(c.input, &bytes.Buffer{}); !errors.Is(err, c.err) {
 				t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
 			}
 		})
@@ -155,7 +154,7 @@ func TestMarshalBlock_Error(t *testing.T) {
 	t.Run("EOF", func(t *testing.T) {
 		input := &Block{0x012345, 0x0002, false, false, LacingNo, false, [][]byte{{0x00}}} // 7 bytes
 		for l := 0; l < 7; l++ {
-			if err := MarshalBlock(input, &limitedDummyWriter{limit: l}); !errs.Is(err, bytes.ErrTooLarge) {
+			if err := MarshalBlock(input, &limitedDummyWriter{limit: l}); !errors.Is(err, bytes.ErrTooLarge) {
 				t.Errorf("Expected error against too large data (Writer size limit: %d): '%v', got: '%v'", l, bytes.ErrTooLarge, err)
 			}
 		}

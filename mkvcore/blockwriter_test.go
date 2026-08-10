@@ -26,7 +26,6 @@ import (
 
 	"github.com/at-wat/ebml-go"
 	"github.com/at-wat/ebml-go/internal/buffercloser"
-	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestBlockWriter(t *testing.T) {
@@ -233,7 +232,7 @@ func TestBlockWriter_FailingOptions(t *testing.T) {
 					buf := buffercloser.New()
 					ws, err := NewSimpleBlockWriter(
 						buf, []TrackDescription{{TrackNumber: 1}}, c.opts[i]...)
-					if !errs.Is(err, c.err) {
+					if !errors.Is(err, c.err) {
 						t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
 					}
 					for _, w := range ws {
@@ -326,7 +325,7 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			)
 			if err != nil {
 				if errAt == atBeginning {
-					if !errs.Is(err, bytes.ErrTooLarge) {
+					if !errors.Is(err, bytes.ErrTooLarge) {
 						t.Fatalf("Expected error: '%v', got: '%v'", bytes.ErrTooLarge, err)
 					}
 					return
@@ -348,7 +347,7 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			if errAt == atClusterWriting {
 				select {
 				case err := <-chFatal:
-					if !errs.Is(err, bytes.ErrTooLarge) {
+					if !errors.Is(err, bytes.ErrTooLarge) {
 						t.Fatalf("Expected error: '%v', got: '%v'", bytes.ErrTooLarge, err)
 					}
 					return
@@ -374,7 +373,7 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			if errAt == atFrameWriting {
 				select {
 				case err := <-chFatal:
-					if !errs.Is(err, bytes.ErrTooLarge) {
+					if !errors.Is(err, bytes.ErrTooLarge) {
 						t.Fatalf("Expected error: '%v', got: '%v'", bytes.ErrTooLarge, err)
 					}
 					return
@@ -395,7 +394,7 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			}
 			select {
 			case err := <-chError:
-				if !errs.Is(err, ErrIgnoreOldFrame) {
+				if !errors.Is(err, ErrIgnoreOldFrame) {
 					t.Errorf("Expected error: '%v', got: '%v'", ErrIgnoreOldFrame, err)
 				}
 			case err := <-chFatal:
@@ -412,7 +411,7 @@ func TestBlockWriter_ErrorHandling(t *testing.T) {
 			if errAt == atClosing {
 				select {
 				case err := <-chFatal:
-					if !errs.Is(err, bytes.ErrTooLarge) {
+					if !errors.Is(err, bytes.ErrTooLarge) {
 						t.Fatalf("Expected error: '%v', got: '%v'", bytes.ErrTooLarge, err)
 					}
 					return
@@ -545,7 +544,7 @@ func TestBlockWriter_WithSeekHead(t *testing.T) {
 			}{}),
 			WithSeekHead(true),
 		)
-		if !errs.Is(err, ebml.ErrUnknownElementName) {
+		if !errors.Is(err, ebml.ErrUnknownElementName) {
 			t.Errorf("Expected error: '%v', got: '%v'", ebml.ErrUnknownElementName, err)
 		}
 	})
@@ -693,7 +692,7 @@ func TestBlockWriter_WithCues(t *testing.T) {
 			WithCues(1024),
 			// No WithSeekHead
 		)
-		if !errs.Is(err, ErrCuesRequiresSeekHead) {
+		if !errors.Is(err, ErrCuesRequiresSeekHead) {
 			t.Errorf("Expected error: '%v', got: '%v'", ErrCuesRequiresSeekHead, err)
 		}
 	})
@@ -708,7 +707,7 @@ func TestBlockWriter_WithCues(t *testing.T) {
 			WithSeekHead(true),
 			WithCues(1024),
 		)
-		if !errs.Is(err, ErrCuesRequiresSeeker) {
+		if !errors.Is(err, ErrCuesRequiresSeeker) {
 			t.Errorf("Expected error: '%v', got: '%v'", ErrCuesRequiresSeeker, err)
 		}
 	})

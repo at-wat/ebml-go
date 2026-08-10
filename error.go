@@ -16,63 +16,34 @@ package ebml
 
 import (
 	"fmt"
-	"reflect"
 )
 
-// Error records a failed parsing.
+// Error records an EBML handling error.
 type Error struct {
 	Err     error
 	Failure string
 }
 
 func (e *Error) Error() string {
-	// TODO: migrate to fmt.Sprintf %w once Go1.12 reaches EOL.
 	return e.Failure + ": " + e.Err.Error()
 }
 
-// Unwrap returns the reason of the failure.
-// This is for Go1.13 error unwrapping.
+// Unwrap returns the base error.
 func (e *Error) Unwrap() error {
 	return e.Err
 }
 
 // Is reports whether chained error contains target.
-// This is for Go1.13 error unwrapping.
+//
+// Deprecated: Only for API compatibility. Will be removed in the future release to rely only on Unwrap().
 func (e *Error) Is(target error) bool {
-	err := e.Err
-
-	switch target {
-	case e:
+	if e == target || e.Err == target {
 		return true
-	case nil:
-		return err == nil
 	}
-	for {
-		switch err {
-		case nil:
-			return false
-		case target:
-			return true
-		}
-		x, ok := err.(interface{ Unwrap() error })
-		if !ok {
-			// Some stdlibs haven't have error unwrapper yet.
-			// Check err.Err field if exposed.
-			if reflect.TypeOf(err).Kind() == reflect.Ptr {
-				e := reflect.ValueOf(err).Elem().FieldByName("Err")
-				if e.IsValid() {
-					e2, ok := e.Interface().(error)
-					if !ok {
-						return false
-					}
-					err = e2
-					continue
-				}
-			}
-			return false
-		}
-		err = x.Unwrap()
+	if is, ok := e.Err.(interface{ Is(error) bool }); ok {
+		return is.Is(target)
 	}
+	return false
 }
 
 func wrapError(err error, failure string) error {

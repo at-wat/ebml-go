@@ -16,10 +16,9 @@ package ebml
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"testing"
-
-	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 func TestLacer(t *testing.T) {
@@ -153,7 +152,7 @@ func TestLacer(t *testing.T) {
 			var buf bytes.Buffer
 			l := c.newLacer(&buf)
 			err := l.Write(c.frames)
-			if !errs.Is(err, c.err) {
+			if !errors.Is(err, c.err) {
 				t.Fatalf("Expected error: '%v', got: '%v'", c.err, err)
 			}
 			if !bytes.Equal(c.b, buf.Bytes()) {
@@ -178,7 +177,7 @@ func TestLacer_WriterError(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			for l := 0; l < c.n-1; l++ {
 				lacer := c.newLacer(&limitedDummyWriter{limit: l})
-				if err := lacer.Write(c.frames); !errs.Is(err, bytes.ErrTooLarge) {
+				if err := lacer.Write(c.frames); !errors.Is(err, bytes.ErrTooLarge) {
 					t.Errorf("Expected error against too large data (Writer size limit: %d): '%v', got '%v'", l, bytes.ErrTooLarge, err)
 				}
 			}

@@ -17,8 +17,6 @@ package ebml
 import (
 	"errors"
 	"testing"
-
-	"github.com/at-wat/ebml-go/internal/errs"
 )
 
 type dummyError struct {
@@ -36,12 +34,10 @@ func TestError(t *testing.T) {
 	errDoubleChained := wrapErrorf(errChained, "info")
 	errChainedNil := wrapErrorf(nil, "info")
 	errChainedOther := wrapErrorf(errOther, "info")
-	err112Chained := wrapErrorf(&dummyError{errBase}, "info")
-	err112Nil := wrapErrorf(&dummyError{nil}, "info")
 	errStr := "info: an error"
 
 	t.Run("ErrorsIs", func(t *testing.T) {
-		if !errs.Is(errChained, errBase) {
+		if !errors.Is(errChained, errBase) {
 			t.Errorf("Wrapped error '%v' doesn't chain '%v'", errChained, errBase)
 		}
 	})
@@ -56,10 +52,6 @@ func TestError(t *testing.T) {
 		if !errDoubleChained.(*Error).Is(errBase) {
 			t.Errorf("Wrapped error '%v' doesn't match '%v'", errDoubleChained, errBase)
 		}
-		if !err112Chained.(*Error).Is(errBase) {
-			t.Errorf("Wrapped error '%v' doesn't match '%v'",
-				err112Chained, errBase)
-		}
 		if !errChainedNil.(*Error).Is(nil) {
 			t.Errorf("Nil chained error '%v' doesn't match 'nil'", errChainedNil)
 		}
@@ -69,10 +61,6 @@ func TestError(t *testing.T) {
 				errChainedNil, errBase)
 		}
 		if errChainedOther.(*Error).Is(errBase) {
-			t.Errorf("Wrapped error '%v' unexpectedly matched '%v'",
-				errChainedOther, errBase)
-		}
-		if err112Nil.(*Error).Is(errBase) {
 			t.Errorf("Wrapped error '%v' unexpectedly matched '%v'",
 				errChainedOther, errBase)
 		}
