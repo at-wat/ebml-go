@@ -92,15 +92,21 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 	}
 
 	// Validate Cues requirements
-	var seeker io.WriteSeeker
+	var writerAt io.WriterAt
 	if options.cuesReservedSize > 0 {
 		if !options.seekHead {
 			return nil, ErrCuesRequiresSeekHead
 		}
 		var ok bool
-		seeker, ok = w0.(io.WriteSeeker)
+		writerAt, ok = w0.(io.WriterAt)
 		if !ok {
-			return nil, ErrCuesRequiresSeeker
+			seeker, ok := w0.(io.WriteSeeker)
+			if !ok {
+				return nil, ErrCuesRequiresSeeker
+			}
+			writerAt = &writerAtBySeeker{
+				WriteSeeker: seeker,
+			}
 		}
 	}
 
@@ -143,7 +149,8 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 	var posAfterHeader uint64
 	if options.cuesReservedSize > 0 {
 		cuesReservedStart = uint64(w.Size())
-		if err := writeVoidElement(w, options.cuesReservedSize); err != nil {
+		ve := voidElement(options.cuesReservedSize)
+		if _, err := w.Write(ve); err != nil {
 			return nil, err
 		}
 	}
@@ -229,7 +236,7 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 			// Write Cues to the reserved space
 			if options.cuesReservedSize > 0 && len(cuePoints) > 0 {
 				writeCuesToReserved(
-					seeker, cuePoints, options.marshalOpts,
+					writerAt, cuePoints, options.marshalOpts,
 					cuesReservedStart, options.cuesReservedSize,
 					options.onFatal,
 				)
@@ -237,19 +244,11 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 
 			// Overwrite the placeholder Duration with the real value.
 			// Duration element layout: 2-byte ID (0x44 0x89) + 1-byte VINT (0x88) + 8-byte float64.
-			if durationElementPos > 0 && seeker != nil {
+			if durationElementPos > 0 && writerAt != nil {
 				duration := float64(lastTc - tc0)
 				var buf [8]byte
 				binary.BigEndian.PutUint64(buf[:], math.Float64bits(duration))
-				if _, err := seeker.Seek(int64(durationElementPos)+3, io.SeekStart); err != nil {
-					if options.onFatal != nil {
-						options.onFatal(err)
-					}
-				} else if _, err := seeker.Write(buf[:]); err != nil {
-					if options.onFatal != nil {
-						options.onFatal(err)
-					}
-				} else if _, err := seeker.Seek(0, io.SeekEnd); err != nil {
+				if _, err := writerAt.WriteAt(buf[:], int64(durationElementPos)+3); err != nil {
 					if options.onFatal != nil {
 						options.onFatal(err)
 					}
@@ -338,9 +337,9 @@ func NewSimpleBlockWriter(w0 io.WriteCloser, tracks []TrackDescription, opts ...
 	return ws, nil
 }
 
-// writeVoidElement writes an EBML Void element of exactly totalSize bytes.
+// voidElement creates an EBML Void element of exactly totalSize bytes.
 // Always uses 8-byte VINT for simplicity; callers must ensure totalSize >= 9.
-func writeVoidElement(w io.Writer, totalSize int) error {
+func voidElement(totalSize int) []byte {
 	buf := make([]byte, totalSize)
 	buf[0] = 0xEC // Void Element ID
 	dataSize := uint64(totalSize - 9)
@@ -352,13 +351,12 @@ func writeVoidElement(w io.Writer, totalSize int) error {
 	buf[6] = byte(dataSize >> 16)
 	buf[7] = byte(dataSize >> 8)
 	buf[8] = byte(dataSize)
-	_, err := w.Write(buf)
-	return err
+	return buf
 }
 
 // writeCuesToReserved marshals Cues and writes them into the reserved Void space.
 func writeCuesToReserved(
-	seeker io.WriteSeeker,
+	writerAt io.WriterAt,
 	cuePoints []cuePoint,
 	marshalOpts []ebml.MarshalOption,
 	reservedStart uint64, reservedSize int,
@@ -404,32 +402,13 @@ func writeCuesToReserved(
 		cuePoints = cuePoints2
 	}
 
-	if _, err := seeker.Seek(int64(reservedStart), io.SeekStart); err != nil {
-		if onFatal != nil {
-			onFatal(err)
-		}
-		return
-	}
-	if _, err := seeker.Write(cuesBytes); err != nil {
-		if onFatal != nil {
-			onFatal(err)
-		}
-		return
-	}
-
 	if remaining > 0 {
-		if err := writeVoidElement(seeker, remaining); err != nil {
-			if onFatal != nil {
-				onFatal(err)
-			}
-			return
-		}
+		cuesBytes = append(cuesBytes, voidElement(remaining)...)
 	}
-
-	// Seek back to end of file
-	if _, err := seeker.Seek(0, io.SeekEnd); err != nil {
+	if _, err := writerAt.WriteAt(cuesBytes, int64(reservedStart)); err != nil {
 		if onFatal != nil {
 			onFatal(err)
 		}
+		return
 	}
 }

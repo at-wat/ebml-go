@@ -26,8 +26,8 @@ var ErrInvalidTrackNumber = errors.New("invalid track number")
 // ErrCuesRequiresSeekHead means WithCues was used without WithSeekHead.
 var ErrCuesRequiresSeekHead = errors.New("WithCues requires WithSeekHead")
 
-// ErrCuesRequiresSeeker means WithCues was used with a writer that does not implement io.WriteSeeker.
-var ErrCuesRequiresSeeker = errors.New("WithCues requires an io.WriteSeeker")
+// ErrCuesRequiresSeeker means WithCues was used with a writer that does not implement either io.WriteSeeker nor io.WriterAt.
+var ErrCuesRequiresSeeker = errors.New("WithCues requires an io.WriteSeeker or io.WriterAt")
 
 // ErrCuesReservedTooSmall means WithCues was called with a reservedSize smaller than 9 bytes.
 var ErrCuesReservedTooSmall = errors.New("WithCues reservedSize must be at least 9")
