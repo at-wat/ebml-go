@@ -409,6 +409,5 @@ func writeCuesToReserved(
 		if onFatal != nil {
 			onFatal(err)
 		}
-		return
 	}
 }
