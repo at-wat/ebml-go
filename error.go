@@ -19,7 +19,7 @@ import (
 	"fmt"
 )
 
-// Error records a EBML handling error.
+// Error records an EBML handling error.
 type Error struct {
 	Err     error
 	Failure string
