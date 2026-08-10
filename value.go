@@ -204,6 +204,10 @@ func (d *valueDecoder) readInt(r io.Reader, n uint64) (interface{}, error) {
 }
 
 func (d *valueDecoder) readUInt(r io.Reader, n uint64) (interface{}, error) {
+	if n > 8 {
+		return 0, wrapErrorf(ErrInvalidElementSize, "reading %d bytes number", n)
+	}
+
 	bs := make([]byte, n)
 
 	switch _, err := io.ReadFull(r, bs); err {

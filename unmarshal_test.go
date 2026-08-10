@@ -639,6 +639,30 @@ func TestUnmarshal_Error(t *testing.T) {
 			})
 		}
 	})
+	t.Run("InvalidSizeElement", func(t *testing.T) {
+		TestBinaries := map[string][]byte{
+			"UnknownSizeUInt":   {0x42, 0x86, 0xFF, 0x00},
+			"UnknownSizeFloat":  {0x44, 0x89, 0xFF, 0x00},
+			"UnknownSizeString": {0x44, 0x87, 0xFF, 0x00},
+			"UnknownSizeBinary": {0x44, 0x85, 0xFF, 0x00},
+			"9BytesUInt":        {0x42, 0x86, 0x89, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		}
+		for name, b := range TestBinaries {
+			t.Run(name, func(t *testing.T) {
+				var val TestEBML
+				if err := Unmarshal(bytes.NewBuffer(b), &val); !errors.Is(err, ErrInvalidElementSize) {
+					t.Errorf("Expected error: '%v', got: '%v'", ErrInvalidElementSize, err)
+				}
+			})
+		}
+		t.Run("2BytesFloat", func(t *testing.T) {
+			var val TestEBML
+			b := []byte{0x44, 0x89, 0x82, 0x00, 0x00}
+			if err := Unmarshal(bytes.NewBuffer(b), &val); !errors.Is(err, ErrInvalidFloatSize) {
+				t.Errorf("Expected error: '%v', got: '%v'", ErrInvalidElementSize, err)
+			}
+		})
+	})
 }
 
 func ExampleUnmarshal_partial() {
