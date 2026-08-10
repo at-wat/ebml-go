@@ -84,7 +84,7 @@ func TestParseTag(t *testing.T) {
 	}
 	for n, c := range cases {
 		t.Run(n, func(t *testing.T) {
-			if n == "InvalidSize" && strings.HasPrefix(runtime.Version(), "go1.13.") {
+			if n == "InvalidSize" && (runtime.Version() == "go1.13" || strings.HasPrefix(runtime.Version(), "go1.13.")) {
 				t.Skip("Error from strconv can't be checked by errors.Is on Go 1.13")
 			}
 			tag, err := parseTag(c.input)
