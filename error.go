@@ -15,7 +15,6 @@
 package ebml
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -36,9 +35,15 @@ func (e *Error) Unwrap() error {
 
 // Is reports whether chained error contains target.
 //
-// Deprecated: Only for API compatibility. Use errors.Is().
+// Deprecated: Only for API compatibility. Will be removed in the future release to rely only on Unwrap().
 func (e *Error) Is(target error) bool {
-	return e == target || errors.Is(e.Err, target)
+	if e == target || e.Err == target {
+		return true
+	}
+	if is, ok := e.Err.(interface{ Is(error) bool }); ok {
+		return is.Is(target)
+	}
+	return false
 }
 
 func wrapError(err error, failure string) error {
