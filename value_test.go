@@ -378,10 +378,28 @@ func TestReadValue_WrongSize(t *testing.T) {
 		n   uint64
 		err error
 	}{
-		"Float32(3B)": {
+		"Int(9B)": {
 			DataTypeFloat,
-			[]byte{0, 0, 0},
+			make([]byte, 9),
+			9,
+			ErrInvalidFloatSize,
+		},
+		"Float(3B)": {
+			DataTypeFloat,
+			make([]byte, 3),
 			3,
+			ErrInvalidFloatSize,
+		},
+		"Int(Unknown)": {
+			DataTypeFloat,
+			make([]byte, 16),
+			SizeUnknown,
+			ErrInvalidFloatSize,
+		},
+		"Float(Unknown)": {
+			DataTypeFloat,
+			make([]byte, 16),
+			SizeUnknown,
 			ErrInvalidFloatSize,
 		},
 	}
