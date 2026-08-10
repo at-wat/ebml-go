@@ -174,6 +174,18 @@ func TestUnlacer(t *testing.T) {
 			frames: [][]byte{{0x00, 0x01}, {0x02}},
 			err:    io.ErrUnexpectedEOF,
 		},
+		"EBMLBroken": {
+			newUnlacer: NewEBMLUnlacer,
+			header: []byte{
+				0x85,
+				0x01,
+				0xFF, 0xFF, 0xFF, 0xFF,
+				0xFF, 0xFF, 0xFF, 0xFF,
+				// Huge frame size and large frame number to make last frame size underflow to positive
+			},
+			frames: [][]byte{make([]byte, 4096)},
+			err:    io.ErrUnexpectedEOF,
+		},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
