@@ -17,7 +17,9 @@ package ebml
 import (
 	"errors"
 	"reflect"
+	"runtime"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -82,6 +84,9 @@ func TestParseTag(t *testing.T) {
 	}
 	for n, c := range cases {
 		t.Run(n, func(t *testing.T) {
+			if n == "InvalidSize" && strings.HasPrefix(runtime.Version(), "go1.13.") {
+				t.Skip("Error from strconv can't be checked by errors.Is on Go 1.13")
+			}
 			tag, err := parseTag(c.input)
 			if !errors.Is(err, c.err) {
 				t.Errorf("Expected error: '%v', got: '%v'", c.err, err)
