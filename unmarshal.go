@@ -30,7 +30,7 @@ var ErrIndefiniteType = errors.New("marshal/unmarshal to indefinite type")
 // ErrIncompatibleType means that an element is not convertible to a corresponding struct field.
 var ErrIncompatibleType = errors.New("marshal/unmarshal to incompatible type")
 
-// ErrInvalidElementSize means that an element has inconsistent size. e.g. element size is larger than its parent element size.
+// ErrInvalidElementSize means that an element has an inconsistent size. e.g., element size larger than its parent element size, invalid scalar size, or unknown size of a non-master element.
 var ErrInvalidElementSize = errors.New("invalid element size")
 
 // ErrReadStopped is returned if unmarshaler finished to read element which has stop tag.
@@ -144,6 +144,9 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 
 		if n != SizeUnknown && pos+headerSize+size > pos0+uint64(n) {
 			err = ErrInvalidElementSize
+		}
+		if err == nil && size == SizeUnknown && v.t != DataTypeMaster {
+			err = wrapErrorf(ErrInvalidElementSize, "unknown size %s", v.t)
 		}
 
 		if err != nil {

@@ -204,6 +204,10 @@ func (d *valueDecoder) readInt(r io.Reader, n uint64) (interface{}, error) {
 }
 
 func (d *valueDecoder) readUInt(r io.Reader, n uint64) (interface{}, error) {
+	if n > 8 {
+		return 0, wrapErrorf(ErrInvalidElementSize, "reading %d bytes number", n)
+	}
+
 	bs := make([]byte, n)
 
 	switch _, err := io.ReadFull(r, bs); err {
@@ -230,6 +234,11 @@ func (d *valueDecoder) readDate(r io.Reader, n uint64) (interface{}, error) {
 }
 
 func (d *valueDecoder) readFloat(r io.Reader, n uint64) (interface{}, error) {
+	switch n {
+	case 4, 8:
+	default:
+		return 0.0, wrapErrorf(ErrInvalidFloatSize, "reading %d bytes float", n)
+	}
 	bs := make([]byte, n)
 
 	switch _, err := io.ReadFull(r, bs); err {
@@ -246,7 +255,7 @@ func (d *valueDecoder) readFloat(r io.Reader, n uint64) (interface{}, error) {
 	case 8:
 		return math.Float64frombits(binary.BigEndian.Uint64(bs)), nil
 	default:
-		return 0.0, wrapErrorf(ErrInvalidFloatSize, "reading %d bytes float", n)
+		panic("must not reach here")
 	}
 }
 
