@@ -379,10 +379,10 @@ func TestReadValue_WrongSize(t *testing.T) {
 		err error
 	}{
 		"Int(9B)": {
-			DataTypeFloat,
+			DataTypeInt,
 			make([]byte, 9),
 			9,
-			ErrInvalidFloatSize,
+			ErrInvalidElementSize,
 		},
 		"Float(3B)": {
 			DataTypeFloat,
@@ -391,10 +391,10 @@ func TestReadValue_WrongSize(t *testing.T) {
 			ErrInvalidFloatSize,
 		},
 		"Int(Unknown)": {
-			DataTypeFloat,
+			DataTypeInt,
 			make([]byte, 16),
 			SizeUnknown,
-			ErrInvalidFloatSize,
+			ErrInvalidElementSize,
 		},
 		"Float(Unknown)": {
 			DataTypeFloat,
