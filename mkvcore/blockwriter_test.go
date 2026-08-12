@@ -672,7 +672,7 @@ type writeAtBuffer struct {
 }
 
 func newWriteAtBuffer() testBuffer {
-	return &seekableBuffer{
+	return &writeAtBuffer{
 		closed: make(chan struct{}),
 	}
 }
