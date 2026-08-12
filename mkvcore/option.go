@@ -26,8 +26,8 @@ var ErrInvalidTrackNumber = errors.New("invalid track number")
 // ErrCuesRequiresSeekHead means WithCues was used without WithSeekHead.
 var ErrCuesRequiresSeekHead = errors.New("WithCues requires WithSeekHead")
 
-// ErrCuesRequiresSeeker means WithCues was used with a writer that does not implement io.WriteSeeker.
-var ErrCuesRequiresSeeker = errors.New("WithCues requires an io.WriteSeeker")
+// ErrCuesRequiresSeeker means WithCues was used with a writer that does not implement either io.WriteSeeker or io.WriterAt.
+var ErrCuesRequiresSeeker = errors.New("WithCues requires an io.WriteSeeker or io.WriterAt")
 
 // ErrCuesReservedTooSmall means WithCues was called with a reservedSize smaller than 9 bytes.
 var ErrCuesReservedTooSmall = errors.New("WithCues reservedSize must be at least 9")
@@ -152,7 +152,7 @@ func WithBlockInterceptor(interceptor BlockInterceptor) BlockWriterOptionFn {
 // This effectively allows writing seekable streams without additional remuxing, at the cost
 // pre-allocated and likely inefficient index space.
 // reservedSize is the number of bytes (>=9) to reserve at the front of the file for Cues.
-// Requires WithSeekHead(true) and an io.WriteSeeker, not just io.WriteCloser.
+// Requires WithSeekHead(true) and an io.WriteSeeker or io.WriterAt, not just io.WriteCloser.
 // If the index space is underallocated, Cues data is downsampled to fit the space.
 func WithCues(reservedSize int) BlockWriterOptionFn {
 	return func(o *BlockWriterOptions) error {
