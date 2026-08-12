@@ -147,6 +147,9 @@ func NewEBMLUnlacer(r io.Reader, n int64) (Unlacer, error) {
 		return nil, err
 	}
 	n64 := int64(un64)
+	if n64 >= n {
+		return nil, io.ErrUnexpectedEOF
+	}
 	n -= int64(nRead)
 	ul.size[0] = int(n64)
 	ul.size[nFrame-1] -= int(n64)
