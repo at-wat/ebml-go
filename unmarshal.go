@@ -53,7 +53,9 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 		return wrapErrorf(ErrIncompatibleType, "unmarshalling to %T", val)
 	}
 
-	vd := &valueDecoder{}
+	vd := &valueDecoder{
+		maxElementSize: options.maxElementSize,
+	}
 
 	voe := vo.Elem()
 	for {
@@ -300,8 +302,9 @@ type UnmarshalOption func(*UnmarshalOptions) error
 
 // UnmarshalOptions stores options for unmarshalling.
 type UnmarshalOptions struct {
-	hooks         []func(elem *Element)
-	ignoreUnknown bool
+	hooks          []func(elem *Element)
+	ignoreUnknown  bool
+	maxElementSize uint64
 }
 
 // WithElementReadHooks returns an UnmarshalOption which registers element hooks.
@@ -316,6 +319,14 @@ func WithElementReadHooks(hooks ...func(*Element)) UnmarshalOption {
 func WithIgnoreUnknown(ignore bool) UnmarshalOption {
 	return func(opts *UnmarshalOptions) error {
 		opts.ignoreUnknown = ignore
+		return nil
+	}
+}
+
+// WithMaxElementSize returns an UnmarshalOption which limits maximum element size during unmarshal.
+func WithMaxElementSize(n uint64) UnmarshalOption {
+	return func(opts *UnmarshalOptions) error {
+		opts.maxElementSize = uint64(n)
 		return nil
 	}
 }
