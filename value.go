@@ -53,13 +53,6 @@ type valueDecoder struct {
 	maxElementSize uint64
 }
 
-func (d *valueDecoder) allocBuf(n uint64) ([]byte, error) {
-	if d.maxElementSize > 0 && n > d.maxElementSize {
-		return nil, ErrTooLargeElement
-	}
-	return make([]byte, n), nil
-}
-
 func (d *valueDecoder) decode(t DataType, r io.Reader, n uint64) (interface{}, error) {
 	switch t {
 	case DataTypeInt:
@@ -176,10 +169,10 @@ func (d *valueDecoder) readVInt(r io.Reader) (int64, int, error) {
 }
 
 func (d *valueDecoder) readBinary(r io.Reader, n uint64) (interface{}, error) {
-	bs, err := d.allocBuf(n)
-	if err != nil {
-		return nil, err
+	if d.maxElementSize > 0 && n > d.maxElementSize {
+		return nil, ErrTooLargeElement
 	}
+	bs := make([]byte, n)
 
 	switch _, err := io.ReadFull(r, bs); err {
 	case nil:
