@@ -43,7 +43,7 @@ var ErrUnsupportedElementID = errors.New("unsupported Element ID")
 // ErrOutOfRange means that a value is out of range of the data type.
 var ErrOutOfRange = errors.New("out of range")
 
-// ErrTooLargeElement means a decoding element exceeds the maxumum buffer size set by an option.
+// ErrTooLargeElement means a decoding element exceeds the maximum buffer size set by an option.
 var ErrTooLargeElement = errors.New("too large element")
 
 // valueDecoder is a value decoder sharing internal buffer.
