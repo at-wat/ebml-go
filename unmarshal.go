@@ -323,8 +323,10 @@ func WithIgnoreUnknown(ignore bool) UnmarshalOption {
 	}
 }
 
-// WithMaxElementSize returns an UnmarshalOption which limits maximum element size during unmarshal.
-func WithMaxElementSize(n uint64) UnmarshalOption {
+// WithMaxLeafElementSize returns an UnmarshalOption which limits maximum leaf element size during unmarshal.
+// This option is applied only to dynamic size elements like Binary, String, and Block.
+// Set 0 to disable the element size limit.
+func WithMaxLeafElementSize(n uint64) UnmarshalOption {
 	return func(opts *UnmarshalOptions) error {
 		opts.maxElementSize = uint64(n)
 		return nil

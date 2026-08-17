@@ -678,7 +678,7 @@ func TestUnmarshal_Error(t *testing.T) {
 				}
 				if err := Unmarshal(
 					bytes.NewBuffer(b), &val,
-					WithMaxElementSize(8),
+					WithMaxLeafElementSize(8),
 				); !errors.Is(err, ErrTooLargeElement) {
 					t.Errorf("Expected error: '%v', got: '%v'", ErrInvalidElementSize, err)
 				}
