@@ -36,6 +36,18 @@ var ErrInvalidElementSize = errors.New("invalid element size")
 // ErrReadStopped is returned if unmarshaler finished to read element which has stop tag.
 var ErrReadStopped = errors.New("read stopped")
 
+// ErrElementTooDeep means that the master element nesting depth exceeded the
+// maximum accepted by Unmarshal. It guards against unbounded recursion (and the
+// resulting stack exhaustion) when decoding deeply nested untrusted input.
+var ErrElementTooDeep = errors.New("element nesting too deep")
+
+// maxElementDepth is the maximum master element nesting depth accepted by
+// Unmarshal. Real-world EBML/Matroska files nest only a handful of levels, so
+// this bound is far above any legitimate document while preventing a crafted
+// stream of nested master elements from recursing until the goroutine stack
+// overflows.
+const maxElementDepth = 1024
+
 // Unmarshal EBML stream.
 func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 	options := &UnmarshalOptions{}
@@ -67,6 +79,9 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 }
 
 func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64, parent *Element, options *UnmarshalOptions) (io.Reader, error) {
+	if depth > maxElementDepth {
+		return nil, wrapErrorf(ErrElementTooDeep, "unmarshalling nested element at depth %d", depth)
+	}
 	pos0 := pos
 	var r rollbackReader
 	if options.ignoreUnknown {
