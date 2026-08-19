@@ -48,9 +48,14 @@ var ErrElementTooDeep = errors.New("element nesting too deep")
 // overflows.
 const maxElementDepth = 1024
 
+// DefaultMaxLeafElementSize is the default maximum leaf element size accepted by Unmarshal.
+const DefaultMaxLeafElementSize = 128 * 1024 * 1024
+
 // Unmarshal EBML stream.
 func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
-	options := &UnmarshalOptions{}
+	options := &UnmarshalOptions{
+		maxElementSize: DefaultMaxLeafElementSize,
+	}
 	for _, o := range opts {
 		if err := o(options); err != nil {
 			return err
@@ -340,8 +345,8 @@ func WithIgnoreUnknown(ignore bool) UnmarshalOption {
 
 // WithMaxLeafElementSize returns an UnmarshalOption which limits maximum leaf element size during unmarshal.
 // This option is applied to dynamic-size leaf elements like Binary, String, and Block.
-// Set 0 to turn off the element size limit.
-// Recommended to set this option when processing untrusted input.
+// Defaults to DefaultMaxLeafElementSize and can be turned off by setting 0.
+// Recommended to set this option with a proper size when processing untrusted input.
 func WithMaxLeafElementSize(n uint64) UnmarshalOption {
 	return func(opts *UnmarshalOptions) error {
 		opts.maxElementSize = uint64(n)
