@@ -752,3 +752,20 @@ func BenchmarkUnmarshal(b *testing.B) {
 		}
 	}
 }
+
+func TestUnmarshal_DeeplyNestedMaster(t *testing.T) {
+	// A stream consisting only of nested master elements (ChapterAtom, 0xB6,
+	// with unknown data size 0xFF) must not recurse without bound. Without a
+	// depth limit this exhausts the goroutine stack and crashes the process
+	// with a fatal "stack overflow" for a small (a few MB) untrusted input.
+	var buf bytes.Buffer
+	for i := 0; i < maxElementDepth*4; i++ {
+		buf.Write([]byte{0xB6, 0xFF})
+	}
+
+	var out struct{}
+	err := Unmarshal(bytes.NewReader(buf.Bytes()), &out)
+	if !errors.Is(err, ErrElementTooDeep) {
+		t.Fatalf("expected ErrElementTooDeep, got %v", err)
+	}
+}
