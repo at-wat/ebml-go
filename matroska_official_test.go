@@ -61,34 +61,43 @@ func loadTestData(t *testing.T, file string) ([]byte, error) {
 
 func TestMatroskaOfficial(t *testing.T) {
 	testData := map[string]struct {
-		filename string
-		opts     []UnmarshalOption
+		filename         string
+		opts             []UnmarshalOption
+		expectedClusters int // Obtained by `mkvinfo -a test.mkv | grep "|+ Cluster" | wc -l`
 	}{
 		"Basic": {
-			filename: "test1.mkv",
+			filename:         "test1.mkv",
+			expectedClusters: 11,
 		},
 		"NonDefaultTimecodeScaleAndAspectRatio": {
-			filename: "test2.mkv",
+			filename:         "test2.mkv",
+			expectedClusters: 47,
 		},
 		"HeaderStrippingAndStandardBlock": {
-			filename: "test3.mkv",
+			filename:         "test3.mkv",
+			expectedClusters: 47,
 		},
 		"LiveStreamRecording": {
-			filename: "test4.mkv",
-			opts:     []UnmarshalOption{WithIgnoreUnknown(true)},
+			filename:         "test4.mkv",
+			opts:             []UnmarshalOption{WithIgnoreUnknown(true)},
+			expectedClusters: 36,
 		},
 		"MultipleAudioSubtitles": {
-			filename: "test5.mkv",
+			filename:         "test5.mkv",
+			expectedClusters: 25,
 		},
 		"DifferentEBMLHeadSizesAndCueLessSeeking": {
-			filename: "test6.mkv",
+			filename:         "test6.mkv",
+			expectedClusters: 11,
 		},
 		"ExtraUnknownJunkElementsDamaged": {
-			filename: "test7.mkv",
-			opts:     []UnmarshalOption{WithIgnoreUnknown(true)},
+			filename:         "test7.mkv",
+			opts:             []UnmarshalOption{WithIgnoreUnknown(true)},
+			expectedClusters: 37,
 		},
 		"AudioGap": {
-			filename: "test8.mkv",
+			filename:         "test8.mkv",
+			expectedClusters: 47,
 		},
 	}
 	for name, tt := range testData {
@@ -114,6 +123,18 @@ func TestMatroskaOfficial(t *testing.T) {
 				t.Logf("result: %s...", txt[:512])
 			} else {
 				t.Logf("result: %s", txt)
+			}
+
+			segment, ok := mkv["Segment"].(map[string]interface{})
+			if !ok {
+				t.Fatal("Must have Segment")
+			}
+			clusters, ok := segment["Cluster"].([]interface{})
+			if !ok {
+				t.Fatal("Must have Cluster")
+			}
+			if len(clusters) != tt.expectedClusters {
+				t.Errorf("Expected %d clusters, got %d", tt.expectedClusters, len(clusters))
 			}
 		})
 	}
