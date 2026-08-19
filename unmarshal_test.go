@@ -663,6 +663,28 @@ func TestUnmarshal_Error(t *testing.T) {
 			}
 		})
 	})
+	t.Run("TooLargeElement", func(t *testing.T) {
+		TestBinaries := map[string][]byte{
+			"Bytes":       {0x44, 0x85, 0x89, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			"String":      {0x86, 0x89, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			"SimpleBlock": {0xA3, 0x89, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		}
+		for name, b := range TestBinaries {
+			t.Run(name, func(t *testing.T) {
+				var val struct {
+					TagBinary   []byte `ebml:"TagBinary"`
+					CodecID     string `ebml:"CodecID"`
+					SimpleBlock Block  `ebml:"SimpleBlock"`
+				}
+				if err := Unmarshal(
+					bytes.NewBuffer(b), &val,
+					WithMaxLeafElementSize(8),
+				); !errors.Is(err, ErrTooLargeElement) {
+					t.Errorf("Expected error: '%v', got: '%v'", ErrInvalidElementSize, err)
+				}
+			})
+		}
+	})
 }
 
 func ExampleUnmarshal_partial() {

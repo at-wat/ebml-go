@@ -48,9 +48,14 @@ var ErrElementTooDeep = errors.New("element nesting too deep")
 // overflows.
 const maxElementDepth = 1024
 
+// DefaultMaxLeafElementSize is the default maximum leaf element size accepted by Unmarshal.
+const DefaultMaxLeafElementSize = 128 * 1024 * 1024
+
 // Unmarshal EBML stream.
 func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
-	options := &UnmarshalOptions{}
+	options := &UnmarshalOptions{
+		maxElementSize: DefaultMaxLeafElementSize,
+	}
 	for _, o := range opts {
 		if err := o(options); err != nil {
 			return err
@@ -65,7 +70,9 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 		return wrapErrorf(ErrIncompatibleType, "unmarshalling to %T", val)
 	}
 
-	vd := &valueDecoder{}
+	vd := &valueDecoder{
+		maxElementSize: options.maxElementSize,
+	}
 
 	voe := vo.Elem()
 	for {
@@ -315,8 +322,9 @@ type UnmarshalOption func(*UnmarshalOptions) error
 
 // UnmarshalOptions stores options for unmarshalling.
 type UnmarshalOptions struct {
-	hooks         []func(elem *Element)
-	ignoreUnknown bool
+	hooks          []func(elem *Element)
+	ignoreUnknown  bool
+	maxElementSize uint64
 }
 
 // WithElementReadHooks returns an UnmarshalOption which registers element hooks.
@@ -331,6 +339,17 @@ func WithElementReadHooks(hooks ...func(*Element)) UnmarshalOption {
 func WithIgnoreUnknown(ignore bool) UnmarshalOption {
 	return func(opts *UnmarshalOptions) error {
 		opts.ignoreUnknown = ignore
+		return nil
+	}
+}
+
+// WithMaxLeafElementSize returns an UnmarshalOption which limits maximum leaf element size during unmarshal.
+// This option is applied to dynamic-size leaf elements like Binary, String, and Block.
+// Defaults to DefaultMaxLeafElementSize and can be turned off by setting 0.
+// Recommended to set this option with a proper size when processing untrusted input.
+func WithMaxLeafElementSize(n uint64) UnmarshalOption {
+	return func(opts *UnmarshalOptions) error {
+		opts.maxElementSize = uint64(n)
 		return nil
 	}
 }

@@ -43,10 +43,14 @@ var ErrUnsupportedElementID = errors.New("unsupported Element ID")
 // ErrOutOfRange means that a value is out of range of the data type.
 var ErrOutOfRange = errors.New("out of range")
 
+// ErrTooLargeElement means a decoding element exceeds the maximum buffer size set by an option.
+var ErrTooLargeElement = errors.New("too large element")
+
 // valueDecoder is a value decoder sharing internal buffer.
 // Member functions must not called concurrently.
 type valueDecoder struct {
-	bs [1]byte
+	bs             [1]byte
+	maxElementSize uint64
 }
 
 func (d *valueDecoder) decode(t DataType, r io.Reader, n uint64) (interface{}, error) {
@@ -165,6 +169,9 @@ func (d *valueDecoder) readVInt(r io.Reader) (int64, int, error) {
 }
 
 func (d *valueDecoder) readBinary(r io.Reader, n uint64) (interface{}, error) {
+	if d.maxElementSize > 0 && n > d.maxElementSize {
+		return nil, ErrTooLargeElement
+	}
 	bs := make([]byte, n)
 
 	switch _, err := io.ReadFull(r, bs); err {
@@ -260,6 +267,9 @@ func (d *valueDecoder) readFloat(r io.Reader, n uint64) (interface{}, error) {
 }
 
 func (d *valueDecoder) readBlock(r io.Reader, n uint64) (interface{}, error) {
+	if d.maxElementSize > 0 && n > d.maxElementSize {
+		return nil, ErrTooLargeElement
+	}
 	b, err := UnmarshalBlock(r, int64(n))
 	if err != nil {
 		return nil, err

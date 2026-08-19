@@ -444,3 +444,29 @@ func TestReadValue_ReadUnexpectedEOF(t *testing.T) {
 		})
 	}
 }
+
+func TestReadValue_TooLargeElement(t *testing.T) {
+	testCases := []struct {
+		t DataType
+		b []byte
+	}{
+		{DataTypeBinary, make([]byte, 9)},
+		{DataTypeString, make([]byte, 9)},
+		{DataTypeBlock, make([]byte, 9)},
+	}
+
+	vd := &valueDecoder{
+		maxElementSize: 8,
+	}
+
+	for _, c := range testCases {
+		t.Run("Read "+c.t.String(), func(t *testing.T) {
+			r := bytes.NewReader(c.b)
+			_, err := vd.decode(c.t, r, uint64(len(c.b)))
+			if !errors.Is(err, ErrTooLargeElement) {
+				t.Errorf("Expected error against too large %s: %v, got: %v",
+					c.t.String(), ErrTooLargeElement, err)
+			}
+		})
+	}
+}
