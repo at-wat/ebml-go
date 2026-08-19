@@ -151,13 +151,8 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 			}
 			return nil, err
 		}
-		v, ok := revTable[uint32(e)]
-		if !ok {
-			if options.ignoreUnknown {
-				r.RollbackTo(1)
-				pos++
-				continue
-			}
+		v, knownElement := revTable[uint32(e)]
+		if !knownElement && !options.ignoreUnknown {
 			return nil, wrapErrorf(ErrUnknownElement, "unmarshalling element 0x%x", e)
 		}
 
@@ -178,6 +173,12 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 				continue
 			}
 			return nil, err
+		}
+
+		if !knownElement {
+			// Skip unknown and sized element on ignoreUnknown mode
+			pos += headerSize + size
+			continue
 		}
 
 		var vnext reflect.Value
@@ -243,8 +244,11 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 			val, err := vd.decode(v.t, r, size)
 			if err != nil {
 				if options.ignoreUnknown {
-					r.RollbackTo(1)
-					pos++
+					// Skip errored element on ignoreUnknown mode
+					pos += headerSize + size
+					if stopHere {
+						return nil, ErrReadStopped
+					}
 					continue
 				}
 				return nil, err
