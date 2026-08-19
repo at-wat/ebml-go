@@ -88,3 +88,20 @@ func (*rollbackReaderNop) Reset() {
 func (*rollbackReaderNop) RollbackTo(i int) {
 	panic("can't rollback nop rollback reader")
 }
+
+func readSkip(r io.Reader, n uint64) error {
+	if seeker, ok := r.(io.Seeker); ok {
+		_, err := seeker.Seek(int64(n), io.SeekCurrent)
+		return err
+	}
+	var buf [1024]byte
+	for {
+		if n < uint64(len(buf)) {
+			_, err := r.Read(buf[:n])
+			return err
+		}
+		if _, err := r.Read(buf[:]); err != nil {
+			return err
+		}
+	}
+}
