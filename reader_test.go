@@ -50,7 +50,7 @@ func TestRollbackReader(t *testing.T) {
 		t.Fatalf("Unexpected read result: %v", b)
 	}
 
-	r.RollbackTo(1)
+	r.JumpTo(1)
 
 	n, err = io.ReadFull(r, b)
 	if err != nil {
@@ -99,5 +99,5 @@ func TestRollbackReaderNop(t *testing.T) {
 			t.Error("Expected panic")
 		}
 	}()
-	r.RollbackTo(1)
+	r.JumpTo(1)
 }

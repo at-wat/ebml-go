@@ -168,7 +168,7 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 
 		if err != nil {
 			if options.ignoreUnknown {
-				r.RollbackTo(1)
+				_ = r.JumpTo(1) // JumpTo 1 doesn't have error path
 				pos++
 				continue
 			}
@@ -177,8 +177,8 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 
 		if !knownElement {
 			// Skip unknown and sized element on ignoreUnknown mode
-			if err := readSkip(r, size); err != nil {
-				r.RollbackTo(1)
+			if err := r.JumpTo(size); err != nil {
+				_ = r.JumpTo(1) // JumpTo 1 doesn't have error path
 				pos++
 				continue
 			}
@@ -250,8 +250,8 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 			if err != nil {
 				if options.ignoreUnknown {
 					// Skip errored element on ignoreUnknown mode
-					if err := readSkip(r, size); err != nil {
-						r.RollbackTo(1)
+					if err := r.JumpTo(size); err != nil {
+						_ = r.JumpTo(1) // JumpTo 1 doesn't have error path
 						pos++
 						continue
 					}

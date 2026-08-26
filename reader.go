@@ -24,7 +24,7 @@ type rollbackReader interface {
 	Get() io.Reader
 	Read([]byte) (int, error)
 	Reset()
-	RollbackTo(int)
+	JumpTo(uint64) error
 }
 
 type rollbackReaderImpl struct {
@@ -53,13 +53,25 @@ func (r *rollbackReaderImpl) Reset() {
 	r.buf = r.buf[0:0]
 }
 
-func (r *rollbackReaderImpl) RollbackTo(i int) {
-	buf := r.buf
-	r.Reader = io.MultiReader(
-		bytes.NewReader(buf[i:]),
-		r.Reader,
-	)
-	r.buf = nil
+func (r *rollbackReaderImpl) JumpTo(i uint64) error {
+	n := uint64(len(r.buf))
+	switch {
+	case i < n:
+		buf := r.buf
+		r.Reader = io.MultiReader(
+			bytes.NewReader(buf[i:]),
+			r.Reader,
+		)
+		r.buf = nil
+		return nil
+	case i == n:
+		r.buf = nil
+		return nil
+	default:
+		err := readSkip(r.Reader, i-n)
+		r.buf = nil
+		return err
+	}
 }
 
 type rollbackReaderNop struct {
@@ -85,8 +97,8 @@ func (r *rollbackReaderNop) Read(b []byte) (int, error) {
 func (*rollbackReaderNop) Reset() {
 }
 
-func (*rollbackReaderNop) RollbackTo(_ int) {
-	panic("can't rollback nop rollback reader")
+func (*rollbackReaderNop) JumpTo(_ uint64) error {
+	panic("can't jump nop rollback reader")
 }
 
 func readSkip(r io.Reader, n uint64) error {
