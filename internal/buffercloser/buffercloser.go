@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package buffercloser implements closable variant of bytes.Buffer for testing.
+// Package buffercloser implements a closable variant of bytes.Buffer for testing.
 package buffercloser
 
 import (
