@@ -22,7 +22,7 @@ import (
 
 func TestRollbackReader(t *testing.T) {
 	r := &rollbackReaderImpl{
-		Reader: bytes.NewReader([]byte{0, 1, 2, 3, 4, 5, 6, 7}),
+		Reader: bytes.NewReader([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
 	}
 
 	b := make([]byte, 3)
@@ -60,6 +60,19 @@ func TestRollbackReader(t *testing.T) {
 		t.Fatalf("Expected to read 3 bytes, got %d bytes", n)
 	}
 	if !bytes.Equal([]byte{4, 5, 6}, b) {
+		t.Fatalf("Unexpected read result: %v", b)
+	}
+
+	r.JumpTo(4)
+
+	n, err = io.ReadFull(r, b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 3 {
+		t.Fatalf("Expected to read 3 bytes, got %d bytes", n)
+	}
+	if !bytes.Equal([]byte{8, 9, 10}, b) {
 		t.Fatalf("Unexpected read result: %v", b)
 	}
 }
