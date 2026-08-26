@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Command webm-roundtrip is an example to unmarshal a WebM file, prints its content as JSON, and marshal to another WebM file.
 package main
 
 import (
