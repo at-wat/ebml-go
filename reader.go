@@ -85,7 +85,7 @@ func (r *rollbackReaderNop) Read(b []byte) (int, error) {
 func (*rollbackReaderNop) Reset() {
 }
 
-func (*rollbackReaderNop) RollbackTo(i int) {
+func (*rollbackReaderNop) RollbackTo(_ int) {
 	panic("can't rollback nop rollback reader")
 }
 

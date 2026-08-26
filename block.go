@@ -160,9 +160,5 @@ func MarshalBlock(b *Block, w io.Writer) error {
 	case LacingFixed:
 		l = NewFixedLacer(w)
 	}
-	if err := l.Write(b.Data); err != nil {
-		return err
-	}
-
-	return nil
+	return l.Write(b.Data)
 }

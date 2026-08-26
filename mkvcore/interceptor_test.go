@@ -226,7 +226,9 @@ func BenchmarkMultiTrackBlockSorter(b *testing.B) {
 	}
 
 	go func() {
-		for range chOut {
+		for out := range chOut {
+			// Drain output channel
+			_ = out
 		}
 	}()
 

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Command rtp-to-webm is an example to receive VP8 RTP packets and save as a WebM file.
 package main
 
 import (
