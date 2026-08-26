@@ -488,7 +488,7 @@ func encodeFloat(i interface{}, n uint64) ([]byte, error) {
 	}
 }
 
-func encodeBlock(i interface{}, n uint64) ([]byte, error) {
+func encodeBlock(i interface{}, _ uint64) ([]byte, error) {
 	v, ok := i.(Block)
 	if !ok {
 		return []byte{}, wrapErrorf(ErrInvalidType, "writing %T as block", i)
