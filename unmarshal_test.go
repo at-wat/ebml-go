@@ -685,6 +685,18 @@ func TestUnmarshal_Error(t *testing.T) {
 			})
 		}
 	})
+	t.Run("FixedLaceInvalidSize", func(t *testing.T) {
+		var val struct {
+			SimpleBlock Block `ebml:"SimpleBlock"`
+		}
+		// SimpleBlock with fixed lacing whose declared body size leaves a
+		// negative per-frame size. This must return an error, not panic in
+		// make([]byte, size) inside the unlacer.
+		b := []byte{0xa3, 0x86, 0x30, 0x30, 0x30, 0x30, 0x30, 0x24, 0x00}
+		if err := Unmarshal(bytes.NewBuffer(b), &val); !errors.Is(err, ErrFixedLaceUndivisible) {
+			t.Errorf("Expected error: '%v', got: '%v'", ErrFixedLaceUndivisible, err)
+		}
+	})
 }
 
 func ExampleUnmarshal_partial() {
