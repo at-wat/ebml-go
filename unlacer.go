@@ -114,7 +114,7 @@ func NewFixedUnlacer(r io.Reader, n int64) (Unlacer, error) {
 	for i := 1; i < nFrame; i++ {
 		ul.size[i] = ul.size[0]
 	}
-	if ul.size[0]*nFrame+1 != int(n) {
+	if ul.size[0] < 0 || ul.size[0]*nFrame+1 != int(n) {
 		return nil, wrapErrorf(
 			ErrFixedLaceUndivisible, "unlacing %d bytes of %d frames", n-1, nFrame,
 		)
