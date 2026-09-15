@@ -94,31 +94,47 @@ func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCl
 		ReferencePriority uint64
 	}
 	type clusterReader struct {
-		Timecode    uint64
+		Timecode    chan uint64
 		SimpleBlock chan ebml.Block
 		BlockGroup  chan blockGroup
 	}
+	timecodeCh := make(chan uint64)
 	blockCh := make(chan ebml.Block)
 	blockGroupCh := make(chan blockGroup)
 	c := struct {
 		Cluster clusterReader
 	}{
 		Cluster: clusterReader{
+			Timecode:    timecodeCh,
 			SimpleBlock: blockCh,
 			BlockGroup:  blockGroupCh,
 		},
 	}
 	go func() {
+		timecodeCh := timecodeCh
 		blockCh := blockCh
 		blockGroupCh := blockGroupCh
+		// Timecode is the first child of its Cluster, so it arrives before the
+		// blocks it applies to.
+		var timecode uint64
 	L_READ:
 		for {
 			var b *ebml.Block
 			select {
+			case tc, ok := <-timecodeCh:
+				if !ok {
+					timecodeCh = nil
+					if blockCh == nil && blockGroupCh == nil {
+						break L_READ
+					}
+					continue
+				}
+				timecode = tc
+				continue
 			case block, ok := <-blockCh:
 				if !ok {
 					blockCh = nil
-					if blockGroupCh == nil {
+					if timecodeCh == nil && blockGroupCh == nil {
 						break L_READ
 					}
 					continue
@@ -127,7 +143,7 @@ func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCl
 			case bg, ok := <-blockGroupCh:
 				if !ok {
 					blockGroupCh = nil
-					if blockCh == nil {
+					if timecodeCh == nil && blockCh == nil {
 						break L_READ
 					}
 					continue
@@ -142,7 +158,7 @@ func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCl
 				frame := &frame{
 					trackNumber: b.TrackNumber,
 					keyframe:    b.Keyframe,
-					timestamp:   int64(c.Cluster.Timecode) + int64(b.Timecode),
+					timestamp:   int64(timecode) + int64(b.Timecode),
 					b:           b.Data[l],
 				}
 				select {
@@ -157,6 +173,7 @@ func NewSimpleBlockReader(r io.Reader, opts ...BlockReaderOption) ([]BlockReadCl
 	}()
 	go func() {
 		defer func() {
+			close(timecodeCh)
 			close(blockCh)
 			close(blockGroupCh)
 		}()
