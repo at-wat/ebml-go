@@ -710,6 +710,9 @@ func ExampleUnmarshal_partial() {
 		0x1F, 0x43, 0xB6, 0x75, 0xFF, // Cluster
 		0xE7, 0x81, 0x00, // Timecode
 		0xA3, 0x86, 0x81, 0x00, 0x00, 0x88, 0xAA, 0xCC, // SimpleBlock
+		0x1F, 0x43, 0xB6, 0x75, 0xFF, // Cluster
+		0xE7, 0x81, 0x0a, // Timecode
+		0xA3, 0x86, 0x81, 0x00, 0x00, 0x88, 0xBB, 0xDD, // SimpleBlock
 	}
 
 	type TestHeader struct {
@@ -741,7 +744,7 @@ func ExampleUnmarshal_partial() {
 
 	// Output:
 	// First unmarshal: {map[EBMLDocTypeVersion:2] {map[TrackEntry:map[TrackNumber:1]]}}
-	// Second unmarshal: {[{0 [{1 0 true true 0 false [[170 204]]}]}]}
+	// Second unmarshal: {[{0 [{1 0 true true 0 false [[170 204]]}]} {10 [{1 0 true true 0 false [[187 221]]}]}]}
 }
 
 func BenchmarkUnmarshal(b *testing.B) {
