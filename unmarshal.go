@@ -76,7 +76,7 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 
 	voe := vo.Elem()
 	for {
-		if _, err := vd.readElement(r, SizeUnknown, voe, 0, 0, nil, options); err != nil {
+		if _, err := vd.readElement(r, SizeUnknown, voe, 0, 0, nil, ElementInvalid, options); err != nil {
 			if err == io.EOF {
 				return nil
 			}
@@ -85,7 +85,7 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 	}
 }
 
-func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64, parent *Element, options *UnmarshalOptions) (io.Reader, error) {
+func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64, parent *Element, self ElementType, options *UnmarshalOptions) (io.Reader, error) {
 	if depth > maxElementDepth {
 		return nil, wrapErrorf(ErrElementTooDeep, "unmarshalling nested element at depth %d", depth)
 	}
@@ -207,7 +207,7 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 
 		switch v.t {
 		case DataTypeMaster:
-			if v.top && depth > 1 {
+			if v.top && table[self].top {
 				b := bytes.Join([][]byte{table[v.e].b, encodeDataSize(size, uint64(nb))}, []byte{})
 				return bytes.NewBuffer(b), io.EOF
 			}
@@ -232,7 +232,7 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 			if elem != nil {
 				elem.Value = vn.Interface()
 			}
-			r0, err := vd.readElement(r, int64(size), vn, depth+1, pos+headerSize, elem, options)
+			r0, err := vd.readElement(r, int64(size), vn, depth+1, pos+headerSize, elem, v.e, options)
 			if err != nil && err != io.EOF {
 				return r0, err
 			}
