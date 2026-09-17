@@ -68,8 +68,24 @@ func TestBlockReader(t *testing.T) {
 							},
 						},
 						{
-							Timecode: uint64(30),
-							PrevSize: uint64(39),
+							Timecode: uint64(130),
+							SimpleBlock: []ebml.Block{
+								{
+									TrackNumber: 1,
+									Timecode:    int16(10),
+									Keyframe:    true,
+									Data:        [][]byte{{0x07, 0x08}},
+								},
+								{
+									TrackNumber: 2,
+									Timecode:    int16(20),
+									Keyframe:    false,
+									Data:        [][]byte{{0x09}},
+								},
+							},
+						},
+						{
+							Timecode: uint64(150),
 						},
 					},
 				},
@@ -82,9 +98,11 @@ func TestBlockReader(t *testing.T) {
 				{
 					{keyframe: false, timestamp: 90, b: []byte{0x01, 0x02}},
 					{keyframe: true, timestamp: 130, b: []byte{0x06}},
+					{keyframe: true, timestamp: 140, b: []byte{0x07, 0x08}},
 				},
 				{
 					{keyframe: true, timestamp: 110, b: []byte{0x03, 0x04, 0x05}},
+					{keyframe: false, timestamp: 150, b: []byte{0x09}},
 				},
 			},
 		},
