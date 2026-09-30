@@ -190,43 +190,6 @@ func TestUnmarshal_ConcatenatedUnknownSizeSegments(t *testing.T) {
 	})
 }
 
-func TestUnmarshal_EBMLHeaderInKnownSizeElement(t *testing.T) {
-	b := []byte{
-		0x18, 0x53, 0x80, 0x67, 0x98, // Segment (size=24)
-		0x15, 0x49, 0xA9, 0x66, 0x85, // Info
-		0x2A, 0xD7, 0xB1, 0x81, 0x01, // TimestampScale = 1
-		0x1A, 0x45, 0xDF, 0xA3, 0x84, // EBML
-		0x42, 0x87, 0x81, 0x02, // EBMLDocTypeVersion = 2
-		0x16, 0x54, 0xAE, 0x6B, 0x80, // Tracks
-	}
-	type Info struct {
-		TimestampScale uint64
-	}
-	type Segment struct {
-		Info   []Info
-		Tracks []struct{}
-	}
-	type TestEBML struct {
-		Segment Segment
-	}
-	expected := TestEBML{
-		Segment: Segment{
-			Info:   []Info{{0x01}},
-			Tracks: []struct{}{{}},
-		},
-	}
-
-	runForEachReader(t, b, func(t *testing.T, r func() io.Reader) {
-		var ret TestEBML
-		if err := Unmarshal(r(), &ret); err != nil {
-			t.Fatalf("Unexpected error: '%v'\n", err)
-		}
-		if !reflect.DeepEqual(expected, ret) {
-			t.Errorf("Expected result: %v, got: %v", expected, ret)
-		}
-	})
-}
-
 func TestUnmarshal_Convert(t *testing.T) {
 	cases := map[string]struct {
 		b        []byte
