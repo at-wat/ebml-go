@@ -118,6 +118,78 @@ func TestUnmarshal_MultipleUnknownSize(t *testing.T) {
 	})
 }
 
+func TestUnmarshal_MultipleUnknownSizeAtRoot(t *testing.T) {
+	b := []byte{
+		0x1F, 0x43, 0xB6, 0x75, 0xFF, // Cluster (unknown size)
+		0xE7, 0x81, 0x01, // Timecode = 1
+		0x1F, 0x43, 0xB6, 0x75, 0xFF, // Cluster (unknown size)
+		0xE7, 0x81, 0x02, // Timecode = 2
+	}
+	type Cluster struct {
+		Timecode uint64
+	}
+	type TestEBML struct {
+		Cluster []Cluster
+	}
+	expected := TestEBML{
+		Cluster: []Cluster{{0x01}, {0x02}},
+	}
+
+	runForEachReader(t, b, func(t *testing.T, r func() io.Reader) {
+		var ret TestEBML
+		if err := Unmarshal(r(), &ret); err != nil {
+			t.Fatalf("Unexpected error: '%v'\n", err)
+		}
+		if !reflect.DeepEqual(expected, ret) {
+			t.Errorf("Expected result: %v, got: %v", expected, ret)
+		}
+	})
+}
+
+func TestUnmarshal_ConcatenatedUnknownSizeSegments(t *testing.T) {
+	b := []byte{
+		0x1A, 0x45, 0xDF, 0xA3, 0x84, // EBML
+		0x42, 0x87, 0x81, 0x02, // EBMLDocTypeVersion = 2
+		0x18, 0x53, 0x80, 0x67, 0xFF, // Segment (unknown size)
+		0x1F, 0x43, 0xB6, 0x75, 0xFF, // Cluster (unknown size)
+		0xE7, 0x81, 0x01, // Timecode = 1
+		0x1A, 0x45, 0xDF, 0xA3, 0x84, // EBML
+		0x42, 0x87, 0x81, 0x02, // EBMLDocTypeVersion = 2
+		0x18, 0x53, 0x80, 0x67, 0xFF, // Segment (unknown size)
+		0x1F, 0x43, 0xB6, 0x75, 0xFF, // Cluster (unknown size)
+		0xE7, 0x81, 0x02, // Timecode = 2
+	}
+	type Header struct {
+		DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"`
+	}
+	type Cluster struct {
+		Timecode uint64
+	}
+	type Segment struct {
+		Cluster []Cluster
+	}
+	type TestEBML struct {
+		Header  Header `ebml:"EBML"`
+		Segment Segment
+	}
+	expected := TestEBML{
+		Header: Header{DocTypeVersion: 2},
+		Segment: Segment{
+			Cluster: []Cluster{{0x01}, {0x02}},
+		},
+	}
+
+	runForEachReader(t, b, func(t *testing.T, r func() io.Reader) {
+		var ret TestEBML
+		if err := Unmarshal(r(), &ret); err != nil {
+			t.Fatalf("Unexpected error: '%v'\n", err)
+		}
+		if !reflect.DeepEqual(expected, ret) {
+			t.Errorf("Expected result: %v, got: %v", expected, ret)
+		}
+	})
+}
+
 func TestUnmarshal_Convert(t *testing.T) {
 	cases := map[string]struct {
 		b        []byte

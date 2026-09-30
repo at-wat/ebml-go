@@ -75,8 +75,10 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 	}
 
 	voe := vo.Elem()
+	// Unify the behavior of the reader to always return `io.EOF` with `n == 0`.
+	rr := &rollbackReaderNop{Reader: r}
 	for {
-		if _, err := vd.readElement(r, SizeUnknown, voe, 0, 0, nil, ElementInvalid, options); err != nil {
+		if _, err := vd.readElement(rr, SizeUnknown, voe, 0, 0, nil, ElementInvalid, options); err != nil {
 			if err == io.EOF {
 				return nil
 			}
@@ -207,7 +209,9 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 
 		switch v.t {
 		case DataTypeMaster:
-			if v.top && table[self].top {
+			// Detect the end of the unknown-sized element.
+			// https://www.rfc-editor.org/rfc/rfc8794.html#section-6.2
+			if (v.top && table[self].top) || (v.e == ElementEBML && self != ElementInvalid && n == SizeUnknown) {
 				b := bytes.Join([][]byte{table[v.e].b, encodeDataSize(size, uint64(nb))}, []byte{})
 				return bytes.NewBuffer(b), io.EOF
 			}
