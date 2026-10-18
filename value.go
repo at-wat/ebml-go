@@ -399,7 +399,25 @@ func encodeInt(i interface{}, n uint64) ([]byte, error) {
 	default:
 		return []byte{}, wrapErrorf(ErrInvalidType, "writing %T as int", i)
 	}
-	return encodeUInt(uint64(v), n)
+	// The value is read back in two's complement, so its top bit must be its sign.
+	switch {
+	case -0x80 <= v && v < 0x80 && n < 2:
+		return []byte{byte(v)}, nil
+	case -0x8000 <= v && v < 0x8000 && n < 3:
+		return []byte{byte(v >> 8), byte(v)}, nil
+	case -0x800000 <= v && v < 0x800000 && n < 4:
+		return []byte{byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	case -0x80000000 <= v && v < 0x80000000 && n < 5:
+		return []byte{byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	case -0x8000000000 <= v && v < 0x8000000000 && n < 6:
+		return []byte{byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	case -0x800000000000 <= v && v < 0x800000000000 && n < 7:
+		return []byte{byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	case -0x80000000000000 <= v && v < 0x80000000000000 && n < 8:
+		return []byte{byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	default:
+		return []byte{byte(v >> 56), byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}, nil
+	}
 }
 
 func encodeUInt(i interface{}, n uint64) ([]byte, error) {
