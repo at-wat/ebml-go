@@ -172,15 +172,50 @@ func (d *valueDecoder) readBinary(r io.Reader, n uint64) (interface{}, error) {
 	if d.maxElementSize > 0 && n > d.maxElementSize {
 		return nil, ErrTooLargeElement
 	}
-	bs := make([]byte, n)
+	bs, err := readFull(r, n)
 
-	switch _, err := io.ReadFull(r, bs); err {
+	switch err {
 	case nil:
 		return bs, nil
 	case io.EOF:
 		return bs, io.ErrUnexpectedEOF
 	default:
 		return []byte{}, err
+	}
+}
+
+// maxInitialReadSize is the largest buffer that readFull allocates before data arrives.
+const maxInitialReadSize = 64 * 1024
+
+// readFull reads n bytes from r and returns the same errors as io.ReadFull.
+// The buffer is at most maxInitialReadSize long at first and doubles as data arrives,
+// so that an element size that is not followed by that much data does not allocate it.
+func readFull(r io.Reader, n uint64) ([]byte, error) {
+	size := n
+	if size > maxInitialReadSize {
+		size = maxInitialReadSize
+	}
+	b := make([]byte, size)
+	var nRead uint64
+	for {
+		m, err := io.ReadFull(r, b[nRead:])
+		nRead += uint64(m)
+		if err != nil {
+			if err == io.EOF && nRead > 0 {
+				err = io.ErrUnexpectedEOF
+			}
+			return b[:nRead], err
+		}
+		if nRead == n {
+			return b, nil
+		}
+		size *= 2
+		if size > n {
+			size = n
+		}
+		grown := make([]byte, size)
+		copy(grown, b)
+		b = grown
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -442,6 +443,73 @@ func TestReadValue_ReadUnexpectedEOF(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestReadValue_SizeWithoutData(t *testing.T) {
+	testCases := []struct {
+		t DataType
+		b []byte
+	}{
+		{DataTypeBinary, []byte{}},
+		{DataTypeString, []byte{}},
+		{DataTypeBlock, []byte{0x81, 0x00, 0x00, 0x80}}, // track 1, timecode 0, keyframe, no lacing
+	}
+
+	vd := &valueDecoder{
+		maxElementSize: DefaultMaxLeafElementSize,
+	}
+
+	for _, c := range testCases {
+		t.Run("Read "+c.t.String(), func(t *testing.T) {
+			var before, after runtime.MemStats
+			runtime.GC()
+			runtime.ReadMemStats(&before)
+			_, _ = vd.decode(c.t, bytes.NewReader(c.b), DefaultMaxLeafElementSize)
+			runtime.ReadMemStats(&after)
+			if allocated := after.TotalAlloc - before.TotalAlloc; allocated > 1024*1024 {
+				t.Errorf("Expected at most 1 MiB allocated for %s of %d bytes stated and %d bytes of data, got: %d",
+					c.t.String(), uint64(DefaultMaxLeafElementSize), len(c.b), allocated)
+			}
+		})
+	}
+}
+
+func TestReadValue_LargeBinary(t *testing.T) {
+	b := make([]byte, 5*maxInitialReadSize+3)
+	for i := range b {
+		b[i] = byte(i % 251)
+	}
+
+	vd := &valueDecoder{}
+
+	v, err := vd.decode(DataTypeBinary, bytes.NewReader(b), uint64(len(b)))
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if !bytes.Equal(v.([]byte), b) {
+		t.Errorf("Expected %d bytes read back unchanged", len(b))
+	}
+
+	// Data ending inside a buffer, and data ending exactly where a buffer ends,
+	// so that the next read finds nothing at all: both are short.
+	for _, l := range []int{3 * maxInitialReadSize, maxInitialReadSize, 2 * maxInitialReadSize} {
+		_, err = vd.decode(DataTypeBinary, bytes.NewReader(b[:l]), uint64(len(b)))
+		if !errors.Is(err, io.ErrUnexpectedEOF) {
+			t.Errorf("Expected error against short (%d bytes) Binary: %v, got: %v",
+				l, io.ErrUnexpectedEOF, err)
+		}
+	}
+}
+
+func TestReadFull_EndsAtBufferBoundary(t *testing.T) {
+	b := make([]byte, maxInitialReadSize)
+	got, err := readFull(bytes.NewReader(b), 2*maxInitialReadSize)
+	if err != io.ErrUnexpectedEOF {
+		t.Errorf("Expected %v, got: %v", io.ErrUnexpectedEOF, err)
+	}
+	if len(got) != maxInitialReadSize {
+		t.Errorf("Expected the %d bytes that were there, got: %d", maxInitialReadSize, len(got))
 	}
 }
 
