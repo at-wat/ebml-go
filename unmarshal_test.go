@@ -878,3 +878,65 @@ func TestUnmarshal_DeeplyNestedMaster(t *testing.T) {
 		t.Fatalf("expected ErrElementTooDeep, got %v", err)
 	}
 }
+
+func TestUnmarshal_PositionsAfterUnknownSize(t *testing.T) {
+	for _, tc := range []struct {
+		name                     string
+		segmentSize, clusterSize bool
+	}{
+		{"unknown segments and clusters", false, false},
+		{"known clusters", false, true},
+		{"known segments and clusters", true, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			data := []byte{
+				0x1A, 0x45, 0xDF, 0xA3, 0x84, 0x42, 0x87, 0x81, 0x02,
+				0x18, 0x53, 0x80, 0x67, 0xFF,
+				0x1F, 0x43, 0xB6, 0x75, 0xFF, 0xE7, 0x81, 0x01,
+				0x1F, 0x43, 0xB6, 0x75, 0xFF, 0xE7, 0x81, 0x02,
+				0x1A, 0x45, 0xDF, 0xA3, 0x84, 0x42, 0x87, 0x81, 0x02,
+				0x18, 0x53, 0x80, 0x67, 0xFF,
+				0x1F, 0x43, 0xB6, 0x75, 0xFF, 0xE7, 0x81, 0x03,
+			}
+			if tc.segmentSize {
+				data[13] = 0x90
+				data[43] = 0x88
+			}
+			if tc.clusterSize {
+				data[18] = 0x83
+				data[26] = 0x83
+				data[48] = 0x83
+			}
+			runForEachReader(t, data, func(t *testing.T, reader func() io.Reader) {
+				var got struct {
+					EBML struct {
+						DocTypeVersion uint64 `ebml:"EBMLDocTypeVersion"`
+					}
+					Segment struct{ Cluster []struct{ Timecode uint64 } }
+				}
+				elements := make(map[string][]*Element)
+				if err := Unmarshal(reader(), &got, WithElementReadHooks(withElementMap(elements))); err != nil {
+					t.Fatal(err)
+				}
+				want := map[string][]uint64{
+					"EBML": {0, 30}, "EBML.EBMLDocTypeVersion": {5, 35},
+					"Segment": {9, 39}, "Segment.Cluster": {14, 22, 44},
+					"Segment.Cluster.Timestamp": {19, 27, 49},
+				}
+				if positions := elementPositionMap(elements); !reflect.DeepEqual(positions, want) {
+					t.Errorf("positions = %v, want %v", positions, want)
+				}
+				if len(got.Segment.Cluster) != 3 {
+					t.Fatalf("decoded %d clusters, want 3", len(got.Segment.Cluster))
+				}
+				if !tc.clusterSize {
+					for _, elem := range elements["Segment.Cluster"] {
+						if elem.Size != SizeUnknown {
+							t.Errorf("unknown size became %d", elem.Size)
+						}
+					}
+				}
+			})
+		})
+	}
+}
