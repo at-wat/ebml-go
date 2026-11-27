@@ -40,9 +40,7 @@ func (u *unlacer) Read() ([]byte, error) {
 	n := u.size[u.i]
 	u.i++
 
-	b := make([]byte, n)
-	_, err := io.ReadFull(u.r, b)
-	return b, err
+	return readFull(u.r, uint64(n))
 }
 
 // NewNoUnlacer creates pass-through Unlacer for not laced data.
