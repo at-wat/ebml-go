@@ -78,7 +78,7 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 	// Unify the behavior of the reader to always return `io.EOF` with `n == 0`.
 	rr := &rollbackReaderNop{Reader: r}
 	for {
-		if _, err := vd.readElement(rr, SizeUnknown, voe, 0, 0, nil, ElementInvalid, options); err != nil {
+		if _, _, err := vd.readElement(rr, SizeUnknown, voe, 0, 0, nil, ElementInvalid, options); err != nil {
 			if err == io.EOF {
 				return nil
 			}
@@ -87,9 +87,9 @@ func Unmarshal(r io.Reader, val interface{}, opts ...UnmarshalOption) error {
 	}
 }
 
-func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64, parent *Element, self ElementType, options *UnmarshalOptions) (io.Reader, error) {
+func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, depth int, pos uint64, parent *Element, self ElementType, options *UnmarshalOptions) (io.Reader, uint64, error) {
 	if depth > maxElementDepth {
-		return nil, wrapErrorf(ErrElementTooDeep, "unmarshalling nested element at depth %d", depth)
+		return nil, pos, wrapErrorf(ErrElementTooDeep, "unmarshalling nested element at depth %d", depth)
 	}
 	pos0 := pos
 	var r rollbackReader
@@ -120,7 +120,7 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 			if n, ok := vo.Type().Field(i).Tag.Lookup("ebml"); ok {
 				t, err := parseTag(n)
 				if err != nil {
-					return nil, err
+					return nil, pos, err
 				}
 				name = t.name
 				f.stop = t.stop
@@ -130,7 +130,7 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 			}
 			t, err := ElementTypeFromString(name)
 			if err != nil {
-				return nil, err
+				return nil, pos, err
 			}
 			fieldMap[t] = f
 		}
@@ -146,12 +146,12 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 		headerSize += uint64(nb)
 		if err != nil {
 			if nb == 0 && err == io.ErrUnexpectedEOF {
-				return nil, io.EOF
+				return nil, pos, io.EOF
 			}
 			if options.ignoreUnknown {
-				return nil, nil
+				return nil, pos, nil
 			}
-			return nil, err
+			return nil, pos, err
 		}
 		v, ok := revTable[uint32(e)]
 		if !ok {
@@ -160,7 +160,7 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 				pos++
 				continue
 			}
-			return nil, wrapErrorf(ErrUnknownElement, "unmarshalling element 0x%x", e)
+			return nil, pos, wrapErrorf(ErrUnknownElement, "unmarshalling element 0x%x", e)
 		}
 
 		size, nb, err := vd.readDataSize(r)
@@ -179,7 +179,7 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 				pos++
 				continue
 			}
-			return nil, err
+			return nil, pos, err
 		}
 
 		var vnext reflect.Value
@@ -212,8 +212,14 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 			// Detect the end of the unknown-sized element.
 			// https://www.rfc-editor.org/rfc/rfc8794.html#section-6.2
 			if (v.top && table[self].top) || (v.e == ElementEBML && self != ElementInvalid && n == SizeUnknown) {
-				b := bytes.Join([][]byte{table[v.e].b, encodeDataSize(size, uint64(nb))}, []byte{})
-				return bytes.NewBuffer(b), io.EOF
+				sizeBytes := encodeDataSize(size, uint64(nb))
+				if size == SizeUnknown {
+					// Keep the original width when replaying an unknown-size header.
+					sizeBytes = bytes.Repeat([]byte{0xff}, nb)
+					sizeBytes[0] >>= uint(nb - 1)
+				}
+				b := bytes.Join([][]byte{table[v.e].b, sizeBytes}, []byte{})
+				return bytes.NewBuffer(b), pos, io.EOF
 			}
 			var vn reflect.Value
 			if mapOut {
@@ -236,9 +242,12 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 			if elem != nil {
 				elem.Value = vn.Interface()
 			}
-			r0, err := vd.readElement(r, int64(size), vn, depth+1, pos+headerSize, elem, v.e, options)
+			r0, endPos, err := vd.readElement(r, int64(size), vn, depth+1, pos+headerSize, elem, v.e, options)
 			if err != nil && err != io.EOF {
-				return r0, err
+				return r0, pos, err
+			}
+			if size == SizeUnknown {
+				size = endPos - pos - headerSize
 			}
 			if r0 != nil {
 				r.Set(io.MultiReader(r0, r.Get()))
@@ -251,7 +260,7 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 					pos++
 					continue
 				}
-				return nil, err
+				return nil, pos, err
 			}
 			vr := reflect.ValueOf(val)
 			if mapOut {
@@ -271,12 +280,12 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 						case isConvertible(vr.Type(), t):
 							vnext.Set(reflect.Append(vnext, vr.Convert(t)))
 						default:
-							return nil, wrapErrorf(
+							return nil, pos, wrapErrorf(
 								ErrIncompatibleType, "unmarshalling %s to %s", vnext.Type(), vr.Type(),
 							)
 						}
 					default:
-						return nil, wrapErrorf(
+						return nil, pos, wrapErrorf(
 							ErrIncompatibleType, "unmarshalling %s to %s", vnext.Type(), vr.Type(),
 						)
 					}
@@ -316,7 +325,7 @@ func (vd *valueDecoder) readElement(r0 io.Reader, n int64, vo reflect.Value, dep
 
 		pos += headerSize + size
 		if stopHere {
-			return nil, ErrReadStopped
+			return nil, pos, ErrReadStopped
 		}
 	}
 }
